@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Générateur d'icônes ShopMaster</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { color: #ec4899; }
+    .icons { display: flex; flex-wrap: wrap; gap: 20px; margin: 20px 0; }
+    .icon-box { background: white; padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    canvas { display: block; margin: 0 auto 10px; }
+    button { background: #ec4899; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; margin: 5px; }
+    button:hover { background: #db2777; }
+    .download-all { background: #10b981; font-size: 18px; padding: 15px 30px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🛍️ Générateur d'icônes ShopMaster</h1>
+    <p>Cliquez sur chaque bouton pour télécharger les icônes, ou utilisez "Tout télécharger".</p>
+    
+    <button class="download-all" onclick="downloadAll()">📦 Tout télécharger</button>
+    
+    <div class="icons" id="icons"></div>
+  </div>
+
+  <script>
+    const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+    const container = document.getElementById('icons');
+    
+    function drawIcon(canvas, size) {
+      const ctx = canvas.getContext('2d');
+      canvas.width = size;
+      canvas.height = size;
+      
+      // Background gradient
+      const gradient = ctx.createLinearGradient(0, 0, size, size);
+      gradient.addColorStop(0, '#ec4899');
+      gradient.addColorStop(1, '#f472b6');
+      
+      // Rounded rectangle
+      const radius = size * 0.25;
+      ctx.beginPath();
+      ctx.moveTo(radius, 0);
+      ctx.lineTo(size - radius, 0);
+      ctx.quadraticCurveTo(size, 0, size, radius);
+      ctx.lineTo(size, size - radius);
+      ctx.quadraticCurveTo(size, size, size - radius, size);
+      ctx.lineTo(radius, size);
+      ctx.quadraticCurveTo(0, size, 0, size - radius);
+      ctx.lineTo(0, radius);
+      ctx.quadraticCurveTo(0, 0, radius, 0);
+      ctx.closePath();
+      ctx.fillStyle = gradient;
+      ctx.fill();
+      
+      // Shopping bag
+      ctx.fillStyle = 'rgba(255,255,255,0.95)';
+      const bagX = size * 0.27;
+      const bagY = size * 0.35;
+      const bagW = size * 0.46;
+      const bagH = size * 0.51;
+      const bagR = size * 0.04;
+      
+      ctx.beginPath();
+      ctx.moveTo(bagX + bagR, bagY);
+      ctx.lineTo(bagX + bagW - bagR, bagY);
+      ctx.quadraticCurveTo(bagX + bagW, bagY, bagX + bagW, bagY + bagR);
+      ctx.lineTo(bagX + bagW, bagY + bagH - bagR);
+      ctx.quadraticCurveTo(bagX + bagW, bagY + bagH, bagX + bagW - bagR, bagY + bagH);
+      ctx.lineTo(bagX + bagR, bagY + bagH);
+      ctx.quadraticCurveTo(bagX, bagY + bagH, bagX, bagY + bagH - bagR);
+      ctx.lineTo(bagX, bagY + bagR);
+      ctx.quadraticCurveTo(bagX, bagY, bagX + bagR, bagY);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Handle
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = size * 0.055;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      const handleY = size * 0.35;
+      const handleTop = size * 0.18;
+      ctx.moveTo(size * 0.37, handleY);
+      ctx.quadraticCurveTo(size * 0.37, handleTop, size * 0.5, handleTop);
+      ctx.quadraticCurveTo(size * 0.63, handleTop, size * 0.63, handleY);
+      ctx.stroke();
+      
+      // S letter
+      ctx.strokeStyle = '#ec4899';
+      ctx.lineWidth = size * 0.045;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      const sX = size * 0.43;
+      const sY = size * 0.48;
+      const sW = size * 0.15;
+      const sH = size * 0.28;
+      ctx.moveTo(sX + sW, sY);
+      ctx.quadraticCurveTo(sX + sW, sY - sH*0.15, sX + sW*0.5, sY - sH*0.15);
+      ctx.quadraticCurveTo(sX, sY - sH*0.15, sX, sY + sH*0.2);
+      ctx.quadraticCurveTo(sX, sY + sH*0.5, sX + sW*0.5, sY + sH*0.5);
+      ctx.quadraticCurveTo(sX + sW, sY + sH*0.5, sX + sW, sY + sH*0.8);
+      ctx.quadraticCurveTo(sX + sW, sY + sH, sX + sW*0.5, sY + sH);
+      ctx.quadraticCurveTo(sX, sY + sH, sX, sY + sH*0.8);
+      ctx.stroke();
+    }
+    
+    function downloadCanvas(canvas, filename) {
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+    
+    // Generate all icons
+    sizes.forEach(size => {
+      const box = document.createElement('div');
+      box.className = 'icon-box';
+      
+      const canvas = document.createElement('canvas');
+      drawIcon(canvas, size);
+      
+      const label = document.createElement('div');
+      label.textContent = `${size}x${size}`;
+      
+      const btn = document.createElement('button');
+      btn.textContent = 'Télécharger';
+      btn.onclick = () => downloadCanvas(canvas, `icon-${size}x${size}.png`);
+      
+      box.appendChild(canvas);
+      box.appendChild(label);
+      box.appendChild(btn);
+      container.appendChild(box);
+    });
+    
+    // Apple touch icon (180x180)
+    const appleBox = document.createElement('div');
+    appleBox.className = 'icon-box';
+    const appleCanvas = document.createElement('canvas');
+    drawIcon(appleCanvas, 180);
+    const appleLabel = document.createElement('div');
+    appleLabel.textContent = 'Apple Touch Icon (180x180)';
+    const appleBtn = document.createElement('button');
+    appleBtn.textContent = 'Télécharger';
+    appleBtn.onclick = () => downloadCanvas(appleCanvas, 'apple-touch-icon.png');
+    appleBox.appendChild(appleCanvas);
+    appleBox.appendChild(appleLabel);
+    appleBox.appendChild(appleBtn);
+    container.appendChild(appleBox);
+    
+    function downloadAll() {
+      sizes.forEach((size, i) => {
+        setTimeout(() => {
+          const canvas = container.children[i].querySelector('canvas');
+          downloadCanvas(canvas, `icon-${size}x${size}.png`);
+        }, i * 200);
+      });
+      setTimeout(() => {
+        downloadCanvas(appleCanvas, 'apple-touch-icon.png');
+      }, sizes.length * 200);
+    }
+  </script>
+</body>
+</html>
