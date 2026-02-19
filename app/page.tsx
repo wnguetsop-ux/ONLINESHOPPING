@@ -356,6 +356,107 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ✨ NEW — Features Section 4 - IA Vision */}
+      <section className="py-20 bg-gradient-to-br from-purple-50 via-white to-orange-50">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="grid md:grid-cols-2 gap-16 items-center">
+            <div>
+              {/* AI badge */}
+              <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-semibold mb-4">
+                <span className="text-lg">🤖</span>
+                Intelligence Artificielle intégrée
+              </div>
+              <h2 className="text-3xl font-bold text-gray-800 mb-6">
+                Filmez un produit, l'IA remplit tout automatiquement
+              </h2>
+              <p className="text-gray-600 mb-6 leading-relaxed">
+                Grâce à la vision par IA (Gemini + GPT-4), pointez simplement votre caméra 
+                sur n'importe quel produit et laissez l'intelligence artificielle identifier 
+                et rédiger toutes les informations en français en quelques secondes.
+              </p>
+              <ul className="space-y-4 mb-8">
+                {[
+                  { icon: '📸', text: 'Prenez une photo ou filmez le produit' },
+                  { icon: '🏷️', text: 'Nom commercial généré automatiquement en français' },
+                  { icon: '📝', text: 'Description marketing attrayante rédigée par l\'IA' },
+                  { icon: '📋', text: 'Caractéristiques techniques extraites de la photo' },
+                  { icon: '💰', text: 'Prix de vente suggéré selon le marché africain' },
+                  { icon: '✏️', text: 'Tout modifiable avant de sauvegarder' },
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <span className="text-xl flex-shrink-0">{item.icon}</span>
+                    <span className="text-gray-700">{item.text}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-purple-100 shadow-sm">
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Zap className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800 text-sm">Ajout de 100 produits en moins de 20 minutes</p>
+                  <p className="text-xs text-gray-500">Contre plusieurs heures de saisie manuelle</p>
+                </div>
+              </div>
+            </div>
+
+            {/* AI demo mockup */}
+            <div className="relative">
+              <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100">
+                {/* Phone frame top */}
+                <div className="bg-gray-800 px-4 pt-3 pb-1 flex items-center justify-between">
+                  <div className="w-16 h-1.5 bg-gray-600 rounded-full" />
+                  <div className="w-4 h-4 bg-gray-600 rounded-full" />
+                </div>
+                {/* Camera viewfinder */}
+                <div className="relative bg-gray-900 h-44 flex items-center justify-center overflow-hidden">
+                  <div className="text-6xl">👟</div>
+                  {/* Corner guides */}
+                  {['top-3 left-3','top-3 right-3','bottom-3 left-3','bottom-3 right-3'].map((pos,i) => (
+                    <div key={i} className={`absolute ${pos} w-6 h-6 border-2 border-orange-400 ${i<2?'border-b-0':'border-t-0'} ${i%2===0?'border-r-0':'border-l-0'}`} />
+                  ))}
+                  <div className="absolute bottom-2 left-0 right-0 text-center">
+                    <span className="text-white/70 text-xs bg-black/40 px-3 py-1 rounded-full">📷 Cadrez le produit</span>
+                  </div>
+                </div>
+                {/* AI analyzing animation */}
+                <div className="px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 flex items-center gap-3">
+                  <div className="flex gap-1">
+                    {[0,1,2].map(i => <div key={i} className="w-2 h-2 bg-white rounded-full opacity-80" style={{ animation: `pulse 1s ease-in-out ${i*0.2}s infinite` }} />)}
+                  </div>
+                  <span className="text-white text-sm font-medium">Gemini analyse le produit...</span>
+                </div>
+                {/* Auto-filled form */}
+                <div className="p-4 space-y-2">
+                  <div>
+                    <p className="text-xs text-gray-400 mb-0.5">Nom du produit ✨IA</p>
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 text-sm font-medium text-gray-800">Nike Air Force 1 Blanc</div>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 mb-0.5">Description ✨IA</p>
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 text-xs text-gray-700">Sneakers iconiques ultra-confortables, parfaites au quotidien...</div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <p className="text-xs text-gray-400 mb-0.5">Prix suggéré ✨</p>
+                      <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-sm font-bold text-green-700">45 000 FCFA</div>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400 mb-0.5">Catégorie ✨</p>
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-sm text-gray-700">Chaussures</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {/* Floating badge */}
+              <div className="absolute -top-4 -right-4 bg-orange-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+                🆓 GRATUIT
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Why Choose Us */}
       <section className="py-20 bg-gray-800 text-white">
         <div className="max-w-7xl mx-auto px-4">

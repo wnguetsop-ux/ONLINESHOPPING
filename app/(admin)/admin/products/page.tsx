@@ -156,7 +156,7 @@ export default function ProductsPage() {
     }, 'image/jpeg', 0.92);
   }
 
-  // ── GEMINI AI ─────────────────────────────────────────────────────────────
+  // ── GEMINI / OPENAI AI ANALYSIS ───────────────────────────────────────────
   async function analyzeAI(blob: Blob) {
     setIsAnalyzing(true);
     try {
@@ -173,17 +173,33 @@ export default function ProductsPage() {
       });
       if (!r.ok) throw new Error();
       const p = await r.json();
+      
+      // Log which AI responded
+      if (p._source) console.log('[AI] Source:', p._source);
+      if (p._error) console.warn('[AI] Error:', p._error);
+      
       if (p.name || p.description || p.specifications) {
-        setForm(prev => ({
-          ...prev,
-          name: p.name || prev.name,
-          description: p.description || prev.description,
-          specifications: p.specifications || prev.specifications,
-          brand: p.brand || prev.brand,
-          category: p.category ? (categories.find(c => c.name.toLowerCase().includes(p.category.toLowerCase()))?.name || prev.category) : prev.category,
-        }));
+        setForm(prev => {
+          // Try to parse suggested price (remove non-numeric except decimal separator)
+          let suggestedSellingPrice = prev.sellingPrice;
+          if (p.suggestedPrice) {
+            const numStr = p.suggestedPrice.replace(/[^0-9]/g, '');
+            if (numStr && parseInt(numStr) > 0) suggestedSellingPrice = numStr;
+          }
+          return {
+            ...prev,
+            name: p.name || prev.name,
+            description: p.description || prev.description,
+            specifications: p.specifications || prev.specifications,
+            brand: p.brand || prev.brand,
+            sellingPrice: suggestedSellingPrice,
+            category: p.category
+              ? (categories.find(c => c.name.toLowerCase().includes(p.category.toLowerCase()))?.name || prev.category)
+              : prev.category,
+          };
+        });
       }
-    } catch { /* silent */ }
+    } catch { /* silent — AI errors don't block the form */ }
     setIsAnalyzing(false);
   }
 
@@ -364,8 +380,8 @@ export default function ProductsPage() {
                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-2xl">
                           <div className="text-center text-white">
                             <Sparkles className="w-8 h-8 mx-auto mb-2 text-purple-300 animate-pulse" />
-                            <p className="font-semibold text-sm">Gemini analyse...</p>
-                            <p className="text-xs text-white/70 mt-1">Remplissage automatique ✨</p>
+                            <p className="font-semibold text-sm">IA analyse le produit...</p>
+                            <p className="text-xs text-white/70 mt-1">Gemini • GPT-4o ✨</p>
                           </div>
                         </div>
                       )}
@@ -396,16 +412,16 @@ export default function ProductsPage() {
                     </button>
                   </div>
                 )}
-                <input ref={fileInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
                 {photoMode === 'none' && !photoPreview && !form.imageUrl && (
-                  <p className="text-xs text-gray-400 mt-2 text-center">🤖 Gemini remplit automatiquement nom, description, caractéristiques</p>
+                  <p className="text-xs text-gray-400 mt-2 text-center">🤖 Gemini + GPT-4o remplissent automatiquement nom, description, caractéristiques et prix suggéré</p>
                 )}
               </div>
 
               {isAnalyzing && photoMode === 'done' && (
                 <div className="flex items-center gap-2 bg-purple-50 border border-purple-200 rounded-xl p-3">
                   <Sparkles className="w-5 h-5 text-purple-500 animate-pulse" />
-                  <p className="text-sm text-purple-700 font-medium">Gemini remplit les champs automatiquement...</p>
+                  <p className="text-sm text-purple-700 font-medium">🤖 Gemini + GPT-4o remplissent les champs automatiquement...</p>
                 </div>
               )}
 

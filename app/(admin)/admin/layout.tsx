@@ -49,8 +49,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className={`fixed top-0 left-0 z-50 h-full w-64 bg-white border-r border-gray-100 transform transition-transform duration-300 lg:translate-x-0 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
-        {/* Logo */}
-        <div className="h-16 flex items-center justify-between px-5 border-b border-gray-100">
+        {/* Logo — with safe-top for notch/punch-hole */}
+        <div className="sidebar-logo flex items-center justify-between px-5 border-b border-gray-100"
+          style={{ paddingTop: 'max(1.25rem, calc(env(safe-area-inset-top, 0px) + 0.75rem))', height: 'calc(4rem + env(safe-area-inset-top, 0px))' }}>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center text-white font-bold">
               <Store className="w-5 h-5" />
@@ -136,7 +137,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Main content */}
       <div className="lg:pl-64">
-        <header className="h-16 bg-white border-b border-gray-100 flex items-center px-4 lg:px-6 sticky top-0 z-30" style={{ paddingTop: 'env(safe-area-inset-top, 0px)', height: 'calc(4rem + env(safe-area-inset-top, 0px))' }}>
+        <header 
+          className="admin-header bg-white border-b border-gray-100 flex items-center px-4 lg:px-6 sticky top-0 z-30"
+          style={{ 
+            paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0px))',
+            height: 'calc(4rem + env(safe-area-inset-top, 0px))'
+          }}>
           <button 
             onClick={() => setSidebarOpen(true)} 
             className="lg:hidden text-gray-600 mr-4 p-2 hover:bg-gray-100 rounded-lg"

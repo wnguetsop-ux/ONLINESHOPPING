@@ -25,7 +25,7 @@ export interface Shop {
   pickupAddress?: string;
   
   // Configuration
-  currency: 'XAF' | 'EUR' | 'USD';
+  currency: 'XAF' | 'XOF' | 'GNF' | 'MGA' | 'MRO' | 'EUR' | 'USD' | 'CDF' | 'BIF' | 'RWF';
   deliveryFee: number;
   freeDeliveryAbove?: number;
   pickupEnabled: boolean;
