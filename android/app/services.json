@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "243302666157",
+    "project_id": "stockflow-b6d58",
+    "storage_bucket": "stockflow-b6d58.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:243302666157:android:0bcc9995dc1b5dfcb2db24",
+        "android_client_info": {
+          "package_name": "com.mastershoppro.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "243302666157-tia7524hbrri85gdi341je72o6fe6t9u.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mastershoppro.app",
+            "certificate_hash": "e26f7c480cb2c877098bce165847cd284306eb36"
+          }
+        },
+        {
+          "client_id": "243302666157-je0b9se443rdv4hkup88bll6vg4ofu3h.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBA8XhzkVTn5scP9ye0uCA2_S_EK4FDUno"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "243302666157-je0b9se443rdv4hkup88bll6vg4ofu3h.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
