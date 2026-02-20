@@ -6,7 +6,7 @@ import { PLANS } from '@/lib/types';
 import { Crown, Search, Check, X, Clock, RefreshCw, Shield, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 
 // ⚠️ MOT DE PASSE DÉVELOPPEUR — changez cette valeur !
-const DEV_PASSWORD = 'shopmaster2025dev';
+const DEV_PASSWORD = 'Bobane12$';
 
 interface ShopRow {
   id: string;

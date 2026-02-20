@@ -48,6 +48,7 @@ export default function ProductsPage() {
 
   const [form, setForm] = useState({
     name: '', description: '', specifications: '', category: '', brand: '',
+    sku: '', barcode: '',
     costPrice: '', sellingPrice: '', stock: '', minStock: '5',
     isActive: true, isFeatured: false, imageUrl: '',
   });
@@ -63,12 +64,12 @@ export default function ProductsPage() {
 
   function openAdd() {
     setEditing(null); resetPhoto();
-    setForm({ name: '', description: '', specifications: '', category: '', brand: '', costPrice: '', sellingPrice: '', stock: '', minStock: '5', isActive: true, isFeatured: false, imageUrl: '' });
+    setForm({ name: '', description: '', specifications: '', category: '', brand: '', sku: '', barcode: '', costPrice: '', sellingPrice: '', stock: '', minStock: '5', isActive: true, isFeatured: false, imageUrl: '' });
     setShowModal(true);
   }
   function openEdit(p: Product) {
     setEditing(p); resetPhoto();
-    setForm({ name: p.name, description: p.description || '', specifications: p.specifications || '', category: p.category, brand: p.brand || '', costPrice: String(p.costPrice), sellingPrice: String(p.sellingPrice), stock: String(p.stock), minStock: String(p.minStock || 5), isActive: p.isActive, isFeatured: p.isFeatured || false, imageUrl: p.imageUrl || '' });
+    setForm({ name: p.name, description: p.description || '', specifications: p.specifications || '', category: p.category, brand: p.brand || '', sku: p.sku || '', barcode: p.barcode || '', costPrice: String(p.costPrice), sellingPrice: String(p.sellingPrice), stock: String(p.stock), minStock: String(p.minStock || 5), isActive: p.isActive, isFeatured: p.isFeatured || false, imageUrl: p.imageUrl || '' });
     setShowModal(true);
   }
   function resetPhoto() {
@@ -93,8 +94,9 @@ export default function ProductsPage() {
     const v = videoRef.current, c = canvasRef.current;
     c.width = v.videoWidth; c.height = v.videoHeight;
     c.getContext('2d')?.drawImage(v, 0, 0);
-    openCrop(c.toDataURL('image/jpeg', 0.92), v.videoWidth, v.videoHeight);
+    // Stop camera BEFORE opening crop (image is already captured in canvas)
     stopCam();
+    openCrop(c.toDataURL('image/jpeg', 0.92), v.videoWidth, v.videoHeight);
   }
 
   // ── FILE PICK ─────────────────────────────────────────────────────────────
@@ -217,15 +219,45 @@ export default function ProductsPage() {
 
   // ── SAVE ──────────────────────────────────────────────────────────────────
   async function handleSave(e: React.FormEvent) {
-    e.preventDefault(); if (!shop?.id) return;
+    e.preventDefault();
+    if (!shop?.id) return;
     setSaving(true);
-    let imageUrl = form.imageUrl;
-    if (photoFile) imageUrl = await uploadPhoto();
-    const data = { name: form.name, description: form.description, specifications: form.specifications, category: form.category, brand: form.brand, costPrice: parseFloat(form.costPrice) || 0, sellingPrice: parseFloat(form.sellingPrice) || 0, stock: parseInt(form.stock) || 0, minStock: parseInt(form.minStock) || 5, isActive: form.isActive, isFeatured: form.isFeatured, imageUrl };
     try {
-      editing?.id ? await updateProduct(editing.id, data) : await createProduct(shop.id, data);
-      await loadData(); setShowModal(false);
-    } catch { alert('Erreur lors de la sauvegarde'); }
+      let imageUrl = form.imageUrl || '';
+      if (photoFile) {
+        try { imageUrl = await uploadPhoto(); } catch { /* keep existing */ }
+      }
+      // Firestore n'accepte JAMAIS undefined — tout doit être string/number/bool
+      const data: Record<string, any> = {
+        name: form.name.trim(),
+        category: form.category,
+        costPrice: parseFloat(form.costPrice) || 0,
+        sellingPrice: parseFloat(form.sellingPrice) || 0,
+        stock: parseInt(form.stock) || 0,
+        minStock: parseInt(form.minStock) || 5,
+        isActive: Boolean(form.isActive),
+        isFeatured: Boolean(form.isFeatured),
+        imageUrl,
+      };
+      // Champs optionnels : on n'envoie que s'ils ont une valeur
+      if (form.description.trim())    data.description    = form.description.trim();
+      if (form.specifications.trim()) data.specifications = form.specifications.trim();
+      if (form.brand.trim())          data.brand          = form.brand.trim();
+      if (form.sku.trim())            data.sku            = form.sku.trim();
+      if (form.barcode.trim())        data.barcode        = form.barcode.trim();
+
+      if (editing?.id) {
+        await updateProduct(editing.id, data);
+      } else {
+        await createProduct(shop.id, data);
+      }
+      await loadData();
+      setShowModal(false);
+      resetPhoto();
+    } catch (err: any) {
+      console.error('[Save product]', err);
+      alert('Erreur : ' + (err?.message || String(err)));
+    }
     setSaving(false);
   }
   async function handleDelete(id: string) {
@@ -438,6 +470,16 @@ export default function ProductsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Catégorie *</label><select required value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="select"><option value="">Choisir...</option>{categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}</select></div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Marque</label><input type="text" value={form.brand} onChange={e => setForm({ ...form, brand: e.target.value })} className="input" placeholder="Samsung, Nike..." /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">SKU <span className="text-gray-400 font-normal">(code article)</span></label>
+                  <input type="text" value={form.sku} onChange={e => setForm({ ...form, sku: e.target.value })} className="input font-mono text-sm" placeholder="REF-001" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Code-barres <span className="text-gray-400 font-normal">(EAN/UPC)</span></label>
+                  <input type="text" value={form.barcode} onChange={e => setForm({ ...form, barcode: e.target.value })} className="input font-mono text-sm" placeholder="0123456789012" inputMode="numeric" />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Prix d'achat *</label><input type="number" required min="0" value={form.costPrice} onChange={e => setForm({ ...form, costPrice: e.target.value })} className="input" /></div>

@@ -769,17 +769,24 @@ export default function ShopPage() {
         </div>
       )}
 
-      {/* ── ADMIN FLOATING BUTTON ── */}
+      {/* ── ADMIN BUTTON — visible seulement pour le propriétaire ── */}
       {user && adminShop?.slug === slug && (
-        <div className="fixed z-[9999] pointer-events-none"
-          style={{ bottom: 'calc(1.25rem + env(safe-area-inset-bottom, 0px))', left: '1rem' }}>
-          <Link href="/admin/dashboard"
-            className="pointer-events-auto flex items-center gap-2 px-4 py-3 rounded-2xl text-white text-sm font-semibold shadow-2xl"
-            style={{ background: 'linear-gradient(135deg, #1e1b4b, #4f46e5)', boxShadow: '0 8px 32px rgba(79,70,229,0.5)', whiteSpace: 'nowrap' }}>
-            <Settings className="w-4 h-4 flex-shrink-0" />
-            <span>Tableau de bord</span>
-          </Link>
-        </div>
+        <Link
+          href="/admin/dashboard"
+          className="fixed z-[9999] flex items-center gap-2 text-white text-xs font-bold shadow-xl"
+          style={{
+            bottom: 'calc(env(safe-area-inset-bottom, 0px) + 5rem)',
+            right: '0px',
+            background: 'linear-gradient(135deg, #1e1b4b, #4f46e5)',
+            padding: '0.5rem 0.75rem 0.5rem 0.6rem',
+            borderRadius: '0.75rem 0 0 0.75rem',
+            boxShadow: '-4px 4px 20px rgba(79,70,229,0.45)',
+            writingMode: 'horizontal-tb',
+          }}
+        >
+          <Settings className="w-3.5 h-3.5 flex-shrink-0" />
+          <span>Admin</span>
+        </Link>
       )}
     </div>
   );

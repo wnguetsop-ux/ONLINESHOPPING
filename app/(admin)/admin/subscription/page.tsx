@@ -1,257 +1,227 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { Crown, Check, Zap, Package, ShoppingCart, MessageCircle, Copy, CheckCircle } from 'lucide-react';
+import { Crown, Check, Zap, Package, ShoppingCart, ExternalLink, Sparkles, Shield, Clock } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { checkShopLimits } from '@/lib/firestore';
 import { PLANS } from '@/lib/types';
+
+// ── Stripe payment links ──────────────────────────────────────────────────
+const STRIPE_LINKS: Record<string, string> = {
+  STARTER: 'https://buy.stripe.com/7sY3cngMt8Cu8ja6XGaVa02',
+  PRO:     'https://buy.stripe.com/fZuaEPbs98Cuczqci0aVa03',
+};
+
+const PLAN_FEATURES: Record<string, { icon: string; items: string[] }> = {
+  FREE: {
+    icon: '🆓',
+    items: ['20 produits max', '20 commandes/mois', 'Boutique en ligne publique', 'Scanner de codes-barres', 'Support email'],
+  },
+  STARTER: {
+    icon: '🚀',
+    items: ['50 produits max', '100 commandes/mois', 'Toutes les fonctionnalités Free', 'IA analyse produits (Gemini + GPT-4o)', 'Reçus imprimables thermiques', 'Support prioritaire'],
+  },
+  PRO: {
+    icon: '👑',
+    items: ['Produits illimités', 'Commandes illimitées', 'Toutes les fonctionnalités Starter', 'Scanner USB professionnel', 'Multi-devises (21 pays)', 'Support 24/7 WhatsApp'],
+  },
+};
 
 export default function SubscriptionPage() {
   const { shop } = useAuth();
   const [limits, setLimits] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
-  const [showPayment, setShowPayment] = useState<string | null>(null);
-
-  // ⚠️ TES INFORMATIONS DE CONTACT
-  const PAYMENT_WHATSAPP = '393299639430';
-  const PAYMENT_MOMO = '+237 651 495 483';
-  const EMAIL = 'wnguetsop@gmail.com';
 
   useEffect(() => {
     if (shop?.id) {
-      checkShopLimits(shop.id).then(data => {
-        setLimits(data);
-        setLoading(false);
-      });
+      checkShopLimits(shop.id).then(data => { setLimits(data); setLoading(false); });
     }
   }, [shop?.id]);
 
   const currentPlan = PLANS[shop?.planId || 'FREE'];
-
-  function copyToClipboard(text: string) {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
-
-  function getWhatsAppMessage(planId: string) {
-    const plan = PLANS[planId as keyof typeof PLANS];
-    return `Bonjour! Je souhaite passer au plan *${plan.name}* de ShopMaster.\n\nMa boutique: ${shop?.name}\nSlug: ${shop?.slug}\n\nPrix: ${plan.price.toLocaleString('fr-FR')} FCFA/mois\n\nMerci de confirmer mon abonnement.`;
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-12 h-12 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
   const primaryColor = shop?.primaryColor || '#ec4899';
 
+  function openStripe(planId: string) {
+    const link = STRIPE_LINKS[planId];
+    if (!link) return;
+    // Pass shop slug as metadata via URL query (Stripe allows client_reference_id)
+    const url = `${link}?client_reference_id=${shop?.slug || ''}&prefilled_email=${shop ? '' : ''}`;
+    window.open(link, '_blank');
+  }
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="w-12 h-12 border-4 border-t-transparent rounded-full animate-spin" style={{ borderColor: primaryColor }} />
+    </div>
+  );
+
   return (
-    <div className="max-w-4xl space-y-8">
-      {/* Current Usage */}
-      <div className="card">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${primaryColor}20` }}>
-            <Zap className="w-5 h-5" style={{ color: primaryColor }} />
-          </div>
-          <h2 className="font-bold text-gray-800 text-lg">Votre utilisation</h2>
-        </div>
+    <div className="max-w-4xl space-y-6">
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-gray-50 rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Package className="w-5 h-5 text-blue-500" />
-              <span className="text-sm text-gray-500">Produits</span>
+      {/* Current plan banner */}
+      <div className="card" style={{ background: `linear-gradient(135deg, ${primaryColor}10, ${primaryColor}05)`, borderColor: `${primaryColor}30` }}>
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl" style={{ backgroundColor: `${currentPlan.color}20` }}>
+              {PLAN_FEATURES[currentPlan.id]?.icon}
             </div>
-            <p className="text-2xl font-bold text-gray-800">
-              {limits?.productsCount || 0}
-              <span className="text-sm font-normal text-gray-400">
-                /{currentPlan.maxProducts === -1 ? '∞' : currentPlan.maxProducts}
-              </span>
-            </p>
-            {currentPlan.maxProducts !== -1 && (
-              <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full ${limits?.productsCount >= currentPlan.maxProducts ? 'bg-red-500' : 'bg-blue-500'}`}
-                  style={{ width: `${Math.min(100, ((limits?.productsCount || 0) / currentPlan.maxProducts) * 100)}%` }}
-                />
-              </div>
-            )}
+            <div>
+              <p className="text-sm text-gray-500">Plan actuel</p>
+              <p className="text-2xl font-bold" style={{ color: currentPlan.color }}>{currentPlan.name}</p>
+            </div>
           </div>
-
-          <div className="bg-gray-50 rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <ShoppingCart className="w-5 h-5 text-emerald-500" />
-              <span className="text-sm text-gray-500">Commandes/mois</span>
+          {/* Usage bars */}
+          <div className="flex gap-6">
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Produits</p>
+              <p className="font-bold text-gray-800">{limits?.productsCount || 0}<span className="text-gray-400 font-normal">/{currentPlan.maxProducts === -1 ? '∞' : currentPlan.maxProducts}</span></p>
+              {currentPlan.maxProducts !== -1 && (
+                <div className="mt-1 h-1.5 w-24 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, (limits?.productsCount || 0) / currentPlan.maxProducts * 100)}%`, backgroundColor: (limits?.productsCount || 0) >= currentPlan.maxProducts ? '#ef4444' : primaryColor }} />
+                </div>
+              )}
             </div>
-            <p className="text-2xl font-bold text-gray-800">
-              {limits?.ordersThisMonth || 0}
-              <span className="text-sm font-normal text-gray-400">
-                /{currentPlan.maxOrdersPerMonth === -1 ? '∞' : currentPlan.maxOrdersPerMonth}
-              </span>
-            </p>
-            {currentPlan.maxOrdersPerMonth !== -1 && (
-              <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full ${limits?.ordersThisMonth >= currentPlan.maxOrdersPerMonth ? 'bg-red-500' : 'bg-emerald-500'}`}
-                  style={{ width: `${Math.min(100, ((limits?.ordersThisMonth || 0) / currentPlan.maxOrdersPerMonth) * 100)}%` }}
-                />
-              </div>
-            )}
-          </div>
-
-          <div className="bg-gray-50 rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Crown className="w-5 h-5" style={{ color: currentPlan.color }} />
-              <span className="text-sm text-gray-500">Plan actuel</span>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Commandes/mois</p>
+              <p className="font-bold text-gray-800">{limits?.ordersThisMonth || 0}<span className="text-gray-400 font-normal">/{currentPlan.maxOrdersPerMonth === -1 ? '∞' : currentPlan.maxOrdersPerMonth}</span></p>
+              {currentPlan.maxOrdersPerMonth !== -1 && (
+                <div className="mt-1 h-1.5 w-24 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, (limits?.ordersThisMonth || 0) / currentPlan.maxOrdersPerMonth * 100)}%`, backgroundColor: (limits?.ordersThisMonth || 0) >= currentPlan.maxOrdersPerMonth ? '#ef4444' : '#10b981' }} />
+                </div>
+              )}
             </div>
-            <p className="text-2xl font-bold" style={{ color: currentPlan.color }}>
-              {currentPlan.name}
-            </p>
-          </div>
-
-          <div className="bg-gray-50 rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Check className="w-5 h-5 text-emerald-500" />
-              <span className="text-sm text-gray-500">Statut</span>
-            </div>
-            <p className="text-2xl font-bold text-emerald-600">Actif</p>
           </div>
         </div>
       </div>
 
-      {/* Plans */}
-      <div className="grid md:grid-cols-3 gap-6">
-        {Object.values(PLANS).map((plan) => {
-          const isCurrentPlan = currentPlan.id === plan.id;
+      {/* Plans grid */}
+      <div className="grid md:grid-cols-3 gap-5">
+        {Object.values(PLANS).map(plan => {
+          const isCurrent = currentPlan.id === plan.id;
           const isPopular = plan.id === 'STARTER';
+          const hasStripe = !!STRIPE_LINKS[plan.id];
+          const features = PLAN_FEATURES[plan.id];
 
           return (
-            <div
-              key={plan.id}
-              className={`relative card transition-all ${
-                isCurrentPlan ? 'ring-2' : isPopular ? 'ring-2 ring-blue-500' : ''
-              }`}
-              style={isCurrentPlan ? { ringColor: primaryColor } : {}}
-            >
-              {isPopular && !isCurrentPlan && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-1 rounded-full text-sm font-medium">
-                  ⭐ Populaire
+            <div key={plan.id} className={`relative bg-white rounded-2xl border-2 flex flex-col transition-all overflow-hidden
+              ${isCurrent ? 'border-current shadow-lg' : isPopular ? 'border-blue-400 shadow-md' : 'border-gray-100 hover:border-gray-200 hover:shadow-sm'}`}
+              style={isCurrent ? { borderColor: primaryColor } : {}}>
+
+              {/* Popular badge */}
+              {isPopular && !isCurrent && (
+                <div className="bg-blue-500 text-white text-xs font-bold text-center py-1.5 tracking-wide">⭐ PLUS POPULAIRE</div>
+              )}
+              {isCurrent && (
+                <div className="text-white text-xs font-bold text-center py-1.5 tracking-wide" style={{ backgroundColor: primaryColor }}>
+                  ✓ PLAN ACTUEL
                 </div>
               )}
 
-              {isCurrentPlan && (
-                <div 
-                  className="absolute -top-3 left-1/2 -translate-x-1/2 text-white px-4 py-1 rounded-full text-sm font-medium flex items-center gap-1"
-                  style={{ backgroundColor: primaryColor }}
-                >
-                  <Check className="w-4 h-4" /> Actuel
+              <div className="p-6 flex flex-col flex-1">
+                {/* Header */}
+                <div className="text-center mb-5">
+                  <span className="text-4xl">{features?.icon}</span>
+                  <h3 className="text-xl font-bold text-gray-800 mt-2">{plan.name}</h3>
+                  <div className="mt-2">
+                    {plan.price === 0 ? (
+                      <p className="text-3xl font-bold text-gray-700">Gratuit</p>
+                    ) : (
+                      <div>
+                        <p className="text-3xl font-bold" style={{ color: plan.color }}>
+                          {plan.price.toLocaleString('fr-FR')}
+                          <span className="text-sm font-normal text-gray-400"> FCFA</span>
+                        </p>
+                        <p className="text-xs text-gray-400">par mois</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
 
-              <div className="text-center pt-4 mb-6">
-                <div
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
-                  style={{ backgroundColor: `${plan.color}20` }}
-                >
-                  <Crown className="w-7 h-7" style={{ color: plan.color }} />
-                </div>
-                <h3 className="text-xl font-bold text-gray-800">{plan.name}</h3>
-                <p className="text-3xl font-bold mt-2" style={{ color: plan.color }}>
-                  {plan.price === 0 ? 'Gratuit' : `${plan.price.toLocaleString('fr-FR')}`}
-                  {plan.price > 0 && <span className="text-sm font-normal text-gray-400"> FCFA/mois</span>}
-                </p>
+                {/* Features */}
+                <ul className="space-y-2.5 mb-6 flex-1">
+                  {features?.items.map((f, i) => (
+                    <li key={i} className="flex items-start gap-2.5">
+                      <Check className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: plan.color }} />
+                      <span className="text-sm text-gray-600">{f}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* CTA */}
+                {isCurrent ? (
+                  <button disabled className="w-full py-3 rounded-xl bg-gray-100 text-gray-400 font-semibold cursor-not-allowed">
+                    Plan actuel
+                  </button>
+                ) : plan.id === 'FREE' ? (
+                  <button disabled className="w-full py-3 rounded-xl bg-gray-100 text-gray-400 font-semibold cursor-not-allowed">
+                    Plan de base
+                  </button>
+                ) : hasStripe ? (
+                  <button onClick={() => openStripe(plan.id)}
+                    className="w-full py-3 rounded-xl text-white font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-all active:scale-[0.98] shadow-sm"
+                    style={{ backgroundColor: plan.color }}>
+                    <Zap className="w-4 h-4" />
+                    Passer au {plan.name}
+                    <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+                  </button>
+                ) : null}
+
+                {/* Stripe security badge for paid plans */}
+                {hasStripe && !isCurrent && (
+                  <div className="flex items-center justify-center gap-1.5 mt-3">
+                    <Shield className="w-3 h-3 text-gray-400" />
+                    <span className="text-[10px] text-gray-400">Paiement sécurisé par Stripe</span>
+                  </div>
+                )}
               </div>
-
-              <ul className="space-y-3 mb-6">
-                {plan.features.map((feature, i) => (
-                  <li key={i} className="flex items-center gap-3">
-                    <Check className="w-5 h-5 flex-shrink-0" style={{ color: plan.color }} />
-                    <span className="text-gray-600 text-sm">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-
-              {isCurrentPlan ? (
-                <button disabled className="w-full py-3 rounded-xl bg-gray-100 text-gray-500 font-semibold cursor-not-allowed">
-                  Plan actuel
-                </button>
-              ) : plan.id === 'FREE' ? (
-                <button disabled className="w-full py-3 rounded-xl bg-gray-100 text-gray-500 font-semibold cursor-not-allowed">
-                  Plan de base
-                </button>
-              ) : (
-                <button
-                  onClick={() => setShowPayment(plan.id)}
-                  className="w-full py-3 rounded-xl text-white font-semibold hover:opacity-90 transition-opacity"
-                  style={{ backgroundColor: plan.color }}
-                >
-                  Passer au {plan.name}
-                </button>
-              )}
             </div>
           );
         })}
       </div>
 
-      {/* Payment Modal */}
-      {showPayment && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden">
-            <div
-              className="p-6 text-white text-center"
-              style={{ backgroundColor: PLANS[showPayment as keyof typeof PLANS].color }}
-            >
-              <Crown className="w-12 h-12 mx-auto mb-3" />
-              <h2 className="text-2xl font-bold">Passer au {PLANS[showPayment as keyof typeof PLANS].name}</h2>
-              <p className="text-3xl font-bold mt-2">
-                {PLANS[showPayment as keyof typeof PLANS].price.toLocaleString('fr-FR')} FCFA/mois
-              </p>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div className="bg-gray-50 rounded-xl p-4">
-                <h3 className="font-semibold text-gray-800 mb-3">📱 Paiement Mobile Money</h3>
-                <div className="flex items-center justify-between bg-white rounded-lg p-3 border">
-                  <span className="font-mono text-lg">{PAYMENT_MOMO}</span>
-                  <button onClick={() => copyToClipboard(PAYMENT_MOMO)} className="p-2 hover:bg-gray-100 rounded-lg">
-                    {copied ? <CheckCircle className="w-5 h-5 text-emerald-500" /> : <Copy className="w-5 h-5 text-gray-400" />}
-                  </button>
+      {/* Stripe info box */}
+      <div className="card bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-100">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-100 flex items-center justify-center flex-shrink-0">
+            <Sparkles className="w-6 h-6 text-indigo-600" />
+          </div>
+          <div>
+            <h3 className="font-bold text-gray-800 mb-1">Paiement 100% sécurisé via Stripe</h3>
+            <p className="text-sm text-gray-600 mb-3">
+              Vos paiements sont traités directement par Stripe, le leader mondial du paiement en ligne.
+              Cartes bancaires, Mobile Money et bien plus selon votre pays.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              {[
+                { icon: Shield, text: 'Chiffrement SSL' },
+                { icon: Clock, text: 'Activation immédiate' },
+                { icon: Check, text: 'Sans engagement' },
+              ].map(({ icon: I, text }) => (
+                <div key={text} className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 border border-indigo-100">
+                  <I className="w-3.5 h-3.5 text-indigo-500" />{text}
                 </div>
-              </div>
-
-              <a
-                href={`https://wa.me/${PAYMENT_WHATSAPP}?text=${encodeURIComponent(getWhatsAppMessage(showPayment))}`}
-                target="_blank"
-                className="w-full py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2"
-              >
-                <MessageCircle className="w-5 h-5" />
-                Confirmer via WhatsApp
-              </a>
-
-              <div className="bg-blue-50 rounded-xl p-4 text-sm">
-                <p className="text-blue-700 font-medium">📌 Instructions :</p>
-                <ol className="list-decimal list-inside text-blue-600 mt-2 space-y-1">
-                  <li>Envoyez le montant par Mobile Money</li>
-                  <li>Cliquez sur "Confirmer via WhatsApp"</li>
-                  <li>Envoyez la capture du paiement</li>
-                  <li>Votre plan sera activé sous 24h</li>
-                </ol>
-              </div>
-
-              <button
-                onClick={() => setShowPayment(null)}
-                className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl"
-              >
-                Annuler
-              </button>
+              ))}
             </div>
           </div>
         </div>
-      )}
+      </div>
+
+      {/* FAQ */}
+      <div className="card">
+        <h3 className="font-bold text-gray-800 mb-4">Questions fréquentes</h3>
+        <div className="space-y-4">
+          {[
+            { q: 'Quand mon plan sera-t-il activé ?', r: 'L\'activation est immédiate après confirmation du paiement Stripe. Votre boutique passe automatiquement au nouveau plan.' },
+            { q: 'Puis-je annuler à tout moment ?', r: 'Oui, sans engagement. Vous pouvez annuler quand vous voulez depuis le portail Stripe ou en nous contactant.' },
+            { q: 'Quels modes de paiement sont acceptés ?', r: 'Carte bancaire (Visa, Mastercard), ainsi que les modes disponibles dans votre pays via Stripe.' },
+            { q: 'Mon plan ne s\'est pas activé ?', r: 'Contactez-nous sur WhatsApp avec votre capture de paiement et le nom de votre boutique.' },
+          ].map(({ q, r }) => (
+            <div key={q} className="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
+              <p className="font-semibold text-gray-800 text-sm mb-1">{q}</p>
+              <p className="text-gray-500 text-sm">{r}</p>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

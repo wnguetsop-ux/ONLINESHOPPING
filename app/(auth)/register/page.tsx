@@ -7,6 +7,7 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { createShop, createAdmin, checkSlugAvailable } from '@/lib/firestore';
 import { slugify } from '@/lib/utils';
+import PhoneInput from '@/components/PhoneInput';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -116,7 +117,7 @@ export default function RegisterPage() {
         description: form.shopDescription,
         primaryColor: '#ec4899',
         whatsapp: form.whatsapp.replace(/[^0-9]/g, ''),
-        phone: form.phone,
+        phone: form.phone.replace(/[^0-9+]/g, '') || form.phone,
         city: form.city,
         country: 'Cameroun',
         currency: 'XAF',
@@ -219,17 +220,13 @@ export default function RegisterPage() {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Téléphone</label>
-                <div className="relative">
-                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="tel"
-                    value={form.phone}
-                    onChange={(e) => setForm({...form, phone: e.target.value})}
-                    className="input pl-12"
-                    placeholder="+237 677 123 456"
-                  />
-                </div>
+                <PhoneInput
+                  label="Téléphone"
+                  value={form.phone}
+                  onChange={(v) => setForm({...form, phone: v})}
+                  placeholder="6XX XXX XXX"
+                  defaultCountry="CM"
+                />
               </div>
               
               <div>
@@ -332,16 +329,15 @@ export default function RegisterPage() {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">WhatsApp *</label>
-                <input
-                  type="tel"
+                <PhoneInput
+                  label="WhatsApp *"
                   required
                   value={form.whatsapp}
-                  onChange={(e) => setForm({...form, whatsapp: e.target.value})}
-                  className="input"
-                  placeholder="237677123456"
+                  onChange={(v) => setForm({...form, whatsapp: v})}
+                  placeholder="6XX XXX XXX"
+                  defaultCountry="CM"
                 />
-                <p className="text-xs text-gray-500 mt-1">Format: 237XXXXXXXXX (sans + ni espaces)</p>
+                <p className="text-xs text-gray-500 mt-1">Numéro WhatsApp de la boutique</p>
               </div>
             </>
           )}

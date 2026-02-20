@@ -67,6 +67,8 @@ export interface Product {
   specifications?: string;
   category: string;
   brand?: string;
+  sku?: string;              // Code article (SKU)
+  barcode?: string;          // Code-barres EAN/UPC
   costPrice: number;
   sellingPrice: number;
   stock: number;

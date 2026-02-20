@@ -204,9 +204,9 @@ export default function HomePage() {
               <ul className="space-y-4">
                 {[
                   'Émettez des reçus imprimés ou électroniques',
-                  'Appliquez des remises et émettez des remboursements',
-                  'Continuez à enregistrer les ventes même hors ligne',
-                  'Connectez une imprimante de reçus et un scanner',
+                  'Scanner codes-barres avec téléphone ou scanner USB',
+                  'Créez les commandes manuellement depuis le tableau de bord',
+                  'Connectez un scanner professionnel pour aller plus vite',
                   'Acceptez tous les modes de paiement (Mobile Money, Cash)',
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-3">
@@ -482,6 +482,22 @@ export default function HomePage() {
                 </div>
                 <h3 className="text-xl font-semibold mb-2">{item.title}</h3>
                 <p className="text-gray-400">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* New features highlight strip */}
+          <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { emoji: '🔑', title: 'Connexion Google', desc: 'Connectez-vous en 1 clic avec votre compte Google' },
+              { emoji: '📷', title: 'Scanner code-barres', desc: 'Utilisez la caméra ou un scanner USB professionnel' },
+              { emoji: '🏷️', title: 'SKU & code-barres', desc: 'Attribuez un code unique à chaque produit' },
+              { emoji: '📦', title: 'Archives par date', desc: 'Retrouvez n\'importe quelle commande par jour ou mois' },
+            ].map((f, i) => (
+              <div key={i} className="bg-white/5 rounded-2xl p-4 text-center border border-white/10">
+                <div className="text-3xl mb-2">{f.emoji}</div>
+                <p className="font-semibold text-white text-sm mb-1">{f.title}</p>
+                <p className="text-gray-400 text-xs">{f.desc}</p>
               </div>
             ))}
           </div>

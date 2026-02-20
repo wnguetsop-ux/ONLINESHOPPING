@@ -6,6 +6,7 @@ import { updateShop } from '@/lib/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
 import { AFRICAN_COUNTRIES } from '@/lib/utils';
+import PhoneInput from '@/components/PhoneInput';
 
 const COLORS = ['#ec4899', '#f43f5e', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6', '#a855f7', '#64748b'];
 
@@ -260,12 +261,23 @@ export default function SettingsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp *</label>
-              <input type="tel" required value={form.whatsapp} onChange={e => setForm({ ...form, whatsapp: e.target.value })} className="input" placeholder={currentCountry?.phone + ' 6XX XXX XXX'} />
+              <PhoneInput
+                label="WhatsApp *"
+                required
+                value={form.whatsapp}
+                onChange={v => setForm({ ...form, whatsapp: v })}
+                placeholder="6XX XXX XXX"
+                defaultCountry={currentCountry?.code || 'CM'}
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
-              <input type="tel" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="input" />
+              <PhoneInput
+                label="Téléphone"
+                value={form.phone}
+                onChange={v => setForm({ ...form, phone: v })}
+                placeholder="6XX XXX XXX"
+                defaultCountry={currentCountry?.code || 'CM'}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
@@ -332,8 +344,13 @@ export default function SettingsPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Numéro Mobile Money</label>
-              <input type="tel" value={form.mobileMoneyNumber} onChange={e => setForm({ ...form, mobileMoneyNumber: e.target.value })} className="input" placeholder={currentCountry?.phone + ' XXX...'} />
+              <PhoneInput
+                label="Numéro Mobile Money"
+                value={form.mobileMoneyNumber}
+                onChange={v => setForm({ ...form, mobileMoneyNumber: v })}
+                placeholder="6XX XXX XXX"
+                defaultCountry={currentCountry?.code || 'CM'}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Nom du compte</label>
