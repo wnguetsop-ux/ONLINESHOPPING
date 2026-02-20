@@ -9,6 +9,9 @@
     "start": "next start"
   },
   "dependencies": {
+    "@capacitor/android": "^8.1.0",
+    "@capacitor/cli": "^7.5.0",
+    "@capacitor/core": "^8.1.0",
     "@google/generative-ai": "^0.24.1",
     "firebase": "^10.7.1",
     "lucide-react": "^0.294.0",

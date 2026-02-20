@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import {
   ShoppingCart, Clock, CheckCircle, Truck, Package, X, Phone, MapPin,
   MessageCircle, Plus, Printer, Search, Trash2, Loader2, Calendar,
-  ChevronDown, Filter, Barcode, ScanLine, Camera, Star, Grid3X3, List
+  ChevronDown, Filter, Barcode, ScanLine, Camera, List
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { getOrders, updateOrderStatus, createOrder, getProducts } from '@/lib/firestore';
@@ -53,8 +53,9 @@ export default function OrdersPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [savingManual, setSavingManual] = useState(false);
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
-  const [productViewMode, setProductViewMode] = useState<'grid' | 'search'>('grid');
+  const [productViewMode, setProductViewMode] = useState<'list' | 'grid'>('list');
   const [productCatFilter, setProductCatFilter] = useState('');
+  const [createdOrder, setCreatedOrder] = useState<Order | null>(null); // finalization window
   const receiptRef = useRef<HTMLDivElement>(null);
 
   // Manual order form
@@ -157,19 +158,56 @@ export default function OrdersPage() {
     setSavingManual(true);
     try {
       const deliveryFee = manualForm.deliveryMethod === 'DELIVERY' ? (shop.deliveryFee || 0) : 0;
-      await createOrder(shop.id, {
+      const subtotal = manualItems.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
+
+      // 1. Create the order — get real ID back
+      const orderId = await createOrder(shop.id, {
         customerName: manualForm.customerName,
         customerPhone: manualForm.customerPhone.replace(/[^0-9+]/g, ''),
         ...(manualForm.customerAddress ? { customerAddress: manualForm.customerAddress } : {}),
         ...(manualForm.notes ? { notes: manualForm.notes } : {}),
-        items: manualItems.map(i => ({ productId: i.productId, productName: i.productName, quantity: i.quantity, unitPrice: i.unitPrice, costPrice: i.costPrice })),
+        items: manualItems.map(i => ({
+          productId: i.productId, productName: i.productName,
+          quantity: i.quantity, unitPrice: i.unitPrice, costPrice: i.costPrice,
+        })),
         paymentMethod: manualForm.paymentMethod,
-        deliveryMethod: manualForm.deliveryMethod, deliveryFee,
+        deliveryMethod: manualForm.deliveryMethod,
+        deliveryFee,
       });
+
+      // 2. Immediately confirm + set to PROCESSING (commande manuelle = déjà sur place)
+      await updateOrderStatus(orderId, 'CONFIRMED');
+      await updateOrderStatus(orderId, 'PROCESSING');
+
       await loadData();
+
+      // 3. Build finalization preview with real orderId
+      const orderNum = 'CMD-' + Date.now().toString().slice(-6);
+      const previewOrder: any = {
+        id: orderId,
+        orderNumber: orderNum,
+        customerName: manualForm.customerName,
+        customerPhone: manualForm.customerPhone,
+        customerAddress: manualForm.customerAddress,
+        notes: manualForm.notes,
+        items: manualItems.map(i => ({
+          productName: i.productName, quantity: i.quantity,
+          unitPrice: i.unitPrice, total: i.unitPrice * i.quantity,
+        })),
+        subtotal,
+        deliveryFee,
+        total: subtotal + deliveryFee,
+        paymentMethod: manualForm.paymentMethod,
+        deliveryMethod: manualForm.deliveryMethod,
+        status: 'PROCESSING',
+        createdAt: new Date().toISOString(),
+      };
+
+      // 4. Reset form & show finalization window
       setShowManual(false); stopCameraScanner();
       setManualForm({ customerName: '', customerPhone: '', customerAddress: '', notes: '', paymentMethod: 'CASH_ON_DELIVERY', deliveryMethod: 'PICKUP' });
       setManualItems([]); setScanMode(null); setProductCatFilter(''); setProductSearch('');
+      setCreatedOrder(previewOrder);
     } catch (err: any) { alert(err.message || 'Erreur'); }
     setSavingManual(false);
   }
@@ -497,41 +535,47 @@ export default function OrdersPage() {
                   )}
                 </div>
 
-                {/* Product grid */}
-                <div className="flex-1 overflow-y-auto p-2">
+                {/* Product list — style Loyverse */}
+                <div className="flex-1 overflow-y-auto">
                   {displayedProducts.length === 0 ? (
                     <div className="text-center py-8 text-gray-400 text-sm">
                       <Package className="w-8 h-8 mx-auto mb-2 opacity-30" />Aucun produit
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <div className="divide-y divide-gray-100">
                       {displayedProducts.map(p => {
                         const qtyInCart = manualItems.find(i => i.productId === p.id)?.quantity || 0;
                         return (
                           <button key={p.id} type="button"
                             onClick={e => addProductToManual(p, e)}
-                            className="relative text-left bg-gray-50 hover:bg-orange-50 border-2 border-transparent hover:border-current rounded-xl p-2 transition-all active:scale-95 group"
-                            style={{ '--tw-border-opacity': 1 } as any}
-                            onMouseEnter={e => (e.currentTarget.style.borderColor = primaryColor)}
-                            onMouseLeave={e => (e.currentTarget.style.borderColor = 'transparent')}>
+                            className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-orange-50 active:bg-orange-100 transition-colors text-left relative group">
+                            {/* Product image */}
+                            <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-100">
+                              {p.imageUrl
+                                ? <img src={p.imageUrl} alt="" className="w-full h-full object-cover" />
+                                : <div className="w-full h-full flex items-center justify-center text-xl">📦</div>}
+                            </div>
+                            {/* Name + category */}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-gray-800 truncate">{p.name}</p>
+                              <p className="text-xs text-gray-400 truncate">{p.category}{p.sku ? ` · ${p.sku}` : ''}</p>
+                            </div>
+                            {/* Price */}
+                            <div className="flex-shrink-0 text-right">
+                              <p className="text-sm font-bold" style={{ color: primaryColor }}>{formatPrice(p.sellingPrice, shop?.currency)}</p>
+                              {p.stock <= 5 && <p className="text-[10px] text-amber-500">Stock: {p.stock}</p>}
+                            </div>
                             {/* Qty badge */}
                             {qtyInCart > 0 && (
-                              <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full text-white text-[10px] font-bold flex items-center justify-center z-10"
+                              <div className="absolute right-2 top-2 w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white font-bold"
                                 style={{ backgroundColor: primaryColor }}>{qtyInCart}</div>
                             )}
-                            {/* Image */}
-                            <div className="w-full h-16 rounded-lg mb-1.5 overflow-hidden bg-gray-200">
-                              {p.imageUrl ? <img src={p.imageUrl} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-2xl">📦</div>}
-                            </div>
-                            <p className="text-xs font-semibold text-gray-800 leading-tight line-clamp-2 mb-0.5">{p.name}</p>
-                            <p className="text-xs font-bold" style={{ color: primaryColor }}>{formatPrice(p.sellingPrice, shop?.currency)}</p>
-                            <p className="text-[10px] text-gray-400">Stock: {p.stock}</p>
-                            {/* Plus overlay on hover */}
-                            <div className="absolute inset-0 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                              style={{ backgroundColor: `${primaryColor}15` }}>
-                              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white shadow-lg" style={{ backgroundColor: primaryColor }}>
-                                <Plus className="w-4 h-4" />
-                              </div>
+                            {/* Add indicator */}
+                            <div className="w-6 h-6 rounded-full flex items-center justify-center bg-gray-100 group-hover:text-white transition-all flex-shrink-0"
+                              style={{ backgroundColor: undefined }}
+                              onMouseEnter={e => (e.currentTarget.style.backgroundColor = primaryColor)}
+                              onMouseLeave={e => (e.currentTarget.style.backgroundColor = '')}>
+                              <Plus className="w-3.5 h-3.5 text-gray-400 group-hover:text-white" />
                             </div>
                           </button>
                         );
@@ -668,6 +712,144 @@ export default function OrdersPage() {
               <div className="flex justify-between font-bold text-sm mt-1"><span>TOTAL</span><span>{formatPrice(showReceipt.total, shop?.currency)}</span></div>
               <div className="border-t border-dashed my-2" />
               <div className="text-center"><p>Merci pour votre achat !</p><p>Propulsé par ShopMaster</p></div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ══ FINALIZATION WINDOW ══════════════════════════════════════════ */}
+      {createdOrder && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+
+            {/* Header — EN PRÉPARATION */}
+            <div className="p-6 text-center relative" style={{ background: `linear-gradient(135deg, ${primaryColor}18, ${primaryColor}06)` }}>
+              {/* Status badge */}
+              <div className="inline-flex items-center gap-2 bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1.5 rounded-full mb-4">
+                <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
+                EN PRÉPARATION
+              </div>
+              <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center mx-auto mb-3 shadow-md border border-gray-100">
+                <span className="text-3xl">📦</span>
+              </div>
+              <h2 className="text-xl font-bold text-gray-800">Commande lancée !</h2>
+              <p className="text-gray-500 mt-1 text-sm font-medium">{createdOrder.orderNumber}</p>
+              <p className="text-gray-400 text-xs">{new Date(createdOrder.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
+            </div>
+
+            <div className="p-5 space-y-4 max-h-[60vh] overflow-y-auto">
+              {/* Client */}
+              <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
+                    style={{ backgroundColor: primaryColor }}>
+                    {createdOrder.customerName.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-gray-800">{createdOrder.customerName}</p>
+                    {createdOrder.customerPhone && <p className="text-sm text-gray-500">📞 {createdOrder.customerPhone}</p>}
+                    {createdOrder.customerAddress && <p className="text-xs text-gray-400">📍 {createdOrder.customerAddress}</p>}
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-3 flex-wrap">
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
+                    createdOrder.deliveryMethod === 'DELIVERY'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-emerald-100 text-emerald-700'
+                  }`}>
+                    {createdOrder.deliveryMethod === 'DELIVERY' ? '🚚 Livraison' : '🏪 Retrait sur place'}
+                  </span>
+                  <span className="text-xs px-2.5 py-1 rounded-full font-semibold bg-gray-100 text-gray-600">
+                    {createdOrder.paymentMethod === 'MOBILE_MONEY' ? '📱 Mobile Money' : '💵 Espèces'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Articles */}
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Articles à préparer</p>
+                {createdOrder.items.map((item: any, i: number) => (
+                  <div key={i} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 bg-gray-100 rounded-lg flex items-center justify-center text-xs font-bold text-gray-600">
+                        {item.quantity}
+                      </span>
+                      <span className="text-sm text-gray-700">{item.productName}</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-800">{formatPrice(item.total, shop?.currency)}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Total */}
+              <div className="rounded-2xl p-4 border-2" style={{ borderColor: `${primaryColor}30`, backgroundColor: `${primaryColor}06` }}>
+                {createdOrder.deliveryFee > 0 && (
+                  <div className="flex justify-between text-sm text-gray-500 mb-1">
+                    <span>Sous-total</span><span>{formatPrice(createdOrder.subtotal, shop?.currency)}</span>
+                  </div>
+                )}
+                {createdOrder.deliveryFee > 0 && (
+                  <div className="flex justify-between text-sm text-gray-500 mb-2">
+                    <span>Livraison</span><span>{formatPrice(createdOrder.deliveryFee, shop?.currency)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-bold text-lg" style={{ color: primaryColor }}>
+                  <span>Total à encaisser</span>
+                  <span>{formatPrice(createdOrder.total, shop?.currency)}</span>
+                </div>
+              </div>
+
+              {/* Notes */}
+              {createdOrder.notes && (
+                <div className="bg-yellow-50 rounded-xl p-3 border border-yellow-100 text-sm text-yellow-800">
+                  📝 {createdOrder.notes}
+                </div>
+              )}
+            </div>
+
+            {/* Action buttons */}
+            <div className="p-5 pt-0 space-y-2">
+              {/* Marquer livrée */}
+              <button
+                onClick={async () => {
+                  if (createdOrder.id) {
+                    await updateOrderStatus(createdOrder.id, 'DELIVERED');
+                    await loadData();
+                  }
+                  setCreatedOrder(null);
+                }}
+                className="w-full py-3.5 rounded-2xl text-white font-bold text-base flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all shadow-sm"
+                style={{ backgroundColor: '#22c55e' }}>
+                ✅ Marquer comme livrée
+              </button>
+
+              <div className="grid grid-cols-2 gap-2">
+                {/* Imprimer */}
+                <button onClick={() => { setShowReceipt(createdOrder as any); setCreatedOrder(null); }}
+                  className="flex items-center justify-center gap-2 py-3 rounded-xl bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 transition-colors text-sm">
+                  <Printer className="w-4 h-4" />Imprimer
+                </button>
+                {/* WhatsApp */}
+                {createdOrder.customerPhone ? (
+                  <a href={getWhatsAppLink(
+                    createdOrder.customerPhone,
+                    `📦 *Commande ${createdOrder.orderNumber} en préparation!*\n\n👤 ${createdOrder.customerName}\n\n${createdOrder.items.map((i: any) => `• ${i.productName} ×${i.quantity}`).join('\n')}\n\n💰 *Total: ${formatPrice(createdOrder.total, shop?.currency)}*\n\n${createdOrder.deliveryMethod === 'DELIVERY' ? '🚚 Livraison en cours de préparation.' : '🏪 Commande prête pour le retrait.'}\n\nMerci !`
+                  )} target="_blank"
+                    className="flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-white text-sm bg-green-500 hover:bg-green-600 transition-colors">
+                    <MessageCircle className="w-4 h-4" />WhatsApp
+                  </a>
+                ) : (
+                  <button onClick={() => setCreatedOrder(null)}
+                    className="flex items-center justify-center gap-2 py-3 rounded-xl bg-gray-100 text-gray-500 text-sm">
+                    Fermer
+                  </button>
+                )}
+              </div>
+
+              {/* Keep in processing (not yet delivered) */}
+              <button onClick={() => setCreatedOrder(null)}
+                className="w-full py-2.5 text-sm text-gray-400 hover:text-gray-600 transition-colors">
+                Garder en préparation et continuer →
+              </button>
             </div>
           </div>
         </div>

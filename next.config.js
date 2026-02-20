@@ -1,18 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Garde tes réglages d'images
-  images: { 
-    domains: ['firebasestorage.googleapis.com'], 
-    unoptimized: true 
+  // Rimuoviamo output: 'export' perché usiamo server.url nel capacitor config
+  trailingSlash: true, 
+  images: {
+    unoptimized: true,
+    domains: ['firebasestorage.googleapis.com'],
   },
-  // AJOUTE ÇA : Pour ignorer les erreurs "ringColor" et autres types TS
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  // AJOUTE ÇA : Pour ignorer les avertissements ESLint
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  typescript: { ignoreBuildErrors: true },
+  eslint: { ignoreDuringBuilds: true },
 };
 
 module.exports = nextConfig;

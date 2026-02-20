@@ -1,14 +1,19 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { Crown, Check, Zap, Package, ShoppingCart, ExternalLink, Sparkles, Shield, Clock } from 'lucide-react';
+import { Crown, Check, Zap, Package, ShoppingCart, ExternalLink, Sparkles, Shield, Clock, Copy, CheckCircle, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { checkShopLimits } from '@/lib/firestore';
 import { PLANS } from '@/lib/types';
 
-// ── Stripe payment links ──────────────────────────────────────────────────
+// ── Payment options ──────────────────────────────────────────────────────
 const STRIPE_LINKS: Record<string, string> = {
   STARTER: 'https://buy.stripe.com/7sY3cngMt8Cu8ja6XGaVa02',
   PRO:     'https://buy.stripe.com/fZuaEPbs98Cuczqci0aVa03',
+};
+
+const MOBILE_MONEY = {
+  number: '00237 651 495 483',
+  name: 'ShopMaster',
 };
 
 const PLAN_FEATURES: Record<string, { icon: string; items: string[] }> = {
@@ -30,6 +35,8 @@ export default function SubscriptionPage() {
   const { shop } = useAuth();
   const [limits, setLimits] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showMobileMoney, setShowMobileMoney] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (shop?.id) {
@@ -42,10 +49,18 @@ export default function SubscriptionPage() {
 
   function openStripe(planId: string) {
     const link = STRIPE_LINKS[planId];
-    if (!link) return;
-    // Pass shop slug as metadata via URL query (Stripe allows client_reference_id)
-    const url = `${link}?client_reference_id=${shop?.slug || ''}&prefilled_email=${shop ? '' : ''}`;
-    window.open(link, '_blank');
+    if (link) window.open(link, '_blank');
+  }
+
+  function copyMoMo() {
+    navigator.clipboard.writeText(MOBILE_MONEY.number);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  function getWhatsAppMsg(planId: string) {
+    const plan = PLANS[planId as keyof typeof PLANS];
+    return encodeURIComponent(`Bonjour ShopMaster! Je veux passer au plan *${plan.name}*.\n\nBoutique: ${shop?.name} (/${shop?.slug})\nPrix: ${plan.price.toLocaleString('fr-FR')} FCFA/mois\n\nJe vais envoyer le paiement Mobile Money au ${MOBILE_MONEY.number}. Merci de confirmer.`);
   }
 
   if (loading) return (
@@ -155,21 +170,28 @@ export default function SubscriptionPage() {
                   <button disabled className="w-full py-3 rounded-xl bg-gray-100 text-gray-400 font-semibold cursor-not-allowed">
                     Plan de base
                   </button>
-                ) : hasStripe ? (
-                  <button onClick={() => openStripe(plan.id)}
-                    className="w-full py-3 rounded-xl text-white font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-all active:scale-[0.98] shadow-sm"
-                    style={{ backgroundColor: plan.color }}>
-                    <Zap className="w-4 h-4" />
-                    Passer au {plan.name}
-                    <ExternalLink className="w-3.5 h-3.5 opacity-70" />
-                  </button>
-                ) : null}
+                ) : (
+                  <div className="space-y-2">
+                    {/* Stripe */}
+                    <button onClick={() => openStripe(plan.id)}
+                      className="w-full py-3 rounded-xl text-white font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-all active:scale-[0.98]"
+                      style={{ backgroundColor: plan.color }}>
+                      <Zap className="w-4 h-4" />Payer par carte
+                      <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+                    </button>
+                    {/* Mobile Money */}
+                    <button onClick={() => setShowMobileMoney(plan.id)}
+                      className="w-full py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 border-2 transition-all hover:bg-green-50"
+                      style={{ borderColor: '#25D366', color: '#25D366' }}>
+                      📱 Payer Mobile Money
+                    </button>
+                  </div>
+                )}
 
-                {/* Stripe security badge for paid plans */}
-                {hasStripe && !isCurrent && (
-                  <div className="flex items-center justify-center gap-1.5 mt-3">
+                {!isCurrent && plan.id !== 'FREE' && (
+                  <div className="flex items-center justify-center gap-1.5 mt-2">
                     <Shield className="w-3 h-3 text-gray-400" />
-                    <span className="text-[10px] text-gray-400">Paiement sécurisé par Stripe</span>
+                    <span className="text-[10px] text-gray-400">Stripe sécurisé • Mobile Money accepté</span>
                   </div>
                 )}
               </div>
@@ -222,6 +244,51 @@ export default function SubscriptionPage() {
           ))}
         </div>
       </div>
+      {/* Mobile Money Modal */}
+      {showMobileMoney && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl">
+            <div className="bg-gradient-to-br from-green-400 to-green-600 p-6 text-white text-center">
+              <div className="text-4xl mb-2">📱</div>
+              <h2 className="text-xl font-bold">Paiement Mobile Money</h2>
+              <p className="text-green-100 text-sm mt-1">
+                {PLANS[showMobileMoney as keyof typeof PLANS].name} — {PLANS[showMobileMoney as keyof typeof PLANS].price.toLocaleString('fr-FR')} FCFA/mois
+              </p>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-green-50 rounded-xl p-4 border border-green-100">
+                <p className="text-xs text-gray-500 mb-1 font-medium">Numéro Mobile Money</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xl font-bold text-gray-800 font-mono">{MOBILE_MONEY.number}</p>
+                  <button onClick={copyMoMo} className="p-2 rounded-lg hover:bg-green-100 transition-colors">
+                    {copied ? <CheckCircle className="w-5 h-5 text-emerald-500" /> : <Copy className="w-5 h-5 text-gray-400" />}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400 mt-1">Nom: {MOBILE_MONEY.name}</p>
+              </div>
+
+              <div className="bg-gray-50 rounded-xl p-4 text-sm space-y-2">
+                <p className="font-semibold text-gray-700">Instructions :</p>
+                <ol className="space-y-1 text-gray-600 list-decimal list-inside text-sm">
+                  <li>Envoyez le montant exact par Mobile Money</li>
+                  <li>Notez le numéro de transaction</li>
+                  <li>Cliquez sur "Confirmer via WhatsApp"</li>
+                  <li>Votre plan est activé sous 1h !</li>
+                </ol>
+              </div>
+
+              <a href={`https://wa.me/237651495483?text=${getWhatsAppMsg(showMobileMoney)}`} target="_blank"
+                className="w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 text-white"
+                style={{ backgroundColor: '#25D366' }}>
+                <MessageCircle className="w-5 h-5" />Confirmer via WhatsApp
+              </a>
+              <button onClick={() => setShowMobileMoney(null)} className="w-full py-2.5 rounded-xl bg-gray-100 text-gray-600 font-medium">
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

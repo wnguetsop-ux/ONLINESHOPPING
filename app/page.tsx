@@ -1,16 +1,22 @@
 'use client';
 import Link from 'next/link';
+import { useEffect } from 'react';
 import { Store, ShoppingBag, BarChart3, Smartphone, CheckCircle, ArrowRight, Star, Users, Package, CreditCard, TrendingUp, Shield, Zap, Globe, Play, MessageCircle, Mail, Phone } from 'lucide-react';
+import { trackVisit } from '@/lib/analytics';
 
 export default function HomePage() {
-  // Tes informations de contact
-  const WHATSAPP = '393299639430';  // 0039 3299639430 (Italie)
+  const WHATSAPP = '393299639430';
   const EMAIL = 'wnguetsop@gmail.com';
+
+  useEffect(() => {
+    trackVisit({ page: 'landing' });
+  }, []);
 
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-white sticky top-0 z-50 border-b border-gray-100">
+      <header className="bg-white sticky top-0 z-50 border-b border-gray-100"
+        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">

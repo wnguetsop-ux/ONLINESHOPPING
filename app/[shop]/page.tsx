@@ -8,6 +8,8 @@ import {
   Grid3X3, LayoutList, Settings, ArrowLeft, Loader2, CheckCircle, CreditCard, Trash2
 } from 'lucide-react';
 import { getShopBySlug, getProducts, getCategories, createOrder } from '@/lib/firestore';
+import PhoneInput from '@/components/PhoneInput';
+import { trackVisit } from '@/lib/analytics';
 import { Shop, Product, Category } from '@/lib/types';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/hooks/useAuth';
@@ -65,6 +67,8 @@ export default function ShopPage() {
         setForm(f => ({ ...f, deliveryMethod: shopData.pickupEnabled ? 'PICKUP' : 'DELIVERY' }));
         const [prods, cats] = await Promise.all([getProducts(shopData.id!, true), getCategories(shopData.id!)]);
         setProducts(prods); setCategories(cats);
+        // Track shop visit (fire & forget)
+        trackVisit({ page: 'shop', shopSlug: slug, shopId: shopData.id });
       } catch { setNotFound(true); }
       setLoading(false);
     }
@@ -149,6 +153,8 @@ export default function ShopPage() {
       setOrderTotal(snapTotal);
       clearCart();
       setCheckoutStep('success');
+      // Track order conversion
+      trackVisit({ page: 'order_success', shopSlug: slug as string, shopId: shop.id });
 
       // WhatsApp auto-confirm
       if (snapShop.whatsapp) {
@@ -633,7 +639,13 @@ export default function ShopPage() {
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Téléphone *</label>
-                      <input required type="tel" className="input text-sm" placeholder="677 123 456" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
+                      <PhoneInput
+                        required
+                        value={form.phone}
+                        onChange={v => setForm({ ...form, phone: v })}
+                        placeholder="6XX XXX XXX"
+                        defaultCountry="CM"
+                      />
                     </div>
                   </div>
 

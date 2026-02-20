@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Shopmaster</string>
+    <string name="title_activity_main">Shopmaster</string>
+    <string name="package_name">com.mastershoppro.app</string>
+    <string name="custom_url_scheme">com.mastershoppro.app</string>
+</resources>
