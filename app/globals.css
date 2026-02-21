@@ -135,3 +135,11 @@ button, a, [role="button"] { min-height: 36px; }
 
 /* ── Print ─────────────────────────────────────────────────────────────────── */
 @media print { .no-print { display: none !important; } }
+
+/* ── Play Store / PWA Standalone — hide Google Sign-In ─────────────────────── */
+/* When running as installed PWA (Play Store TWA, "Add to Home Screen"),         */
+/* Google OAuth is blocked — hide the button entirely via CSS, no JS flash.      */
+@media (display-mode: standalone) {
+  .google-signin-btn  { display: none !important; }
+  .google-signin-sep  { display: none !important; }
+}
