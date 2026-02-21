@@ -1,12 +1,12 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
-import { collection, getDocs, doc, updateDoc, addDoc, query, orderBy, where, Timestamp } from 'firebase/firestore';
+import { useState, useEffect, useRef } from 'react';
+import { collection, doc, updateDoc, addDoc, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { PLANS } from '@/lib/types';
 import {
-  Crown, Search, Check, X, Clock, RefreshCw, Shield, Eye, EyeOff, AlertTriangle,
-  TrendingUp, DollarSign, Zap, Database, HardDrive, Brain, BarChart3,
-  ChevronDown, ChevronUp, Calendar, Download, Store, Users, Activity
+  Crown, Search, Check, X, RefreshCw, Shield, Eye, EyeOff, AlertTriangle,
+  TrendingUp, Zap, Database, HardDrive, Brain, BarChart3,
+  Store, Activity, Wifi, WifiOff
 } from 'lucide-react';
 
 const DEV_PASSWORD = 'Bobane12$';
@@ -121,52 +121,79 @@ export default function SuperAdminPage() {
   const [trafficLoading, setTrafficLoading] = useState(false);
   const [trafficPeriod, setTrafficPeriod] = useState<'today' | 'week' | 'month' | 'all'>('week');
 
+  // Real-time connection status
+  const [liveStatus, setLiveStatus] = useState<'connecting' | 'live' | 'error'>('connecting');
+  // Unsubscribe refs for cleanup
+  const unsubShops    = useRef<(() => void) | null>(null);
+  const unsubCosts    = useRef<(() => void) | null>(null);
+  const unsubTraffic  = useRef<(() => void) | null>(null);
+
   function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     if (password === DEV_PASSWORD) {
       setAuthenticated(true);
-      loadShops();
-      loadCosts();
-      loadTraffic();
+      // Real-time listeners start after login
     } else {
       setPasswordError('Mot de passe incorrect.');
     }
   }
 
-  async function loadShops() {
-    setLoading(true);
-    try {
-      const snapshot = await getDocs(collection(db, 'shops'));
-      const list: ShopRow[] = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ShopRow));
-      list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      setShops(list);
-    } catch (err) { console.error(err); }
-    setLoading(false);
-  }
+  // ── Start real-time listeners when authenticated ─────────────────────────
+  useEffect(() => {
+    if (!authenticated) return;
 
-  async function loadCosts() {
-    setCostsLoading(true);
-    try {
-      const snapshot = await getDocs(collection(db, 'cost_events'));
-      const list: CostEvent[] = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as CostEvent));
-      list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      // Attach shop names
-      const shopMap: Record<string, string> = {};
-      shops.forEach(s => shopMap[s.id] = s.name);
-      setEvents(list.map(e => ({ ...e, shopName: shopMap[e.shopId] || e.shopId })));
-    } catch (err) { console.error(err); }
-    setCostsLoading(false);
-  }
+    setLiveStatus('connecting');
 
-  async function loadTraffic() {
-    setTrafficLoading(true);
-    try {
-      const snapshot = await getDocs(collection(db, 'traffic_events'));
-      const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      list.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      setTrafficEvents(list);
-    } catch (err) { console.error(err); }
-    setTrafficLoading(false);
+    // 1. Shops — live
+    unsubShops.current = onSnapshot(
+      collection(db, 'shops'),
+      (snap) => {
+        const list: ShopRow[] = snap.docs.map(d => ({ id: d.id, ...d.data() } as ShopRow));
+        list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setShops(list);
+        setLoading(false);
+        setLiveStatus('live');
+      },
+      (err) => { console.error('shops listener:', err); setLiveStatus('error'); }
+    );
+
+    // 2. Cost events — live
+    unsubCosts.current = onSnapshot(
+      query(collection(db, 'cost_events')),
+      (snap) => {
+        const list: CostEvent[] = snap.docs.map(d => ({ id: d.id, ...d.data() } as CostEvent));
+        list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setEvents(list);
+        setCostsLoading(false);
+      },
+      (err) => { console.error('costs listener:', err); }
+    );
+
+    // 3. Traffic events — live (most recent 500)
+    unsubTraffic.current = onSnapshot(
+      query(collection(db, 'traffic_events')),
+      (snap) => {
+        const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        list.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setTrafficEvents(list);
+        setTrafficLoading(false);
+      },
+      (err) => { console.error('traffic listener:', err); }
+    );
+
+    // Cleanup on unmount
+    return () => {
+      unsubShops.current?.();
+      unsubCosts.current?.();
+      unsubTraffic.current?.();
+    };
+  }, [authenticated]);
+
+  // Keep legacy manual reload for the refresh button (simply re-triggers via state)
+  function manualRefresh() {
+    setLiveStatus('connecting');
+    // onSnapshot is already live — just flash status
+    setTimeout(() => setLiveStatus('live'), 800);
   }
 
   async function activatePlan(shopId: string, planId: string, months: number) {
@@ -192,7 +219,7 @@ export default function SuperAdminPage() {
           note: `Activation ${planId} ${months} mois — ${shop?.name}`,
           createdAt: new Date().toISOString(),
         });
-        await loadCosts();
+        // onSnapshot will auto-update costs list
       }
       setSuccessMsg(`✅ Plan ${planId} activé!`);
       setTimeout(() => setSuccessMsg(''), 3000);
@@ -220,7 +247,7 @@ export default function SuperAdminPage() {
     await addDoc(collection(db, 'cost_events'), eventToSave);
     setShowAddEvent(false);
     setNewEvent({ type: 'gemini', subtype: 'vision', createdAt: new Date().toISOString().slice(0, 16) });
-    await loadCosts();
+    // onSnapshot auto-updates
   }
 
   // ── Filter events by period ──────────────────────────────────────────────
@@ -308,7 +335,21 @@ export default function SuperAdminPage() {
         </div>
         <div className="flex items-center gap-3">
           {successMsg && <span className="text-emerald-400 text-sm animate-pulse">{successMsg}</span>}
-          <button onClick={() => { loadShops(); loadCosts(); loadTraffic(); }} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-gray-800">
+          {/* Live status indicator */}
+          <div className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full border ${
+            liveStatus === 'live'       ? 'bg-emerald-950 border-emerald-800 text-emerald-400' :
+            liveStatus === 'connecting' ? 'bg-amber-950 border-amber-800 text-amber-400' :
+                                          'bg-red-950 border-red-800 text-red-400'
+          }`}>
+            {liveStatus === 'live' ? (
+              <><span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />En direct</>
+            ) : liveStatus === 'connecting' ? (
+              <><RefreshCw className="w-3 h-3 animate-spin" />Connexion...</>
+            ) : (
+              <><WifiOff className="w-3 h-3" />Déconnecté</>
+            )}
+          </div>
+          <button onClick={manualRefresh} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-gray-800">
             <RefreshCw className="w-4 h-4" />Rafraîchir
           </button>
         </div>
@@ -723,10 +764,35 @@ export default function SuperAdminPage() {
                     </button>
                   ))}
                 </div>
-                <button onClick={loadTraffic}
+                <button onClick={manualRefresh}
                   className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-gray-800 ml-auto">
                   <RefreshCw className={`w-3.5 h-3.5 ${trafficLoading?'animate-spin':''}`} />Actualiser
                 </button>
+              </div>
+
+              {/* ── LIVE indicator ── */}
+              <div className={`flex items-center justify-between rounded-2xl px-4 py-3 border ${
+                liveStatus === 'live' ? 'bg-emerald-950 border-emerald-800' : 'bg-gray-900 border-gray-800'
+              }`}>
+                <div className="flex items-center gap-2">
+                  {liveStatus === 'live'
+                    ? <><span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" /><span className="text-emerald-400 text-sm font-semibold">Synchronisation en direct</span></>
+                    : <><RefreshCw className="w-3.5 h-3.5 text-gray-500 animate-spin" /><span className="text-gray-500 text-sm">Connexion...</span></>
+                  }
+                </div>
+                {trafficEvents[0] && (
+                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <span>Dernier événement :</span>
+                    <span className="text-gray-300 font-medium">
+                      {trafficEvents[0].page === 'shop' ? '🛍️ Visite boutique' :
+                       trafficEvents[0].page === 'order_success' ? '✅ Commande' :
+                       trafficEvents[0].page === 'landing' ? '🏠 Landing' : trafficEvents[0].page}
+                    </span>
+                    <span className="text-gray-600">
+                      {new Date(trafficEvents[0].createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* KPI Cards */}

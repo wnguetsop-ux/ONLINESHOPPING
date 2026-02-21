@@ -1,0 +1,48 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Shops — readable by anyone (public shop pages), writable by owner only
+    match /shops/{shopId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == resource.data.ownerId;
+      allow create: if request.auth != null;
+    }
+
+    // ── Products — readable by anyone (public shop), writable by shop owner
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // ── Categories — readable by anyone, writable by authenticated users
+    match /categories/{catId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // ── Orders — writable by anyone (customers place orders), readable by authenticated
+    match /orders/{orderId} {
+      allow create: if true;   // customers (not logged in) can create orders
+      allow read, update: if request.auth != null;
+    }
+
+    // ── Admins — read/write by owner only
+    match /admins/{adminId} {
+      allow read, write: if request.auth != null && request.auth.uid == adminId;
+    }
+
+    // ── Traffic events — WRITE by anyone (anonymous visitors), READ by authenticated only
+    // This is critical: shop visitors are not logged in, they must be able to write
+    match /traffic_events/{eventId} {
+      allow create: if true;                    // any visitor can log a visit
+      allow read: if request.auth != null;      // only authenticated (superadmin) can read
+      allow update, delete: if false;           // immutable once written
+    }
+
+    // ── Cost events — authenticated only
+    match /cost_events/{eventId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
