@@ -1,11 +1,13 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Store, Mail, Lock, Loader2, Eye, EyeOff, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Store, Mail, Lock, Loader2, Eye, EyeOff, AlertCircle, ArrowLeft, Chrome } from 'lucide-react';
 import {
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
   sendPasswordResetEmail,
 } from 'firebase/auth';
@@ -13,6 +15,31 @@ import { auth, db } from '@/lib/firebase';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: 'select_account' });
+
+// Detect if running inside a WebView (Android/iOS in-app browser)
+// Google blocks OAuth in WebViews — we must open the real browser instead
+function isWebView(): boolean {
+  if (typeof window === 'undefined') return false;
+  const ua = navigator.userAgent;
+  return (
+    // Android WebView
+    /wv\b/.test(ua) ||
+    ua.includes('Version/') && ua.includes('Chrome/') && !ua.includes('Mobile Safari') ||
+    // Facebook / Instagram in-app browser
+    ua.includes('FBAN') || ua.includes('FBAV') || ua.includes('Instagram') ||
+    // WhatsApp browser
+    ua.includes('WhatsApp') ||
+    // Other common WebView signals
+    ua.includes('GSA/') // Google Search App
+  );
+}
+
+// Check if on mobile
+function isMobile(): boolean {
+  if (typeof window === 'undefined') return false;
+  return /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent);
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -24,6 +51,38 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({ email: '', password: '' });
   const [resetEmail, setResetEmail] = useState('');
+  const [webViewWarning, setWebViewWarning] = useState(false);
+
+  // Handle redirect result when returning from Google OAuth
+  useEffect(() => {
+    async function checkRedirect() {
+      try {
+        setGoogleLoading(true);
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          const user = result.user;
+          const adminSnap = await getDoc(doc(db, 'admins', user.uid));
+          if (!adminSnap.exists()) {
+            const shopsSnap = await getDocs(query(collection(db, 'shops'), where('ownerId', '==', user.uid)));
+            if (shopsSnap.empty) { router.push('/register?google=1'); return; }
+          }
+          router.push('/admin/dashboard');
+        }
+      } catch (err: any) {
+        if (err.code && err.code !== 'auth/no-current-user') {
+          setError('Erreur de connexion Google. Réessayez.');
+        }
+      } finally {
+        setGoogleLoading(false);
+      }
+    }
+    checkRedirect();
+  }, []);
+
+  // Detect WebView on mount
+  useEffect(() => {
+    if (isWebView()) setWebViewWarning(true);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,10 +92,10 @@ export default function LoginPage() {
       router.push('/admin/dashboard');
     } catch (err: any) {
       const codes: Record<string, string> = {
-        'auth/user-not-found': 'Aucun compte trouvé avec cet email.',
-        'auth/wrong-password': 'Mot de passe incorrect.',
-        'auth/invalid-credential': 'Email ou mot de passe incorrect.',
-        'auth/invalid-email': 'Adresse email invalide.',
+        'auth/user-not-found':    'Aucun compte trouvé avec cet email.',
+        'auth/wrong-password':    'Mot de passe incorrect.',
+        'auth/invalid-credential':'Email ou mot de passe incorrect.',
+        'auth/invalid-email':     'Adresse email invalide.',
         'auth/too-many-requests': 'Trop de tentatives. Réessayez plus tard.',
       };
       setError(codes[err.code] || 'Une erreur est survenue. Réessayez.');
@@ -45,22 +104,37 @@ export default function LoginPage() {
   };
 
   const handleGoogle = async () => {
-    setGoogleLoading(true); setError('');
+    setError('');
+
+    // If WebView → show instructions to open in real browser
+    if (isWebView()) {
+      setWebViewWarning(true);
+      return;
+    }
+
+    setGoogleLoading(true);
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-      // Check if admin profile exists
-      const adminSnap = await getDoc(doc(db, 'admins', user.uid));
-      if (!adminSnap.exists()) {
-        // Check for shop
-        const shopsSnap = await getDocs(query(collection(db, 'shops'), where('ownerId', '==', user.uid)));
-        if (shopsSnap.empty) {
-          router.push('/register?google=1'); return;
+      if (isMobile()) {
+        // Mobile real browser → use redirect (more reliable on mobile)
+        await signInWithRedirect(auth, googleProvider);
+        // Page will redirect — no code after this runs
+      } else {
+        // Desktop → popup is fine
+        const result = await signInWithPopup(auth, googleProvider);
+        const user = result.user;
+        const adminSnap = await getDoc(doc(db, 'admins', user.uid));
+        if (!adminSnap.exists()) {
+          const shopsSnap = await getDocs(query(collection(db, 'shops'), where('ownerId', '==', user.uid)));
+          if (shopsSnap.empty) { router.push('/register?google=1'); return; }
         }
+        router.push('/admin/dashboard');
       }
-      router.push('/admin/dashboard');
     } catch (err: any) {
-      if (err.code !== 'auth/popup-closed-by-user') setError('Connexion Google impossible. Réessayez.');
+      if (err.code === 'auth/disallowed-useragent' || err.message?.includes('disallowed_useragent')) {
+        setWebViewWarning(true);
+      } else if (err.code !== 'auth/popup-closed-by-user') {
+        setError('Connexion Google impossible. Utilisez votre email et mot de passe.');
+      }
     }
     setGoogleLoading(false);
   };
@@ -76,6 +150,19 @@ export default function LoginPage() {
     }
     setLoading(false);
   };
+
+  // Open current URL in system browser (for WebView users)
+  function openInBrowser() {
+    const url = window.location.href;
+    // Try intent URL for Android Chrome
+    if (/android/i.test(navigator.userAgent)) {
+      window.location.href = `intent://${url.replace(/^https?:\/\//, '')}#Intent;scheme=https;package=com.android.chrome;end`;
+    } else {
+      // Fallback: copy URL
+      navigator.clipboard?.writeText(url).catch(() => {});
+      alert(`Copiez ce lien et ouvrez-le dans Chrome :\n\n${url}`);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -112,6 +199,30 @@ export default function LoginPage() {
             <>
               <h2 className="text-2xl font-bold text-gray-800 mb-1">Connexion</h2>
               <p className="text-gray-500 mb-6">Accédez à votre espace administration</p>
+
+              {/* ── WebView Warning Banner ─────────────────────────── */}
+              {webViewWarning && (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4">
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl flex-shrink-0">⚠️</span>
+                    <div>
+                      <p className="font-bold text-amber-800 text-sm">Ouvrez dans Chrome pour Google</p>
+                      <p className="text-amber-700 text-xs mt-1 leading-relaxed">
+                        La connexion Google ne fonctionne pas dans les navigateurs intégrés (WhatsApp, Facebook, Instagram...).
+                        Ouvrez ce lien dans <strong>Chrome</strong> ou votre navigateur habituel.
+                      </p>
+                      <button onClick={openInBrowser}
+                        className="mt-2.5 flex items-center gap-1.5 bg-amber-600 text-white text-xs font-bold px-3 py-2 rounded-xl hover:bg-amber-700">
+                        <Chrome className="w-3.5 h-3.5" />
+                        Ouvrir dans Chrome
+                      </button>
+                      <p className="text-amber-600 text-xs mt-2">
+                        Ou utilisez votre <strong>email + mot de passe</strong> ci-dessous.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Google */}
               <button onClick={handleGoogle} disabled={googleLoading}
