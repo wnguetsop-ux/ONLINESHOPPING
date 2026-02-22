@@ -1125,64 +1125,67 @@ Voici un guide rapide pour bien démarrer :
 Besoin d'aide ? Répondez directement à ce message 😊
 Support disponible 7j/7 sur WhatsApp.`;
 
-        const emailSubject = `Guide de démarrage – Votre boutique ${relanceShop.name} sur ShopMaster`;
-        const emailBody = `Bonjour,
-
-J'espère que vous allez bien ! Je voulais vous envoyer un guide rapide pour bien configurer votre boutique "${relanceShop.name}" sur ShopMaster.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📦 ÉTAPE 1 — Ajouter vos produits
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. Connectez-vous sur ${adminUrl}
-2. Allez dans "Produits" → cliquez "+ Nouveau produit"
-3. Astuce IA : cliquez sur l'icône caméra 🤖 — photographiez le produit et l'IA remplit tout automatiquement (nom, description, prix suggéré) !
-4. Renseignez le prix d'achat ET le prix de vente pour voir vos bénéfices en temps réel.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🛒 ÉTAPE 2 — Créer votre première commande
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. Allez dans "Commandes" → "+ Commande manuelle"
-2. Entrez le nom et numéro du client
-3. Sélectionnez les produits (ou scannez leur code-barres)
-4. Choisissez le mode de paiement (Espèces ou Mobile Money)
-5. Validez → la commande passe automatiquement "En préparation"
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🌐 ÉTAPE 3 — Partager votre boutique en ligne
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Votre lien boutique public : ${shopUrl}
-→ Partagez-le sur WhatsApp, Facebook, Instagram
-→ Vos clients peuvent commander directement depuis leur téléphone
-→ Vous recevez une notification à chaque nouvelle commande
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🖨️ ÉTAPE 4 — Imprimer des reçus
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-→ Après chaque vente, cliquez "Imprimer le reçu"
-→ Compatible avec les imprimantes thermiques Bluetooth
-→ Vous pouvez aussi envoyer le reçu par WhatsApp directement
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📊 ÉTAPE 5 — Suivre vos ventes
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-→ Tableau de bord : ventes du jour, semaine, mois
-→ Bénéfice net calculé automatiquement
-→ Top produits, évolution des ventes, historique complet
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Une question ? Répondez à cet email ou contactez-nous sur WhatsApp.
-Nous sommes disponibles 7j/7 pour vous aider !
-
-Bonne vente ! 🚀
-
-L'équipe ShopMaster
-WhatsApp : +393299639430
-Site : https://mastershoppro.com`;
+        const emailSubject = 'Guide de demarrage - Boutique ' + relanceShop.name + ' sur ShopMaster';
+        const emailLines = [
+          'Bonjour,',
+          '',
+          'J espere que vous allez bien ! Voici un guide rapide pour configurer votre boutique ' + relanceShop.name + ' sur ShopMaster.',
+          '',
+          '--------------------------------------------------',
+          'ETAPE 1 - Ajouter vos produits',
+          '--------------------------------------------------',
+          '1. Connectez-vous sur ' + adminUrl,
+          '2. Allez dans Produits puis cliquez + Nouveau produit',
+          '3. Astuce IA : cliquez icone camera, photographiez le produit - l IA remplit nom, description, prix automatiquement !',
+          '4. Renseignez le prix d achat ET le prix de vente pour voir vos benefices.',
+          '',
+          '--------------------------------------------------',
+          'ETAPE 2 - Creer une commande',
+          '--------------------------------------------------',
+          '1. Allez dans Commandes puis + Commande manuelle',
+          '2. Entrez le nom et numero du client',
+          '3. Selectionnez les produits ou scannez leur code-barres',
+          '4. Choisissez Especes ou Mobile Money',
+          '5. Validez - la commande passe automatiquement en preparation',
+          '',
+          '--------------------------------------------------',
+          'ETAPE 3 - Partager votre boutique en ligne',
+          '--------------------------------------------------',
+          'Votre lien boutique : ' + shopUrl,
+          '- Partagez sur WhatsApp, Facebook, Instagram',
+          '- Vos clients commandent depuis leur telephone',
+          '- Vous recevez une notification a chaque commande',
+          '',
+          '--------------------------------------------------',
+          'ETAPE 4 - Imprimer des recus',
+          '--------------------------------------------------',
+          '- Apres chaque vente cliquez Imprimer le recu',
+          '- Compatible imprimantes thermiques Bluetooth',
+          '- Vous pouvez aussi envoyer par WhatsApp',
+          '',
+          '--------------------------------------------------',
+          'ETAPE 5 - Suivre vos ventes',
+          '--------------------------------------------------',
+          '- Tableau de bord : ventes du jour, semaine, mois',
+          '- Benefice net calcule automatiquement',
+          '- Top produits, historique complet',
+          '',
+          '--------------------------------------------------',
+          '',
+          'Une question ? Repondez a cet email ou contactez-nous sur WhatsApp.',
+          'Nous sommes disponibles 7j/7 !',
+          '',
+          'L equipe ShopMaster',
+          'WhatsApp : +393299639430',
+          'Site : https://mastershoppro.com',
+        ];
+        const emailBody = emailLines.join('%0D%0A');
+        const emailLink = relanceShop.ownerEmail
+          ? 'mailto:' + relanceShop.ownerEmail + '?subject=' + encodeURIComponent(emailSubject) + '&body=' + emailBody
+          : null;
 
         const waNumber = relanceShop.whatsapp?.replace(/[^0-9]/g, '');
         const waLink = waNumber ? `https://wa.me/${waNumber}?text=${encodeURIComponent(waGuide)}` : null;
-        const emailLink = relanceShop.ownerEmail ? `mailto:${relanceShop.ownerEmail}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}` : null;
 
         return (
           <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
