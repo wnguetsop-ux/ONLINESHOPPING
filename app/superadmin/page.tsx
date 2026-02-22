@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { collection, doc, updateDoc, addDoc, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { collection, doc, updateDoc, addDoc, onSnapshot, orderBy, query, getDocs, deleteDoc, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { PLANS } from '@/lib/types';
 import {
@@ -147,12 +147,26 @@ export default function SuperAdminPage() {
 
     setLiveStatus('connecting');
 
-    // 1. Shops — live
+    // 1. Shops — live, enriched with owner email from admins collection
     unsubShops.current = onSnapshot(
       collection(db, 'shops'),
-      (snap) => {
+      async (snap) => {
         const list: ShopRow[] = snap.docs.map(d => ({ id: d.id, ...d.data() } as ShopRow));
         list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        // Fetch admin emails (ownerId → email)
+        try {
+          const adminSnap = await getDocs(collection(db, 'admins'));
+          const emailMap: Record<string, string> = {};
+          adminSnap.docs.forEach(d => {
+            const data = d.data();
+            if (data.uid && data.email) emailMap[data.uid] = data.email;
+          });
+          list.forEach(s => {
+            if (!s.ownerEmail && (s as any).ownerId && emailMap[(s as any).ownerId]) {
+              s.ownerEmail = emailMap[(s as any).ownerId];
+            }
+          });
+        } catch {}
         setShops(list);
         setLoading(false);
         setLiveStatus('live');
@@ -236,6 +250,33 @@ export default function SuperAdminPage() {
       await updateDoc(doc(db, 'shops', shopId), { isActive: !currentActive });
       setShops(prev => prev.map(s => s.id === shopId ? { ...s, isActive: !currentActive } : s));
     } catch (err) { console.error(err); }
+    setSaving(null);
+  }
+
+  async function deleteShop(shop: ShopRow) {
+    const confirmed = confirm(
+      `⚠️ SUPPRIMER "${shop.name}" ?\n\nCette action est IRRÉVERSIBLE.\nTous les produits et commandes seront effacés.\n\nTapez OK pour confirmer.`
+    );
+    if (!confirmed) return;
+    setSaving(shop.id);
+    try {
+      // Delete all products of this shop
+      const productsSnap = await getDocs(query(collection(db, 'products'), where('shopId', '==', shop.id)));
+      await Promise.all(productsSnap.docs.map(d => deleteDoc(d.ref)));
+      // Delete all orders
+      const ordersSnap = await getDocs(query(collection(db, 'orders'), where('shopId', '==', shop.id)));
+      await Promise.all(ordersSnap.docs.map(d => deleteDoc(d.ref)));
+      // Delete categories
+      const catsSnap = await getDocs(query(collection(db, 'categories'), where('shopId', '==', shop.id)));
+      await Promise.all(catsSnap.docs.map(d => deleteDoc(d.ref)));
+      // Delete shop doc
+      await deleteDoc(doc(db, 'shops', shop.id));
+      // onSnapshot will auto-update the list
+      setSuccessMsg(`🗑️ Boutique "${shop.name}" supprimée.`);
+      setTimeout(() => setSuccessMsg(''), 4000);
+    } catch (err: any) {
+      alert('Erreur lors de la suppression : ' + (err.message || err));
+    }
     setSaving(null);
   }
 
@@ -468,6 +509,7 @@ export default function SuperAdminPage() {
                         <p className="text-gray-400 text-xs">
                           /{shop.slug}
                           {shop.whatsapp && <span className="ml-3">📱 {shop.whatsapp}</span>}
+                          {shop.ownerEmail && <span className="ml-3">✉️ {shop.ownerEmail}</span>}
                           {expiryDate && shop.planId !== 'FREE' && <span className={`ml-3 ${expired ? 'text-amber-400' : 'text-emerald-400'}`}>{expired ? '⚠️ Expiré le' : '✓ Jusqu\'au'} {expiryDate}</span>}
                         </p>
                         <p className="text-gray-600 text-xs mt-0.5">{shop.ordersThisMonth || 0} cmd ce mois • Inscrit le {new Date(shop.createdAt).toLocaleDateString('fr')}</p>
@@ -506,6 +548,12 @@ export default function SuperAdminPage() {
                         <button onClick={() => setRelanceShop(shop)}
                           className="text-xs px-3 py-1.5 rounded-lg bg-indigo-950 text-indigo-400 hover:bg-indigo-900 font-medium flex items-center gap-1">
                           📨 Relancer
+                        </button>
+                        {/* DELETE BUTTON */}
+                        <button onClick={() => deleteShop(shop)} disabled={saving === shop.id}
+                          className="text-xs px-3 py-1.5 rounded-lg bg-red-950 text-red-500 hover:bg-red-900 font-medium flex items-center gap-1 disabled:opacity-40"
+                          title="Supprimer définitivement cette boutique">
+                          🗑️
                         </button>
                       </div>
                     </div>

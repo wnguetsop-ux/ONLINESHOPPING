@@ -39,19 +39,16 @@ function VideoModal({ onClose }: { onClose: () => void }) {
           className="absolute -top-12 right-0 text-white/70 hover:text-white flex items-center gap-2 text-sm">
           <X className="w-5 h-5" />Fermer
         </button>
-        {/* Replace src with your real YouTube embed URL */}
-        <div className="relative bg-gray-900 rounded-2xl overflow-hidden shadow-2xl"
-          style={{ paddingTop: '56.25%' }}>
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-white/60">
-            <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center mb-4 border-2 border-white/20">
-              <Play className="w-8 h-8 text-white fill-white ml-1" />
-            </div>
-            <p className="text-lg font-semibold text-white">Vidéo de démonstration</p>
-            <p className="text-sm mt-2 text-white/50">Collez votre lien YouTube ici dans le code</p>
-            <p className="text-xs mt-1 font-mono bg-white/10 px-3 py-1.5 rounded-lg mt-3 text-white/60">
-              {'<iframe src="https://youtube.com/embed/VOTRE_ID" />'}
-            </p>
-          </div>
+        {/* YouTube with sound */}
+        <div className="relative bg-black rounded-2xl overflow-hidden shadow-2xl"
+          style={{ paddingTop: '177.77%' }}>
+          <iframe
+            className="absolute inset-0 w-full h-full"
+            src="https://www.youtube.com/embed/YDzR6rBbxkM?autoplay=1&rel=0&modestbranding=1&playsinline=1"
+            title="ShopMaster démonstration"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
         </div>
       </div>
     </div>
@@ -271,49 +268,49 @@ export default function HomePage() {
               Voyez ShopMaster en action
             </h2>
             <p className="text-gray-600 max-w-xl mx-auto">
-              En 2 minutes, découvrez comment gérer toute votre boutique depuis votre téléphone.
+              Découvrez comment gérer toute votre boutique depuis votre téléphone.
             </p>
           </div>
 
-          {/* Video thumbnail / play button */}
-          <div className="relative max-w-3xl mx-auto">
-            <button onClick={() => setShowVideo(true)}
-              className="group relative w-full aspect-video bg-gray-900 rounded-3xl overflow-hidden shadow-2xl hover:shadow-orange-200/50 transition-all duration-300 hover:scale-[1.01]">
-              {/* Thumbnail gradient background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-orange-600 via-orange-500 to-orange-700" />
-              {/* Grid pattern */}
-              <div className="absolute inset-0 opacity-10"
-                style={{ backgroundImage: 'linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
-
-              {/* Content */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-                <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform duration-300">
-                  <Play className="w-8 h-8 text-orange-500 fill-orange-500 ml-1" />
-                </div>
-                <p className="text-white text-lg font-bold">Voir la démo complète</p>
-                <p className="text-white/70 text-sm">2 minutes · Gratuit · Sans inscription</p>
+          {/* ── Inline autoplay video (muted) ── */}
+          <div className="relative max-w-xs mx-auto">
+            {/* Phone frame */}
+            <div className="relative bg-gray-900 rounded-[3rem] p-2.5 shadow-2xl">
+              <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-20 h-5 bg-black rounded-full z-10" />
+              <div className="relative rounded-[2.5rem] overflow-hidden bg-black" style={{ aspectRatio: '9/16' }}>
+                <iframe
+                  className="absolute inset-0 w-full h-full pointer-events-none"
+                  src="https://www.youtube.com/embed/YDzR6rBbxkM?autoplay=1&mute=1&loop=1&playlist=YDzR6rBbxkM&rel=0&modestbranding=1&controls=0&playsinline=1"
+                  title="ShopMaster démo"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+                {/* Tap to unmute overlay */}
+                <button onClick={() => setShowVideo(true)}
+                  className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/70 backdrop-blur text-white text-xs font-bold px-4 py-2 rounded-full border border-white/20 hover:bg-black/90 transition-all z-10">
+                  <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+                  Voir avec le son
+                </button>
               </div>
-
-              {/* Corner badge */}
-              <div className="absolute top-4 right-4 bg-white/20 backdrop-blur text-white text-xs font-bold px-3 py-1.5 rounded-full">
-                ▶ 2 min
-              </div>
-            </button>
-
-            {/* Steps below video */}
-            <div className="grid grid-cols-3 gap-4 mt-6">
-              {[
-                { step: '01', icon: '📦', text: 'Ajoutez vos produits en 30 sec avec l\'IA' },
-                { step: '02', icon: '🛒', text: 'Créez une commande en 3 clics' },
-                { step: '03', icon: '🖨️', text: 'Imprimez le reçu ou envoyez par WhatsApp' },
-              ].map((s, i) => (
-                <div key={i} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm text-center">
-                  <span className="text-xs font-bold text-orange-400 block mb-1">Étape {s.step}</span>
-                  <span className="text-2xl">{s.icon}</span>
-                  <p className="text-xs text-gray-600 mt-2 leading-snug">{s.text}</p>
-                </div>
-              ))}
             </div>
+
+            {/* Floating glow */}
+            <div className="absolute inset-0 -z-10 bg-orange-400/20 blur-3xl rounded-full scale-75" />
+          </div>
+
+          {/* Steps below video */}
+          <div className="grid grid-cols-3 gap-4 mt-10 max-w-3xl mx-auto">
+            {[
+              { step: '01', icon: '📦', text: 'Ajoutez vos produits en 30 sec avec l\'IA' },
+              { step: '02', icon: '🛒', text: 'Créez une commande en 3 clics' },
+              { step: '03', icon: '🖨️', text: 'Imprimez le reçu ou envoyez par WhatsApp' },
+            ].map((s, i) => (
+              <div key={i} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm text-center">
+                <span className="text-xs font-bold text-orange-400 block mb-1">Étape {s.step}</span>
+                <span className="text-2xl">{s.icon}</span>
+                <p className="text-xs text-gray-600 mt-2 leading-snug">{s.text}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
