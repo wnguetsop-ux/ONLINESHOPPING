@@ -121,6 +121,9 @@ export default function SuperAdminPage() {
   const [trafficLoading, setTrafficLoading] = useState(false);
   const [trafficPeriod, setTrafficPeriod] = useState<'today' | 'week' | 'month' | 'all'>('week');
 
+  // Relance
+  const [relanceShop, setRelanceShop] = useState<ShopRow | null>(null);
+
   // Real-time connection status
   const [liveStatus, setLiveStatus] = useState<'connecting' | 'live' | 'error'>('connecting');
   // Unsubscribe refs for cleanup
@@ -499,6 +502,11 @@ export default function SuperAdminPage() {
                           {shop.isActive ? <><X className="w-3 h-3 inline mr-1" />Désactiver</> : <><Check className="w-3 h-3 inline mr-1" />Activer</>}
                         </button>
                         <a href={`/${shop.slug}`} target="_blank" className="text-xs px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700">Voir →</a>
+                        {/* RELANCE BUTTON */}
+                        <button onClick={() => setRelanceShop(shop)}
+                          className="text-xs px-3 py-1.5 rounded-lg bg-indigo-950 text-indigo-400 hover:bg-indigo-900 font-medium flex items-center gap-1">
+                          📨 Relancer
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -1032,6 +1040,222 @@ export default function SuperAdminPage() {
           );
         })()}
       </div>
+
+      {/* ══ RELANCE MODAL ══════════════════════════════════════════════════════ */}
+      {relanceShop && (() => {
+        const shopUrl = `https://mastershoppro.com/${relanceShop.slug}`;
+        const adminUrl = `https://mastershoppro.com/admin/dashboard`;
+
+        const waGuide = `Bonjour ! 👋
+
+Je suis votre support ShopMaster. Je voulais m'assurer que tout se passe bien pour la boutique *${relanceShop.name}* 🏪
+
+Voici un guide rapide pour bien démarrer :
+
+*📦 1. Ajouter vos produits*
+→ Menu Admin → Produits → "+ Nouveau produit"
+→ Astuce : utilisez la caméra 🤖 pour que l'IA remplisse tout automatiquement !
+→ Ajoutez le prix d'achat ET le prix de vente pour voir vos bénéfices
+
+*🛒 2. Créer une commande*
+→ Menu Admin → Commandes → "+ Commande manuelle"
+→ Cherchez le client ou créez-en un nouveau
+→ Scannez ou sélectionnez les produits → Confirmer
+
+*🌐 3. Votre boutique en ligne*
+→ Partagez ce lien avec vos clients : ${shopUrl}
+→ Ils peuvent commander directement depuis leur téléphone !
+
+*🖨️ 4. Imprimer un reçu*
+→ Après chaque commande → bouton "Imprimer"
+→ Compatible imprimantes Bluetooth thermiques
+
+*📊 5. Voir vos statistiques*
+→ Tableau de bord → chiffres du jour, semaine, mois
+→ Bénéfice net calculé automatiquement
+
+Besoin d'aide ? Répondez directement à ce message 😊
+Support disponible 7j/7 sur WhatsApp.`;
+
+        const emailSubject = `Guide de démarrage – Votre boutique ${relanceShop.name} sur ShopMaster`;
+        const emailBody = `Bonjour,
+
+J'espère que vous allez bien ! Je voulais vous envoyer un guide rapide pour bien configurer votre boutique "${relanceShop.name}" sur ShopMaster.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📦 ÉTAPE 1 — Ajouter vos produits
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Connectez-vous sur ${adminUrl}
+2. Allez dans "Produits" → cliquez "+ Nouveau produit"
+3. Astuce IA : cliquez sur l'icône caméra 🤖 — photographiez le produit et l'IA remplit tout automatiquement (nom, description, prix suggéré) !
+4. Renseignez le prix d'achat ET le prix de vente pour voir vos bénéfices en temps réel.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🛒 ÉTAPE 2 — Créer votre première commande
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Allez dans "Commandes" → "+ Commande manuelle"
+2. Entrez le nom et numéro du client
+3. Sélectionnez les produits (ou scannez leur code-barres)
+4. Choisissez le mode de paiement (Espèces ou Mobile Money)
+5. Validez → la commande passe automatiquement "En préparation"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🌐 ÉTAPE 3 — Partager votre boutique en ligne
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Votre lien boutique public : ${shopUrl}
+→ Partagez-le sur WhatsApp, Facebook, Instagram
+→ Vos clients peuvent commander directement depuis leur téléphone
+→ Vous recevez une notification à chaque nouvelle commande
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🖨️ ÉTAPE 4 — Imprimer des reçus
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+→ Après chaque vente, cliquez "Imprimer le reçu"
+→ Compatible avec les imprimantes thermiques Bluetooth
+→ Vous pouvez aussi envoyer le reçu par WhatsApp directement
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 ÉTAPE 5 — Suivre vos ventes
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+→ Tableau de bord : ventes du jour, semaine, mois
+→ Bénéfice net calculé automatiquement
+→ Top produits, évolution des ventes, historique complet
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Une question ? Répondez à cet email ou contactez-nous sur WhatsApp.
+Nous sommes disponibles 7j/7 pour vous aider !
+
+Bonne vente ! 🚀
+
+L'équipe ShopMaster
+WhatsApp : +393299639430
+Site : https://mastershoppro.com`;
+
+        const waNumber = relanceShop.whatsapp?.replace(/[^0-9]/g, '');
+        const waLink = waNumber ? `https://wa.me/${waNumber}?text=${encodeURIComponent(waGuide)}` : null;
+        const emailLink = relanceShop.ownerEmail ? `mailto:${relanceShop.ownerEmail}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}` : null;
+
+        return (
+          <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="bg-gray-900 border border-gray-700 rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden">
+
+              {/* Header */}
+              <div className="bg-gradient-to-r from-indigo-900 to-indigo-800 p-5 flex items-center justify-between">
+                <div>
+                  <p className="text-indigo-300 text-xs font-semibold uppercase tracking-wide mb-0.5">Relancer le client</p>
+                  <h2 className="text-white text-lg font-bold">{relanceShop.name}</h2>
+                  <p className="text-indigo-300 text-xs mt-0.5">/{relanceShop.slug} · Plan {relanceShop.planId}</p>
+                </div>
+                <button onClick={() => setRelanceShop(null)}
+                  className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-5 space-y-4">
+                {/* Guide preview */}
+                <div className="bg-gray-800 rounded-2xl p-4 border border-gray-700">
+                  <p className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-3 flex items-center gap-2">
+                    📋 Guide envoyé avec le message
+                  </p>
+                  <div className="space-y-2 text-xs text-gray-400">
+                    {[
+                      { icon: '📦', step: '1', title: 'Ajouter les produits', desc: 'Via IA caméra ou manuellement, avec prix achat/vente' },
+                      { icon: '🛒', step: '2', title: 'Créer une commande', desc: 'Commande manuelle ou scan code-barres, Mobile Money / Espèces' },
+                      { icon: '🌐', step: '3', title: 'Partager la boutique en ligne', desc: `Lien : mastershoppro.com/${relanceShop.slug}` },
+                      { icon: '🖨️', step: '4', title: 'Imprimer les reçus', desc: 'Thermique Bluetooth ou envoi WhatsApp' },
+                      { icon: '📊', step: '5', title: 'Suivre les ventes', desc: 'Dashboard temps réel, bénéfices, top produits' },
+                    ].map(s => (
+                      <div key={s.step} className="flex items-start gap-3 py-2 border-b border-gray-700/50 last:border-0">
+                        <span className="text-base flex-shrink-0">{s.icon}</span>
+                        <div>
+                          <p className="text-gray-200 font-semibold text-xs">Étape {s.step} — {s.title}</p>
+                          <p className="text-gray-500 text-[11px] mt-0.5">{s.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Send buttons */}
+                <div className="space-y-2.5">
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">Envoyer via</p>
+
+                  {/* WhatsApp */}
+                  {waLink ? (
+                    <a href={waLink} target="_blank" onClick={() => setTimeout(() => setRelanceShop(null), 500)}
+                      className="flex items-center gap-4 bg-green-900/50 hover:bg-green-900 border border-green-800 rounded-2xl p-4 transition-all group">
+                      <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+                        <svg viewBox="0 0 24 24" className="w-6 h-6 fill-white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.122 1.532 5.855L.057 23.882l6.187-1.452A11.955 11.955 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.882 0-3.64-.49-5.17-1.348l-.37-.22-3.673.862.925-3.57-.24-.385A9.945 9.945 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white font-bold text-sm">WhatsApp</p>
+                        <p className="text-green-400 text-xs">+{waNumber}</p>
+                        <p className="text-gray-400 text-[11px] mt-0.5">Message pré-rempli avec guide complet · 1 clic</p>
+                      </div>
+                      <div className="text-green-400 text-xs font-bold group-hover:translate-x-1 transition-transform">→</div>
+                    </a>
+                  ) : (
+                    <div className="flex items-center gap-4 bg-gray-800 border border-gray-700 rounded-2xl p-4 opacity-50">
+                      <div className="w-12 h-12 bg-gray-700 rounded-xl flex items-center justify-center">
+                        <svg viewBox="0 0 24 24" className="w-6 h-6 fill-gray-500"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
+                      </div>
+                      <div>
+                        <p className="text-gray-400 font-bold text-sm">WhatsApp</p>
+                        <p className="text-gray-600 text-xs">Numéro non configuré pour cette boutique</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Email */}
+                  {emailLink ? (
+                    <a href={emailLink} onClick={() => setTimeout(() => setRelanceShop(null), 500)}
+                      className="flex items-center gap-4 bg-orange-900/30 hover:bg-orange-900/50 border border-orange-800/50 rounded-2xl p-4 transition-all group">
+                      <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+                        <svg viewBox="0 0 24 24" className="w-6 h-6 fill-white"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white font-bold text-sm">Email</p>
+                        <p className="text-orange-400 text-xs truncate">{relanceShop.ownerEmail}</p>
+                        <p className="text-gray-400 text-[11px] mt-0.5">Guide complet en 5 étapes · Ouvre votre client mail</p>
+                      </div>
+                      <div className="text-orange-400 text-xs font-bold group-hover:translate-x-1 transition-transform">→</div>
+                    </a>
+                  ) : (
+                    <div className="flex items-center gap-4 bg-gray-800 border border-gray-700 rounded-2xl p-4 opacity-50">
+                      <div className="w-12 h-12 bg-gray-700 rounded-xl flex items-center justify-center">
+                        <svg viewBox="0 0 24 24" className="w-6 h-6 fill-gray-500"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                      </div>
+                      <div>
+                        <p className="text-gray-400 font-bold text-sm">Email</p>
+                        <p className="text-gray-600 text-xs">Email non disponible pour cette boutique</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Copy shop link */}
+                <div className="bg-gray-800 rounded-xl p-3 flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-500 mb-0.5">Lien boutique publique</p>
+                    <p className="text-sm font-mono text-indigo-300 truncate">{shopUrl}</p>
+                  </div>
+                  <button onClick={() => { navigator.clipboard.writeText(shopUrl); }}
+                    className="text-xs px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg transition-colors flex-shrink-0">
+                    Copier
+                  </button>
+                </div>
+
+                <button onClick={() => setRelanceShop(null)}
+                  className="w-full py-2.5 text-sm text-gray-500 hover:text-gray-300 transition-colors">
+                  Fermer
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Add Event Modal */}
       {showAddEvent && (
