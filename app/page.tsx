@@ -1,709 +1,612 @@
 'use client';
 import Link from 'next/link';
-import { useEffect } from 'react';
-import { Store, ShoppingBag, BarChart3, Smartphone, CheckCircle, ArrowRight, Star, Users, Package, CreditCard, TrendingUp, Shield, Zap, Globe, Play, MessageCircle, Mail, Phone } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import {
+  Store, ShoppingBag, BarChart3, Smartphone, CheckCircle, ArrowRight,
+  Star, Package, CreditCard, TrendingUp, Shield, Zap, Globe,
+  MessageCircle, Mail, Phone, Play, Download, ChevronDown,
+  Scan, Printer, Brain, Users, X
+} from 'lucide-react';
 import { trackVisit } from '@/lib/analytics';
 
+const APP_URL = 'https://mastershoppro.com/register';
+const WHATSAPP       = '393299639430';
+const EMAIL          = 'wnguetsop@gmail.com';
+
+// ── Animated counter ────────────────────────────────────────────────────────
+function Counter({ to, suffix = '' }: { to: number; suffix?: string }) {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    let start = 0;
+    const step = Math.ceil(to / 60);
+    const timer = setInterval(() => {
+      start += step;
+      if (start >= to) { setVal(to); clearInterval(timer); }
+      else setVal(start);
+    }, 24);
+    return () => clearInterval(timer);
+  }, [to]);
+  return <>{val.toLocaleString('fr-FR')}{suffix}</>;
+}
+
+// ── Video modal ──────────────────────────────────────────────────────────────
+function VideoModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4"
+      onClick={onClose}>
+      <div className="relative w-full max-w-3xl" onClick={e => e.stopPropagation()}>
+        <button onClick={onClose}
+          className="absolute -top-12 right-0 text-white/70 hover:text-white flex items-center gap-2 text-sm">
+          <X className="w-5 h-5" />Fermer
+        </button>
+        {/* Replace src with your real YouTube embed URL */}
+        <div className="relative bg-gray-900 rounded-2xl overflow-hidden shadow-2xl"
+          style={{ paddingTop: '56.25%' }}>
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-white/60">
+            <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center mb-4 border-2 border-white/20">
+              <Play className="w-8 h-8 text-white fill-white ml-1" />
+            </div>
+            <p className="text-lg font-semibold text-white">Vidéo de démonstration</p>
+            <p className="text-sm mt-2 text-white/50">Collez votre lien YouTube ici dans le code</p>
+            <p className="text-xs mt-1 font-mono bg-white/10 px-3 py-1.5 rounded-lg mt-3 text-white/60">
+              {'<iframe src="https://youtube.com/embed/VOTRE_ID" />'}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function HomePage() {
-  const WHATSAPP = '393299639430';
-  const EMAIL = 'wnguetsop@gmail.com';
+  const [showVideo, setShowVideo] = useState(false);
 
   useEffect(() => {
     trackVisit({ page: 'landing' });
   }, []);
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="bg-white sticky top-0 z-50 border-b border-gray-100"
+    <div className="min-h-screen bg-white" style={{ fontFamily: "'Sora', 'Outfit', system-ui, sans-serif" }}>
+      {showVideo && <VideoModal onClose={() => setShowVideo(false)} />}
+
+      {/* ══════════════════════════════════════════════════════════════════
+          STICKY HEADER
+      ══════════════════════════════════════════════════════════════════ */}
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100"
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
-              <Store className="w-5 h-5 text-white" />
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-sm">
+              <Store className="w-4.5 h-4.5 text-white" style={{ width: 18, height: 18 }} />
             </div>
-            <div>
-              <span className="text-xl font-bold text-gray-800">ShopMaster</span>
-              <span className="text-[10px] text-orange-500 block -mt-1">POINT DE VENTE</span>
-            </div>
+            <span className="text-lg font-bold text-gray-900 tracking-tight">ShopMaster</span>
           </div>
-          
-          <nav className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-gray-600 hover:text-gray-800 font-medium">Fonctionnalités</a>
-            <a href="#pricing" className="text-gray-600 hover:text-gray-800 font-medium">Tarifs</a>
-            <a href="#contact" className="text-gray-600 hover:text-gray-800 font-medium">Contact</a>
+
+          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600">
+            <a href="#demo" className="hover:text-orange-500 transition-colors">Démo</a>
+            <a href="#features" className="hover:text-orange-500 transition-colors">Fonctionnalités</a>
+            <a href="#pricing" className="hover:text-orange-500 transition-colors">Tarifs</a>
+            <a href="#testimonials" className="hover:text-orange-500 transition-colors">Avis</a>
           </nav>
-          
-          <div className="flex items-center gap-3">
-            <Link href="/login" className="text-gray-600 hover:text-gray-800 font-medium px-4 py-2 hidden sm:block">
+
+          <div className="flex items-center gap-2">
+            <Link href="/login" className="hidden sm:block text-sm font-medium text-gray-600 hover:text-gray-900 px-3 py-1.5">
               Connexion
             </Link>
-            <Link href="/register" className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-5 py-2.5 rounded-lg transition-colors">
-              Commencer
-            </Link>
+            {/* Header download button */}
+            <a href={APP_URL} target="_blank"
+              className="flex items-center gap-1.5 bg-gray-900 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-gray-800 transition-colors">
+              <Zap className="w-4 h-4" />
+              <span className="hidden sm:inline">Essayer gratuitement</span>
+              <span className="sm:hidden">Essayer</span>
+            </a>
           </div>
         </div>
       </header>
 
-      {/* Hero Section - Style Loyverse */}
-      <section className="bg-gradient-to-b from-orange-50 to-white py-16 md:py-24">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <h1 className="text-4xl md:text-5xl font-bold text-gray-800 leading-tight mb-6">
-                Logiciel de caisse et de gestion de stock
-              </h1>
-              <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-                Transformez votre smartphone ou tablette en un puissant logiciel de caisse dans le cloud. 
-                Gérez facilement vos ventes, votre inventaire et vos clients. 
-                Que vous ayez un ou plusieurs magasins, nos outils vous aident à mieux gérer votre activité.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link 
-                  href="/register" 
-                  className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-8 py-4 rounded-lg text-center transition-colors"
-                >
-                  Commencer gratuitement
-                </Link>
-                <a 
-                  href={`https://wa.me/${WHATSAPP}?text=Bonjour, je souhaite en savoir plus sur ShopMaster`}
-                  target="_blank"
-                  className="border-2 border-orange-500 text-orange-500 hover:bg-orange-50 font-semibold px-8 py-4 rounded-lg text-center transition-colors flex items-center justify-center gap-2"
-                >
-                  <MessageCircle className="w-5 h-5" />
-                  Discuter avec nous
-                </a>
-              </div>
-              
-              <div className="flex items-center gap-2 mt-6 text-sm text-gray-500">
-                <CheckCircle className="w-5 h-5 text-green-500" />
-                <span>Gratuit pour commencer • Aucune carte requise</span>
-              </div>
-            </div>
-            
-            <div className="relative">
-              <div className="bg-white rounded-2xl shadow-2xl p-4 transform rotate-2 hover:rotate-0 transition-transform duration-500">
-                <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-4 text-white">
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="font-semibold">Dashboard</span>
-                    <span className="text-sm opacity-80">Aujourd'hui</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white/20 rounded-lg p-3">
-                      <p className="text-2xl font-bold">125K</p>
-                      <p className="text-xs opacity-80">Ventes FCFA</p>
-                    </div>
-                    <div className="bg-white/20 rounded-lg p-3">
-                      <p className="text-2xl font-bold">23</p>
-                      <p className="text-xs opacity-80">Commandes</p>
-                    </div>
-                    <div className="bg-white/20 rounded-lg p-3">
-                      <p className="text-2xl font-bold">+18%</p>
-                      <p className="text-xs opacity-80">Croissance</p>
-                    </div>
-                    <div className="bg-white/20 rounded-lg p-3">
-                      <p className="text-2xl font-bold">45K</p>
-                      <p className="text-xs opacity-80">Bénéfice</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 space-y-2">
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                        <Package className="w-5 h-5 text-orange-500" />
-                      </div>
-                      <span className="font-medium text-gray-700">Produit A</span>
-                    </div>
-                    <span className="font-semibold text-green-600">+15 000 F</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <Package className="w-5 h-5 text-blue-500" />
-                      </div>
-                      <span className="font-medium text-gray-700">Produit B</span>
-                    </div>
-                    <span className="font-semibold text-green-600">+8 500 F</span>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Floating elements */}
-              <div className="absolute -bottom-4 -left-4 bg-white rounded-xl shadow-lg p-3 flex items-center gap-2">
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                </div>
-                <span className="text-sm font-medium text-gray-700">Vente confirmée!</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* ══════════════════════════════════════════════════════════════════
+          HERO — The #1 conversion section
+      ══════════════════════════════════════════════════════════════════ */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-orange-50 via-orange-50/30 to-white pt-12 pb-20 md:pt-20 md:pb-28">
+        {/* Background decorations */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-orange-400/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-orange-300/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2 pointer-events-none" />
 
-      {/* Stats Banner */}
-      <section className="bg-gray-800 py-8">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            <div>
-              <p className="text-3xl md:text-4xl font-bold text-white">500+</p>
-              <p className="text-gray-400 mt-1">Boutiques actives</p>
-            </div>
-            <div>
-              <p className="text-3xl md:text-4xl font-bold text-white">50K+</p>
-              <p className="text-gray-400 mt-1">Transactions/mois</p>
-            </div>
-            <div>
-              <p className="text-3xl md:text-4xl font-bold text-white">15+</p>
-              <p className="text-gray-400 mt-1">Pays</p>
-            </div>
-            <div>
-              <p className="text-3xl md:text-4xl font-bold text-white">99.9%</p>
-              <p className="text-gray-400 mt-1">Disponibilité</p>
-            </div>
+        <div className="relative max-w-6xl mx-auto px-4 text-center">
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 bg-orange-100 text-orange-700 text-sm font-semibold px-4 py-2 rounded-full mb-6 border border-orange-200">
+            <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
+            🇨🇲 Fait pour l'Afrique — 21 pays supportés
           </div>
-        </div>
-      </section>
 
-      {/* Features Section 1 - Caisse en cloud */}
-      <section id="features" className="py-20">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid md:grid-cols-2 gap-16 items-center">
-            <div className="order-2 md:order-1">
-              <div className="bg-gradient-to-br from-gray-100 to-gray-50 rounded-2xl p-8">
-                <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-                  <div className="bg-green-500 p-3 flex items-center gap-2">
-                    <div className="w-3 h-3 bg-white/30 rounded-full"></div>
-                    <div className="w-3 h-3 bg-white/30 rounded-full"></div>
-                    <div className="w-3 h-3 bg-white/30 rounded-full"></div>
-                    <span className="text-white text-sm ml-2">Point de Vente</span>
-                  </div>
-                  <div className="p-4 grid grid-cols-3 gap-2">
-                    {['☕ Café', '🥐 Croissant', '🍕 Pizza', '🍔 Burger', '🥗 Salade', '🍦 Glace'].map((item, i) => (
-                      <div key={i} className="bg-gray-50 rounded-lg p-3 text-center hover:bg-orange-50 cursor-pointer transition-colors">
-                        <span className="text-xl">{item.split(' ')[0]}</span>
-                        <p className="text-xs text-gray-600 mt-1">{item.split(' ')[1]}</p>
+          {/* Headline */}
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-gray-900 leading-[1.1] tracking-tight mb-6 max-w-4xl mx-auto">
+            Gérez votre boutique
+            <span className="relative inline-block mx-3">
+              <span className="relative z-10 text-orange-500">depuis votre téléphone</span>
+              <svg className="absolute -bottom-1 left-0 w-full" viewBox="0 0 200 8" preserveAspectRatio="none" style={{ height: 6 }}>
+                <path d="M0,6 Q100,0 200,6" stroke="#f97316" strokeWidth="3" fill="none" strokeLinecap="round" />
+              </svg>
+            </span>
+          </h1>
+
+          <p className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto mb-10 leading-relaxed">
+            Ventes, stock, commandes, reçus, analyses — tout en un. 
+            Gratuit pour commencer. Fonctionne sur tout appareil.
+          </p>
+
+          {/* ★★★ THE BIG DOWNLOAD BUTTON ★★★ */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
+            <a href={APP_URL} target="_blank"
+              className="group relative inline-flex items-center gap-3 bg-gray-900 text-white font-bold text-lg px-8 py-5 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 active:scale-100 transition-all duration-200 overflow-hidden">
+              {/* Shine effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+              {/* Icon */}
+              <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Store className="w-5 h-5 text-white" />
+              </div>
+              <div className="text-left">
+                <div className="text-xs text-gray-300 leading-none mb-0.5">Accéder à</div>
+                <div className="text-xl font-extrabold leading-none">ShopMaster Pro</div>
+              </div>
+              <ArrowRight className="w-5 h-5 opacity-70 group-hover:translate-x-1 transition-transform" />
+            </a>
+
+            {/* Watch demo button */}
+            <button onClick={() => setShowVideo(true)}
+              className="inline-flex items-center gap-3 bg-white text-gray-900 font-semibold text-base px-6 py-5 rounded-2xl border-2 border-gray-200 hover:border-orange-300 hover:bg-orange-50 transition-all duration-200 shadow-sm">
+              <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+                <Play className="w-4 h-4 text-white fill-white ml-0.5" />
+              </div>
+              Voir comment ça marche
+            </button>
+          </div>
+
+          {/* Trust signals under buttons */}
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-gray-500">
+            <span className="flex items-center gap-1.5"><CheckCircle className="w-4 h-4 text-green-500" />100% gratuit pour commencer</span>
+            <span className="flex items-center gap-1.5"><CheckCircle className="w-4 h-4 text-green-500" />Aucune carte bancaire</span>
+            <span className="flex items-center gap-1.5"><CheckCircle className="w-4 h-4 text-green-500" />Fonctionne sur téléphone et PC</span>
+          </div>
+
+          {/* Phone mockup */}
+          <div className="mt-16 relative max-w-sm mx-auto">
+            <div className="relative bg-gray-900 rounded-[3rem] p-3 shadow-2xl mx-auto" style={{ maxWidth: 260 }}>
+              <div className="absolute top-3 left-1/2 -translate-x-1/2 w-20 h-5 bg-black rounded-full z-10" />
+              <div className="bg-white rounded-[2.5rem] overflow-hidden" style={{ minHeight: 420 }}>
+                {/* App screenshot mockup */}
+                <div className="bg-orange-500 px-4 pt-10 pb-4">
+                  <p className="text-orange-100 text-xs font-medium">Bonjour, Marie 👋</p>
+                  <p className="text-white text-xl font-bold mt-0.5">Tableau de bord</p>
+                </div>
+                <div className="p-4 space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { label: 'Ventes today', val: '85 000 F', color: 'text-green-600', bg: 'bg-green-50' },
+                      { label: 'Commandes', val: '12', color: 'text-blue-600', bg: 'bg-blue-50' },
+                      { label: 'Produits', val: '48', color: 'text-purple-600', bg: 'bg-purple-50' },
+                      { label: 'Bénéfice', val: '32 000 F', color: 'text-orange-600', bg: 'bg-orange-50' },
+                    ].map((s, i) => (
+                      <div key={i} className={`${s.bg} rounded-xl p-3`}>
+                        <p className="text-[10px] text-gray-500">{s.label}</p>
+                        <p className={`text-sm font-bold ${s.color} mt-0.5`}>{s.val}</p>
                       </div>
                     ))}
                   </div>
-                  <div className="border-t p-4 flex justify-between items-center">
-                    <div>
-                      <p className="text-sm text-gray-500">Total</p>
-                      <p className="text-xl font-bold text-gray-800">12 500 F</p>
-                    </div>
-                    <button className="bg-green-500 text-white px-6 py-2 rounded-lg font-medium">
-                      Payer
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="order-1 md:order-2">
-              <h2 className="text-3xl font-bold text-gray-800 mb-6">
-                Caisse enregistreuse dans le cloud
-              </h2>
-              <p className="text-gray-600 mb-6 leading-relaxed">
-                Transformez votre smartphone ou tablette en un terminal de caisse facile à utiliser.
-              </p>
-              <ul className="space-y-4">
-                {[
-                  'Émettez des reçus imprimés ou électroniques',
-                  'Scanner codes-barres avec téléphone ou scanner USB',
-                  'Créez les commandes manuellement depuis le tableau de bord',
-                  'Connectez un scanner professionnel pour aller plus vite',
-                  'Acceptez tous les modes de paiement (Mobile Money, Cash)',
-                ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
-                    <span className="text-gray-700">{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section 2 - Analytics */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid md:grid-cols-2 gap-16 items-center">
-            <div>
-              <h2 className="text-3xl font-bold text-gray-800 mb-6">
-                Rapports et analyses en temps réel
-              </h2>
-              <p className="text-gray-600 mb-6 leading-relaxed">
-                Accédez à vos rapports depuis smartphone, tablette ou ordinateur, où que vous soyez.
-              </p>
-              <ul className="space-y-4">
-                {[
-                  'Visualisez entrées, ventes moyennes et bénéfices',
-                  'Suivez les tendances des ventes en temps réel',
-                  'Identifiez les articles et catégories les plus vendus',
-                  'Historique complet de toutes les transactions',
-                  'Exportez vos données en Excel',
-                ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
-                    <span className="text-gray-700">{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            
-            <div>
-              <div className="bg-white rounded-2xl shadow-xl p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="font-semibold text-gray-800">Ventes ce mois</h3>
-                  <select className="text-sm border rounded-lg px-3 py-1">
-                    <option>Février 2026</option>
-                  </select>
-                </div>
-                <div className="flex items-end gap-2 h-40">
-                  {[40, 65, 45, 80, 55, 90, 70, 85, 60, 95, 75, 88].map((h, i) => (
-                    <div 
-                      key={i} 
-                      className="flex-1 bg-gradient-to-t from-orange-500 to-orange-400 rounded-t-lg transition-all hover:from-orange-600 hover:to-orange-500"
-                      style={{ height: `${h}%` }}
-                    ></div>
-                  ))}
-                </div>
-                <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t">
-                  <div>
-                    <p className="text-sm text-gray-500">Total ventes</p>
-                    <p className="text-xl font-bold text-gray-800">2.5M F</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Bénéfice</p>
-                    <p className="text-xl font-bold text-green-600">850K F</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Commandes</p>
-                    <p className="text-xl font-bold text-gray-800">342</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section 3 - Gestion stock */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid md:grid-cols-2 gap-16 items-center">
-            <div className="order-2 md:order-1">
-              <div className="bg-white rounded-2xl shadow-xl p-6">
-                <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <Package className="w-5 h-5 text-orange-500" />
-                  Gestion de l'inventaire
-                </h3>
-                <div className="space-y-3">
-                  {[
-                    { name: 'iPhone 15 Pro', stock: 12, status: 'ok' },
-                    { name: 'Samsung S24', stock: 5, status: 'low' },
-                    { name: 'AirPods Pro', stock: 2, status: 'critical' },
-                    { name: 'MacBook Air', stock: 8, status: 'ok' },
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-3 h-3 rounded-full ${
-                          item.status === 'ok' ? 'bg-green-500' :
-                          item.status === 'low' ? 'bg-yellow-500' : 'bg-red-500'
-                        }`}></div>
-                        <span className="font-medium text-gray-700">{item.name}</span>
+                  <div className="bg-gray-50 rounded-xl p-3">
+                    <p className="text-xs text-gray-500 mb-2 font-medium">Dernières commandes</p>
+                    {[
+                      { name: 'Aicha D.', amount: '15 000 F', status: '✅' },
+                      { name: 'Paul N.', amount: '8 500 F', status: '📦' },
+                      { name: 'Fatou S.', amount: '22 000 F', status: '🚚' },
+                    ].map((o, i) => (
+                      <div key={i} className="flex justify-between items-center py-1.5 border-b border-gray-100 last:border-0 text-xs">
+                        <span className="font-medium text-gray-700">{o.name}</span>
+                        <span className="text-gray-500">{o.amount} {o.status}</span>
                       </div>
-                      <span className={`font-semibold ${
-                        item.status === 'ok' ? 'text-green-600' :
-                        item.status === 'low' ? 'text-yellow-600' : 'text-red-600'
-                      }`}>
-                        Stock: {item.stock}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4 p-3 bg-red-50 rounded-lg flex items-center gap-3">
-                  <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-                    <span className="text-red-500 text-lg">⚠️</span>
+                    ))}
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-red-800">Alerte stock faible</p>
-                    <p className="text-xs text-red-600">2 produits à réapprovisionner</p>
-                  </div>
+                  <button className="w-full bg-orange-500 text-white text-sm font-bold py-3 rounded-xl">
+                    + Nouvelle commande
+                  </button>
                 </div>
               </div>
             </div>
-            
-            <div className="order-1 md:order-2">
-              <h2 className="text-3xl font-bold text-gray-800 mb-6">
-                Gestion intelligente du stock
-              </h2>
-              <p className="text-gray-600 mb-6 leading-relaxed">
-                Ne manquez plus jamais une vente à cause d'un stock épuisé.
-              </p>
-              <ul className="space-y-4">
-                {[
-                  'Alertes automatiques de stock faible',
-                  'Suivi des mouvements de stock en temps réel',
-                  'Gestion multi-entrepôts',
-                  'Historique des ajustements d\'inventaire',
-                  'Import/export de produits en masse',
-                ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
-                    <span className="text-gray-700">{item}</span>
-                  </li>
-                ))}
-              </ul>
+            {/* Floating badges */}
+            <div className="absolute -left-8 top-24 bg-white rounded-2xl shadow-xl p-3 flex items-center gap-2 border border-gray-100">
+              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center text-base">✅</div>
+              <div>
+                <p className="text-xs font-bold text-gray-800">Vente confirmée</p>
+                <p className="text-[10px] text-gray-400">15 000 FCFA</p>
+              </div>
             </div>
+            <div className="absolute -right-8 top-48 bg-white rounded-2xl shadow-xl p-3 border border-gray-100">
+              <div className="flex gap-0.5 mb-1">
+                {[1,2,3,4,5].map(i => <Star key={i} className="w-3 h-3 fill-amber-400 text-amber-400" />)}
+              </div>
+              <p className="text-[10px] font-semibold text-gray-800">Super app !</p>
+              <p className="text-[9px] text-gray-400">— Jean-Paul K.</p>
+            </div>
+          </div>
+
+          {/* Scroll hint */}
+          <div className="mt-10 flex flex-col items-center gap-1 text-gray-400 text-xs">
+            <span>Découvrez tout ce que vous pouvez faire</span>
+            <ChevronDown className="w-4 h-4 animate-bounce" />
           </div>
         </div>
       </section>
 
-      {/* ✨ NEW — Features Section 4 - IA Vision */}
-      <section className="py-20 bg-gradient-to-br from-purple-50 via-white to-orange-50">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid md:grid-cols-2 gap-16 items-center">
-            <div>
-              {/* AI badge */}
-              <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-semibold mb-4">
-                <span className="text-lg">🤖</span>
-                Intelligence Artificielle intégrée
-              </div>
-              <h2 className="text-3xl font-bold text-gray-800 mb-6">
-                Filmez un produit, l'IA remplit tout automatiquement
-              </h2>
-              <p className="text-gray-600 mb-6 leading-relaxed">
-                Grâce à la vision par IA (Gemini + GPT-4), pointez simplement votre caméra 
-                sur n'importe quel produit et laissez l'intelligence artificielle identifier 
-                et rédiger toutes les informations en français en quelques secondes.
+      {/* ══════════════════════════════════════════════════════════════════
+          SOCIAL PROOF NUMBERS
+      ══════════════════════════════════════════════════════════════════ */}
+      <section className="bg-gray-900 py-10">
+        <div className="max-w-5xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+          {[
+            { to: 500, suffix: '+', label: 'Boutiques actives' },
+            { to: 50000, suffix: '+', label: 'Ventes traitées' },
+            { to: 21, suffix: '', label: 'Pays africains' },
+            { to: 99, suffix: '%', label: 'Clients satisfaits' },
+          ].map((s, i) => (
+            <div key={i}>
+              <p className="text-3xl md:text-4xl font-extrabold text-white tabular-nums">
+                <Counter to={s.to} suffix={s.suffix} />
               </p>
-              <ul className="space-y-4 mb-8">
-                {[
-                  { icon: '📸', text: 'Prenez une photo ou filmez le produit' },
-                  { icon: '🏷️', text: 'Nom commercial généré automatiquement en français' },
-                  { icon: '📝', text: 'Description marketing attrayante rédigée par l\'IA' },
-                  { icon: '📋', text: 'Caractéristiques techniques extraites de la photo' },
-                  { icon: '💰', text: 'Prix de vente suggéré selon le marché africain' },
-                  { icon: '✏️', text: 'Tout modifiable avant de sauvegarder' },
-                ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <span className="text-xl flex-shrink-0">{item.icon}</span>
-                    <span className="text-gray-700">{item.text}</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-purple-100 shadow-sm">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Zap className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-800 text-sm">Ajout de 100 produits en moins de 20 minutes</p>
-                  <p className="text-xs text-gray-500">Contre plusieurs heures de saisie manuelle</p>
-                </div>
-              </div>
+              <p className="text-gray-400 text-sm mt-1">{s.label}</p>
             </div>
-
-            {/* AI demo mockup */}
-            <div className="relative">
-              <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100">
-                {/* Phone frame top */}
-                <div className="bg-gray-800 px-4 pt-3 pb-1 flex items-center justify-between">
-                  <div className="w-16 h-1.5 bg-gray-600 rounded-full" />
-                  <div className="w-4 h-4 bg-gray-600 rounded-full" />
-                </div>
-                {/* Camera viewfinder */}
-                <div className="relative bg-gray-900 h-44 flex items-center justify-center overflow-hidden">
-                  <div className="text-6xl">👟</div>
-                  {/* Corner guides */}
-                  {['top-3 left-3','top-3 right-3','bottom-3 left-3','bottom-3 right-3'].map((pos,i) => (
-                    <div key={i} className={`absolute ${pos} w-6 h-6 border-2 border-orange-400 ${i<2?'border-b-0':'border-t-0'} ${i%2===0?'border-r-0':'border-l-0'}`} />
-                  ))}
-                  <div className="absolute bottom-2 left-0 right-0 text-center">
-                    <span className="text-white/70 text-xs bg-black/40 px-3 py-1 rounded-full">📷 Cadrez le produit</span>
-                  </div>
-                </div>
-                {/* AI analyzing animation */}
-                <div className="px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 flex items-center gap-3">
-                  <div className="flex gap-1">
-                    {[0,1,2].map(i => <div key={i} className="w-2 h-2 bg-white rounded-full opacity-80" style={{ animation: `pulse 1s ease-in-out ${i*0.2}s infinite` }} />)}
-                  </div>
-                  <span className="text-white text-sm font-medium">Gemini analyse le produit...</span>
-                </div>
-                {/* Auto-filled form */}
-                <div className="p-4 space-y-2">
-                  <div>
-                    <p className="text-xs text-gray-400 mb-0.5">Nom du produit ✨IA</p>
-                    <div className="bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 text-sm font-medium text-gray-800">Nike Air Force 1 Blanc</div>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-400 mb-0.5">Description ✨IA</p>
-                    <div className="bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 text-xs text-gray-700">Sneakers iconiques ultra-confortables, parfaites au quotidien...</div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <p className="text-xs text-gray-400 mb-0.5">Prix suggéré ✨</p>
-                      <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-sm font-bold text-green-700">45 000 FCFA</div>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400 mb-0.5">Catégorie ✨</p>
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-sm text-gray-700">Chaussures</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              {/* Floating badge */}
-              <div className="absolute -top-4 -right-4 bg-orange-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
-                🆓 GRATUIT
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
       </section>
 
-      {/* Why Choose Us */}
-      <section className="py-20 bg-gray-800 text-white">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold mb-4">Pourquoi choisir ShopMaster ?</h2>
-            <p className="text-gray-400 max-w-2xl mx-auto">
-              La solution complète pour gérer votre commerce, que vous soyez une petite boutique ou une chaîne de magasins.
+      {/* ══════════════════════════════════════════════════════════════════
+          VIDEO DEMO SECTION
+      ══════════════════════════════════════════════════════════════════ */}
+      <section id="demo" className="py-20 bg-gradient-to-b from-white to-orange-50/40">
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-2 bg-orange-100 text-orange-700 text-sm font-semibold px-4 py-1.5 rounded-full mb-4">
+              <Play className="w-3.5 h-3.5" />Démonstration en vidéo
+            </div>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">
+              Voyez ShopMaster en action
+            </h2>
+            <p className="text-gray-600 max-w-xl mx-auto">
+              En 2 minutes, découvrez comment gérer toute votre boutique depuis votre téléphone.
             </p>
           </div>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { icon: Smartphone, title: 'Multi-plateforme', desc: 'Fonctionne sur smartphone, tablette et ordinateur. Synchronisation automatique.' },
-              { icon: Shield, title: 'Sécurisé', desc: 'Vos données sont chiffrées et sauvegardées dans le cloud. Accès sécurisé.' },
-              { icon: Zap, title: 'Rapide', desc: 'Interface optimisée pour des transactions rapides, même hors connexion.' },
-              { icon: Globe, title: 'Multi-boutiques', desc: 'Gérez plusieurs points de vente depuis un seul tableau de bord.' },
-              { icon: TrendingUp, title: 'Évolutif', desc: 'Commencez petit et grandissez. Notre système s\'adapte à vos besoins.' },
-              { icon: Users, title: 'Support humain', desc: 'Équipe disponible sur WhatsApp pour vous accompagner.' },
-            ].map((item, i) => (
-              <div key={i} className="text-center p-6">
-                <div className="w-16 h-16 bg-orange-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <item.icon className="w-8 h-8 text-orange-400" />
+
+          {/* Video thumbnail / play button */}
+          <div className="relative max-w-3xl mx-auto">
+            <button onClick={() => setShowVideo(true)}
+              className="group relative w-full aspect-video bg-gray-900 rounded-3xl overflow-hidden shadow-2xl hover:shadow-orange-200/50 transition-all duration-300 hover:scale-[1.01]">
+              {/* Thumbnail gradient background */}
+              <div className="absolute inset-0 bg-gradient-to-br from-orange-600 via-orange-500 to-orange-700" />
+              {/* Grid pattern */}
+              <div className="absolute inset-0 opacity-10"
+                style={{ backgroundImage: 'linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+
+              {/* Content */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+                <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform duration-300">
+                  <Play className="w-8 h-8 text-orange-500 fill-orange-500 ml-1" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">{item.title}</h3>
-                <p className="text-gray-400">{item.desc}</p>
+                <p className="text-white text-lg font-bold">Voir la démo complète</p>
+                <p className="text-white/70 text-sm">2 minutes · Gratuit · Sans inscription</p>
               </div>
-            ))}
+
+              {/* Corner badge */}
+              <div className="absolute top-4 right-4 bg-white/20 backdrop-blur text-white text-xs font-bold px-3 py-1.5 rounded-full">
+                ▶ 2 min
+              </div>
+            </button>
+
+            {/* Steps below video */}
+            <div className="grid grid-cols-3 gap-4 mt-6">
+              {[
+                { step: '01', icon: '📦', text: 'Ajoutez vos produits en 30 sec avec l\'IA' },
+                { step: '02', icon: '🛒', text: 'Créez une commande en 3 clics' },
+                { step: '03', icon: '🖨️', text: 'Imprimez le reçu ou envoyez par WhatsApp' },
+              ].map((s, i) => (
+                <div key={i} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm text-center">
+                  <span className="text-xs font-bold text-orange-400 block mb-1">Étape {s.step}</span>
+                  <span className="text-2xl">{s.icon}</span>
+                  <p className="text-xs text-gray-600 mt-2 leading-snug">{s.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════════
+          FEATURES GRID
+      ══════════════════════════════════════════════════════════════════ */}
+      <section id="features" className="py-20">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">Tout ce dont vous avez besoin</h2>
+            <p className="text-gray-500 max-w-xl mx-auto">Une seule app pour gérer 100% de votre commerce.</p>
           </div>
 
-          {/* New features highlight strip */}
-          <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {[
-              { emoji: '🔑', title: 'Connexion Google', desc: 'Connectez-vous en 1 clic avec votre compte Google' },
-              { emoji: '📷', title: 'Scanner code-barres', desc: 'Utilisez la caméra ou un scanner USB professionnel' },
-              { emoji: '🏷️', title: 'SKU & code-barres', desc: 'Attribuez un code unique à chaque produit' },
-              { emoji: '📦', title: 'Archives par date', desc: 'Retrouvez n\'importe quelle commande par jour ou mois' },
+              { icon: ShoppingBag, color: 'orange', emoji: '🛒', title: 'Caisse rapide', desc: 'Créez une commande en 3 clics. Paiement Mobile Money, espèces ou carte.' },
+              { icon: Brain, color: 'purple', emoji: '🤖', title: 'IA intégrée', desc: 'Photographiez un produit, l\'IA remplit le nom, description et prix automatiquement.' },
+              { icon: Scan, color: 'blue', emoji: '📷', title: 'Scanner code-barres', desc: 'Utilisez la caméra de votre téléphone ou un scanner USB professionnel.' },
+              { icon: Printer, color: 'green', emoji: '🖨️', title: 'Reçus thermiques', desc: 'Imprimez des reçus professionnels sur imprimante Bluetooth ou partagez par WhatsApp.' },
+              { icon: BarChart3, color: 'teal', emoji: '📊', title: 'Statistiques live', desc: 'Ventes, bénéfices, top produits — mis à jour en temps réel depuis n\'importe où.' },
+              { icon: Package, color: 'amber', emoji: '📦', title: 'Gestion stock', desc: 'Alertes stock faible automatiques. Jamais en rupture au mauvais moment.' },
+              { icon: Globe, color: 'indigo', emoji: '🌍', title: 'Boutique en ligne', desc: 'Vos clients commandent sur votre page publique et reçoivent une confirmation WhatsApp.' },
+              { icon: Users, color: 'pink', emoji: '👥', title: 'Multi-utilisateurs', desc: 'Ajoutez des vendeurs avec leurs propres accès. Gérez les permissions.' },
+              { icon: Shield, color: 'slate', emoji: '🔒', title: 'Données sécurisées', desc: 'Sauvegarde cloud automatique. Vos données ne disparaissent jamais.' },
             ].map((f, i) => (
-              <div key={i} className="bg-white/5 rounded-2xl p-4 text-center border border-white/10">
-                <div className="text-3xl mb-2">{f.emoji}</div>
-                <p className="font-semibold text-white text-sm mb-1">{f.title}</p>
-                <p className="text-gray-400 text-xs">{f.desc}</p>
+              <div key={i}
+                className="group bg-white rounded-2xl p-6 border border-gray-100 hover:border-orange-200 hover:shadow-lg transition-all duration-200">
+                <div className="text-3xl mb-3">{f.emoji}</div>
+                <h3 className="font-bold text-gray-900 mb-2">{f.title}</h3>
+                <p className="text-gray-500 text-sm leading-relaxed">{f.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Pricing */}
-      <section id="pricing" className="py-20">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-800 mb-4">Tarifs simples et transparents</h2>
-            <p className="text-gray-600">Commencez gratuitement, évoluez selon vos besoins</p>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {/* Free */}
-            <div className="bg-white rounded-2xl border-2 border-gray-100 p-8 hover:border-gray-200 transition-colors">
-              <div className="text-center mb-8">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Gratuit</h3>
-                <p className="text-5xl font-bold text-gray-800">0<span className="text-lg font-normal text-gray-400"> FCFA</span></p>
-                <p className="text-gray-500 mt-2">Pour démarrer</p>
-              </div>
-              <ul className="space-y-4 mb-8">
-                {['20 produits', '20 commandes/mois', '1 utilisateur', 'Rapports basiques', 'Support email'].map((item, i) => (
-                  <li key={i} className="flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span className="text-gray-600">{item}</span>
-                  </li>
-                ))}
-              </ul>
-              <Link href="/register" className="block w-full py-3 text-center border-2 border-orange-500 text-orange-500 rounded-lg font-semibold hover:bg-orange-50 transition-colors">
-                Commencer
-              </Link>
-            </div>
-            
-            {/* Starter */}
-            <div className="bg-white rounded-2xl border-2 border-orange-500 p-8 relative shadow-xl scale-105">
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-orange-500 text-white px-4 py-1 rounded-full text-sm font-medium">
-                ⭐ Populaire
-              </div>
-              <div className="text-center mb-8">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Starter</h3>
-                <p className="text-5xl font-bold text-orange-500">1 000<span className="text-lg font-normal text-gray-400"> F/mois</span></p>
-                <p className="text-gray-500 mt-2">Pour les petits commerces</p>
-              </div>
-              <ul className="space-y-4 mb-8">
-                {['50 produits', '100 commandes/mois', '2 utilisateurs', 'Rapports avancés', 'Support prioritaire', 'Export données'].map((item, i) => (
-                  <li key={i} className="flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span className="text-gray-600">{item}</span>
-                  </li>
-                ))}
-              </ul>
-              <Link href="/register" className="block w-full py-3 text-center bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors">
-                Commencer
-              </Link>
-            </div>
-            
-            {/* Pro */}
-            <div className="bg-white rounded-2xl border-2 border-gray-100 p-8 hover:border-gray-200 transition-colors">
-              <div className="text-center mb-8">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Pro</h3>
-                <p className="text-5xl font-bold text-purple-600">2 500<span className="text-lg font-normal text-gray-400"> F/mois</span></p>
-                <p className="text-gray-500 mt-2">Pour les entreprises</p>
-              </div>
-              <ul className="space-y-4 mb-8">
-                {['Produits illimités', 'Commandes illimitées', 'Utilisateurs illimités', 'Multi-boutiques', 'Support 24/7', 'API accès'].map((item, i) => (
-                  <li key={i} className="flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span className="text-gray-600">{item}</span>
-                  </li>
-                ))}
-              </ul>
-              <Link href="/register" className="block w-full py-3 text-center border-2 border-purple-500 text-purple-500 rounded-lg font-semibold hover:bg-purple-50 transition-colors">
-                Commencer
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="bg-gradient-to-r from-orange-500 to-orange-600 py-16">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold text-white mb-4">
-            Prêt à digitaliser votre commerce ?
-          </h2>
-          <p className="text-orange-100 mb-8 text-lg">
-            Rejoignez des centaines de commerçants qui font confiance à ShopMaster
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link 
-              href="/register" 
-              className="inline-flex items-center justify-center gap-2 bg-white text-orange-600 font-semibold px-8 py-4 rounded-lg hover:bg-orange-50 transition-colors"
-            >
-              Créer ma boutique gratuite
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-            <a 
-              href={`https://wa.me/${WHATSAPP}?text=Bonjour, je voudrais une démo de ShopMaster`}
-              target="_blank"
-              className="inline-flex items-center justify-center gap-2 bg-green-500 text-white font-semibold px-8 py-4 rounded-lg hover:bg-green-600 transition-colors"
-            >
-              <MessageCircle className="w-5 h-5" />
-              Demander une démo
-            </a>
-          </div>
-        </div>
-      </section>
-
-      {/* Contact Section */}
-      <section id="contact" className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4">
+      {/* ══════════════════════════════════════════════════════════════════
+          TESTIMONIALS
+      ══════════════════════════════════════════════════════════════════ */}
+      <section id="testimonials" className="py-20 bg-gray-50">
+        <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-800 mb-4">Contactez-nous</h2>
-            <p className="text-gray-600">Notre équipe est disponible pour répondre à vos questions</p>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3">Ce que disent nos clients</h2>
+            <div className="flex items-center justify-center gap-1 mb-2">
+              {[1,2,3,4,5].map(i => <Star key={i} className="w-5 h-5 fill-amber-400 text-amber-400" />)}
+            </div>
+            <p className="text-gray-500">4.8/5 · Plus de 200 avis</p>
           </div>
-          
-          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            <a 
-              href={`https://wa.me/${WHATSAPP}`}
-              target="_blank"
-              className="bg-white p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow text-center group"
-            >
-              <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-green-200 transition-colors">
-                <MessageCircle className="w-8 h-8 text-green-600" />
+
+          <div className="grid md:grid-cols-3 gap-5">
+            {[
+              {
+                name: 'Marie-Claire A.',
+                role: 'Boutique vêtements, Douala',
+                avatar: '👩🏾',
+                text: 'Avant j\'avais un cahier pour noter mes ventes. Maintenant je vois tout sur mon téléphone. Mes ventes ont augmenté de 30% parce que je gère mieux mon stock !',
+                stars: 5,
+              },
+              {
+                name: 'Jean-Baptiste N.',
+                role: 'Épicerie, Yaoundé',
+                avatar: '👨🏾',
+                text: 'Le scanner code-barres est incroyable. Je scanne et la commande est créée. Mes clients sont étonnés, ils croient que j\'ai une grosse machine de caisse !',
+                stars: 5,
+              },
+              {
+                name: 'Fatou K.',
+                role: 'Cosmétiques, Dakar',
+                avatar: '👩🏾‍💼',
+                text: 'Les commandes en ligne c\'est ce qui m\'a le plus aidée. Mes clientes commandent sur mon lien WhatsApp et je prépare. Plus de confusion !',
+                stars: 5,
+              },
+              {
+                name: 'Rodrigue M.',
+                role: 'Électronique, Abidjan',
+                avatar: '👨🏿',
+                text: 'J\'ai ajouté 200 produits en une heure grâce à l\'IA. Avant ça prenait des jours ! L\'application m\'a sauvé beaucoup de temps.',
+                stars: 5,
+              },
+              {
+                name: 'Aminata D.',
+                role: 'Restaurant, Bamako',
+                avatar: '👩🏿‍🍳',
+                text: 'Je gère 3 serveurs avec ShopMaster. Chacun a son accès, je vois tout depuis mon téléphone. Le support WhatsApp répond toujours vite.',
+                stars: 5,
+              },
+              {
+                name: 'Paul T.',
+                role: 'Pharmacie, Lomé',
+                avatar: '👨🏾‍⚕️',
+                text: 'Les alertes stock faible m\'ont évité plusieurs ruptures. Dans la pharmacie c\'est critique. Je recommande à tous mes collègues.',
+                stars: 5,
+              },
+            ].map((t, i) => (
+              <div key={i} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                <div className="flex gap-0.5 mb-3">
+                  {Array(t.stars).fill(0).map((_, j) => (
+                    <Star key={j} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                  ))}
+                </div>
+                <p className="text-gray-700 text-sm leading-relaxed mb-4">"{t.text}"</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center text-xl">{t.avatar}</div>
+                  <div>
+                    <p className="font-semibold text-gray-800 text-sm">{t.name}</p>
+                    <p className="text-gray-400 text-xs">{t.role}</p>
+                  </div>
+                </div>
               </div>
-              <h3 className="font-semibold text-gray-800 mb-2">WhatsApp</h3>
-              <p className="text-gray-600">+32 996 394 30</p>
-            </a>
-            
-            <a 
-              href={`mailto:${EMAIL}`}
-              className="bg-white p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow text-center group"
-            >
-              <div className="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-orange-200 transition-colors">
-                <Mail className="w-8 h-8 text-orange-600" />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════════
+          PRICING
+      ══════════════════════════════════════════════════════════════════ */}
+      <section id="pricing" className="py-20">
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">Tarifs simples et transparents</h2>
+            <p className="text-gray-500">Commencez gratuitement. Passez au Pro quand vous êtes prêt.</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* Free */}
+            <div className="bg-white rounded-3xl border-2 border-gray-100 p-8">
+              <h3 className="font-bold text-gray-900 text-xl mb-1">Gratuit</h3>
+              <p className="text-gray-500 text-sm mb-4">Pour démarrer</p>
+              <p className="text-5xl font-extrabold text-gray-900 mb-6">0<span className="text-lg font-normal text-gray-400"> F</span></p>
+              <ul className="space-y-3 mb-8">
+                {['20 produits', '50 commandes/mois', '1 utilisateur', 'Boutique en ligne', 'Reçus WhatsApp'].map((f, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm text-gray-600">
+                    <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />{f}
+                  </li>
+                ))}
+              </ul>
+              <a href={APP_URL} target="_blank"
+                className="block w-full py-3 text-center bg-gray-900 text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors">
+                Commencer gratuitement
+              </a>
+            </div>
+
+            {/* Starter — highlighted */}
+            <div className="relative bg-orange-500 rounded-3xl p-8 shadow-xl shadow-orange-200">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-white text-orange-600 text-xs font-extrabold px-4 py-1.5 rounded-full border-2 border-orange-200">
+                LE PLUS POPULAIRE ⭐
               </div>
-              <h3 className="font-semibold text-gray-800 mb-2">Email</h3>
-              <p className="text-gray-600">{EMAIL}</p>
-            </a>
-            
-            <div className="bg-white p-8 rounded-2xl shadow-sm text-center">
-              <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Phone className="w-8 h-8 text-blue-600" />
-              </div>
-              <h3 className="font-semibold text-gray-800 mb-2">Mobile Money</h3>
-              <p className="text-gray-600">+237 651 495 483</p>
+              <h3 className="font-bold text-white text-xl mb-1">Starter</h3>
+              <p className="text-orange-100 text-sm mb-4">Pour les boutiques actives</p>
+              <p className="text-5xl font-extrabold text-white mb-6">1 500<span className="text-lg font-normal text-orange-200"> F/mois</span></p>
+              <ul className="space-y-3 mb-8">
+                {['50 produits', '100 commandes/mois', '2 utilisateurs', 'Rapports avancés', 'Scanner code-barres', 'Support prioritaire'].map((f, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm text-white">
+                    <CheckCircle className="w-4 h-4 text-orange-200 flex-shrink-0" />{f}
+                  </li>
+                ))}
+              </ul>
+              <a href={APP_URL} target="_blank"
+                className="block w-full py-3 text-center bg-white text-orange-600 rounded-xl font-extrabold hover:bg-orange-50 transition-colors">
+                Commencer maintenant
+              </a>
+            </div>
+
+            {/* Pro */}
+            <div className="bg-white rounded-3xl border-2 border-gray-100 p-8">
+              <h3 className="font-bold text-gray-900 text-xl mb-1">Pro</h3>
+              <p className="text-gray-500 text-sm mb-4">Pour les entreprises</p>
+              <p className="text-5xl font-extrabold text-purple-600 mb-6">2 500<span className="text-lg font-normal text-gray-400"> F/mois</span></p>
+              <ul className="space-y-3 mb-8">
+                {['Produits illimités', 'Commandes illimitées', 'Utilisateurs illimités', 'Multi-boutiques', 'API accès', 'Support 24/7'].map((f, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm text-gray-600">
+                    <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />{f}
+                  </li>
+                ))}
+              </ul>
+              <a href={`https://wa.me/${WHATSAPP}?text=Je veux le plan Pro ShopMaster`} target="_blank"
+                className="block w-full py-3 text-center border-2 border-purple-500 text-purple-600 rounded-xl font-semibold hover:bg-purple-50 transition-colors">
+                Nous contacter
+              </a>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-gray-400 py-12">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
-                  <Store className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-xl font-bold text-white">ShopMaster</span>
+      {/* ══════════════════════════════════════════════════════════════════
+          FINAL CTA — Big download banner
+      ══════════════════════════════════════════════════════════════════ */}
+      <section className="py-16 bg-gray-900">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+          <p className="text-orange-400 font-semibold text-sm uppercase tracking-widest mb-4">Prêt à commencer ?</p>
+          <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-6 leading-tight">
+            Créez votre boutique<br />
+            <span className="text-orange-400">gratuitement aujourd'hui</span>
+          </h2>
+          <p className="text-gray-400 mb-10 text-lg">
+            Rejoignez 500+ commerçants qui gèrent leur boutique depuis leur téléphone sur mastershoppro.com
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            {/* Big web app button */}
+            <a href={APP_URL} target="_blank"
+              className="group flex items-center gap-4 bg-white text-gray-900 font-bold text-xl px-8 py-5 rounded-2xl hover:bg-orange-50 hover:scale-105 transition-all duration-200 shadow-2xl">
+              <div className="w-12 h-12 bg-orange-500 rounded-2xl flex items-center justify-center flex-shrink-0">
+                <Store className="w-6 h-6 text-white" />
               </div>
-              <p className="text-sm">
-                La solution de caisse et gestion de stock pour les commerces modernes.
-              </p>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold text-white mb-4">Produit</h4>
-              <ul className="space-y-2 text-sm">
-                <li><a href="#features" className="hover:text-white transition-colors">Fonctionnalités</a></li>
-                <li><a href="#pricing" className="hover:text-white transition-colors">Tarifs</a></li>
-                <li><Link href="/register" className="hover:text-white transition-colors">S'inscrire</Link></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold text-white mb-4">Support</h4>
-              <ul className="space-y-2 text-sm">
-                <li><a href={`mailto:${EMAIL}`} className="hover:text-white transition-colors">Contact</a></li>
-                <li><a href={`https://wa.me/${WHATSAPP}`} target="_blank" className="hover:text-white transition-colors">WhatsApp</a></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold text-white mb-4">Légal</h4>
-              <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white transition-colors">Conditions d'utilisation</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Politique de confidentialité</a></li>
-              </ul>
-            </div>
+              <div className="text-left">
+                <div className="text-sm text-gray-400 font-normal leading-none mb-0.5">Accéder à l'application</div>
+                <div className="text-2xl font-extrabold leading-none">mastershoppro.com</div>
+              </div>
+              <ArrowRight className="w-6 h-6 text-orange-500 group-hover:translate-x-1 transition-transform" />
+            </a>
+
+            {/* WhatsApp alternative */}
+            <a href={`https://wa.me/${WHATSAPP}?text=Bonjour, je veux essayer ShopMaster`} target="_blank"
+              className="flex items-center gap-3 bg-green-500 text-white font-semibold text-base px-7 py-5 rounded-2xl hover:bg-green-600 transition-colors">
+              <MessageCircle className="w-6 h-6" />
+              Recevoir le lien par WhatsApp
+            </a>
           </div>
-          
-          <div className="border-t border-gray-800 pt-8 text-center text-sm">
-            <p>© {new Date().getFullYear()} ShopMaster. Tous droits réservés.</p>
+
+          <p className="text-gray-500 text-sm mt-6">
+            ✅ Gratuit · ✅ Sans carte bancaire · ✅ Disponible en 21 pays africains
+          </p>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════════
+          CONTACT
+      ══════════════════════════════════════════════════════════════════ */}
+      <section id="contact" className="py-16 bg-white border-t border-gray-100">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Une question ? On vous répond en moins de 2h</h2>
+          <p className="text-gray-500 mb-8">Notre équipe est disponible 7j/7</p>
+          <div className="grid md:grid-cols-3 gap-4">
+            {[
+              { icon: MessageCircle, label: 'WhatsApp', val: '+39 329 963 9430', href: `https://wa.me/${WHATSAPP}`, bg: 'bg-green-50', color: 'text-green-600' },
+              { icon: Mail, label: 'Email', val: EMAIL, href: `mailto:${EMAIL}`, bg: 'bg-orange-50', color: 'text-orange-600' },
+              { icon: Phone, label: 'Mobile Money', val: '+237 651 495 483', href: '#', bg: 'bg-blue-50', color: 'text-blue-600' },
+            ].map((c, i) => (
+              <a key={i} href={c.href} target="_blank"
+                className={`${c.bg} rounded-2xl p-6 flex flex-col items-center gap-3 hover:shadow-md transition-shadow`}>
+                <c.icon className={`w-7 h-7 ${c.color}`} />
+                <div>
+                  <p className="font-semibold text-gray-800">{c.label}</p>
+                  <p className="text-gray-500 text-sm">{c.val}</p>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════════
+          FOOTER
+      ══════════════════════════════════════════════════════════════════ */}
+      <footer className="bg-gray-900 text-gray-400 py-10">
+        <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
+              <Store className="w-4 h-4 text-white" style={{ width: 16, height: 16 }} />
+            </div>
+            <span className="font-bold text-white">ShopMaster</span>
+          </div>
+          <p className="text-sm">© {new Date().getFullYear()} ShopMaster · Tous droits réservés</p>
+          <div className="flex items-center gap-4 text-sm">
+            <Link href="/login" className="hover:text-white transition-colors">Connexion</Link>
+            <Link href="/register" className="hover:text-white transition-colors">S'inscrire</Link>
+            <a href={APP_URL} target="_blank" className="text-orange-400 font-semibold hover:text-orange-300">
+              → Ouvrir l'app
+            </a>
           </div>
         </div>
       </footer>
+
+      {/* ══════════════════════════════════════════════════════════════════
+          MOBILE STICKY DOWNLOAD BAR (bottom)
+      ══════════════════════════════════════════════════════════════════ */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-gray-900 border-t border-gray-700 px-4 py-3 flex items-center gap-3"
+        style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
+        <div className="flex-1">
+          <p className="text-white font-bold text-sm leading-none">ShopMaster — Gratuit</p>
+          <div className="flex gap-0.5 mt-1">
+            {[1,2,3,4,5].map(i => <Star key={i} className="w-3 h-3 fill-amber-400 text-amber-400" />)}
+          </div>
+        </div>
+        <a href={APP_URL} target="_blank"
+          className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm px-5 py-3 rounded-xl transition-colors flex-shrink-0">
+          <Zap className="w-4 h-4" />
+          Essayer gratuitement
+        </a>
+      </div>
     </div>
   );
 }
