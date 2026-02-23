@@ -99,7 +99,7 @@ export default function SuperAdminPage() {
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [activeTab, setActiveTab] = useState<'shops' | 'costs' | 'traffic'>('shops');
+  const [activeTab, setActiveTab] = useState<'shops' | 'costs' | 'traffic' | 'demo'>('shops');
 
   // Shops
   const [shops, setShops] = useState<ShopRow[]>([]);
@@ -120,6 +120,10 @@ export default function SuperAdminPage() {
   const [trafficEvents, setTrafficEvents] = useState<any[]>([]);
   const [trafficLoading, setTrafficLoading] = useState(false);
   const [trafficPeriod, setTrafficPeriod] = useState<'today' | 'week' | 'month' | 'all'>('week');
+
+  // Demo events
+  const [demoEvents, setDemoEvents] = useState<any[]>([]);
+  const unsubDemo = useRef<(() => void) | null>(null);
 
   // Relance
   const [relanceShop, setRelanceShop] = useState<ShopRow | null>(null);
@@ -198,11 +202,23 @@ export default function SuperAdminPage() {
       (err) => { console.error('traffic listener:', err); }
     );
 
+    // 4. Demo events — live
+    unsubDemo.current = onSnapshot(
+      query(collection(db, 'demo_events')),
+      (snap) => {
+        const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        list.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setDemoEvents(list);
+      },
+      (err) => { console.error('demo listener:', err); }
+    );
+
     // Cleanup on unmount
     return () => {
       unsubShops.current?.();
       unsubCosts.current?.();
       unsubTraffic.current?.();
+      unsubDemo.current?.();
     };
   }, [authenticated]);
 
@@ -424,6 +440,7 @@ export default function SuperAdminPage() {
             { id: 'shops', label: '🏪 Boutiques', count: shops.length },
             { id: 'costs', label: '💰 Coûts & Revenus', count: null },
             { id: 'traffic', label: '📊 Trafic & Analytics', count: null },
+            { id: 'demo', label: '🧪 Utilisateurs Démo', count: demoEvents.filter((e: any) => e.action === 'open').length || null },
           ].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
               className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id ? 'bg-indigo-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}>
@@ -1004,7 +1021,7 @@ export default function SuperAdminPage() {
                 <div className="bg-gray-800 rounded-xl p-3">
                   <p className="text-xs font-bold text-gray-300 mb-2">Comment tracker tes publicités :</p>
                   <div className="font-mono text-xs text-indigo-300 bg-gray-900 rounded-lg p-2 overflow-x-auto">
-                    {'https://shopmaster.app/ta-boutique?utm_source=facebook&utm_campaign=soldes_jan'}
+                    {'https://mastershoppro.com/ta-boutique?utm_source=facebook&utm_campaign=soldes_jan'}
                   </div>
                   <div className="grid grid-cols-3 gap-2 mt-2 text-[10px]">
                     <div className="bg-gray-900 rounded-lg p-2"><p className="text-indigo-400 font-mono">utm_source</p><p className="text-gray-500">facebook, whatsapp, tiktok</p></div>
@@ -1088,6 +1105,214 @@ export default function SuperAdminPage() {
           );
         })()}
       </div>
+
+      {/* ══ TAB DÉMO ══════════════════════════════════════════════════════════ */}
+      {activeTab === 'demo' && (() => {
+        // Sessions uniques (par sessionId)
+        const sessions = [...new Set(demoEvents.map((e: any) => e.sessionId))];
+        const totalSessions = sessions.length;
+
+        // Filtres période
+        const now = new Date();
+        const todayStr = now.toISOString().slice(0, 10);
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 3600 * 1000);
+
+        const today    = demoEvents.filter((e: any) => e.dateStr === todayStr);
+        const thisWeek = demoEvents.filter((e: any) => new Date(e.createdAt) >= weekAgo);
+
+        const sessionsToday = new Set(today.map((e: any) => e.sessionId)).size;
+        const sessionsWeek  = new Set(thisWeek.map((e: any) => e.sessionId)).size;
+
+        // Conversions (click_signup)
+        const signups = demoEvents.filter((e: any) => e.action === 'click_signup');
+        const signupsToday = signups.filter((e: any) => e.dateStr === todayStr).length;
+        const convRate = totalSessions > 0 ? ((signups.length / totalSessions) * 100).toFixed(1) : '0';
+
+        // Tab popularity
+        const tabCounts: Record<string, number> = { dashboard: 0, commandes: 0, produits: 0 };
+        demoEvents.forEach((e: any) => {
+          if (e.action === 'tab_dashboard') tabCounts.dashboard++;
+          if (e.action === 'tab_commandes') tabCounts.commandes++;
+          if (e.action === 'tab_produits')  tabCounts.produits++;
+        });
+
+        // Device split
+        const mobile  = demoEvents.filter((e: any) => e.device === 'mobile' && e.action === 'open').length;
+        const desktop = demoEvents.filter((e: any) => e.device === 'desktop' && e.action === 'open').length;
+        const mobileRate = totalSessions > 0 ? Math.round((mobile / (mobile + desktop || 1)) * 100) : 0;
+
+        // Sessions groupées (1 ligne par session)
+        const sessionMap: Record<string, any> = {};
+        demoEvents.forEach((e: any) => {
+          if (!sessionMap[e.sessionId]) {
+            sessionMap[e.sessionId] = {
+              sessionId: e.sessionId,
+              device: e.device,
+              referrer: e.referrer,
+              firstSeen: e.createdAt,
+              lastSeen: e.createdAt,
+              tabs: [],
+              converted: false,
+            };
+          }
+          const s = sessionMap[e.sessionId];
+          if (new Date(e.createdAt) < new Date(s.firstSeen)) s.firstSeen = e.createdAt;
+          if (new Date(e.createdAt) > new Date(s.lastSeen))  s.lastSeen  = e.createdAt;
+          if (e.action.startsWith('tab_')) s.tabs.push(e.action.replace('tab_', ''));
+          if (e.action === 'click_signup') s.converted = true;
+        });
+        const sessionList = Object.values(sessionMap)
+          .sort((a: any, b: any) => new Date(b.firstSeen).getTime() - new Date(a.firstSeen).getTime());
+
+        return (
+          <div className="space-y-6">
+            {/* KPI cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: 'Sessions total', val: totalSessions, sub: `${sessionsToday} aujourd'hui`, color: 'text-indigo-400', bg: 'bg-indigo-900/30 border-indigo-800/50' },
+                { label: 'Cette semaine', val: sessionsWeek, sub: `${sessionsToday} aujourd'hui`, color: 'text-cyan-400', bg: 'bg-cyan-900/30 border-cyan-800/50' },
+                { label: 'Clics "Créer compte"', val: signups.length, sub: `${signupsToday} aujourd'hui`, color: 'text-green-400', bg: 'bg-green-900/30 border-green-800/50' },
+                { label: 'Taux de conversion', val: `${convRate}%`, sub: 'démo → inscription', color: 'text-amber-400', bg: 'bg-amber-900/30 border-amber-800/50' },
+              ].map((s, i) => (
+                <div key={i} className={`rounded-2xl border p-4 ${s.bg}`}>
+                  <p className={`text-2xl font-extrabold ${s.color}`}>{s.val}</p>
+                  <p className="text-gray-300 text-xs font-semibold mt-1">{s.label}</p>
+                  <p className="text-gray-500 text-[11px] mt-0.5">{s.sub}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-5">
+              {/* Tab popularity */}
+              <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
+                <p className="text-white font-bold mb-4">Onglets explorés</p>
+                {[
+                  { label: '📊 Tableau de bord', count: tabCounts.dashboard },
+                  { label: '🛒 Commandes', count: tabCounts.commandes },
+                  { label: '📦 Produits', count: tabCounts.produits },
+                ].map((t, i) => {
+                  const maxVal = Math.max(...Object.values(tabCounts), 1);
+                  const pct = Math.round((t.count / maxVal) * 100);
+                  return (
+                    <div key={i} className="mb-3">
+                      <div className="flex justify-between text-xs text-gray-400 mb-1">
+                        <span>{t.label}</span>
+                        <span className="text-white font-semibold">{t.count} clics</span>
+                      </div>
+                      <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                        <div className="h-full bg-indigo-500 rounded-full transition-all"
+                          style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Device + referrer */}
+              <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
+                <p className="text-white font-bold mb-4">Profil des visiteurs</p>
+
+                {/* Mobile vs Desktop */}
+                <div className="mb-4">
+                  <div className="flex justify-between text-xs text-gray-400 mb-1">
+                    <span>📱 Mobile</span><span className="text-white font-semibold">{mobileRate}%</span>
+                  </div>
+                  <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-cyan-500 rounded-full" style={{ width: `${mobileRate}%` }} />
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-400 mt-2 mb-1">
+                    <span>🖥️ Desktop</span><span className="text-white font-semibold">{100 - mobileRate}%</span>
+                  </div>
+                  <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-blue-500 rounded-full" style={{ width: `${100 - mobileRate}%` }} />
+                  </div>
+                </div>
+
+                {/* Top referrers */}
+                <p className="text-gray-400 text-xs font-semibold uppercase tracking-wide mb-2 mt-4">Provenance</p>
+                {(() => {
+                  const refs: Record<string, number> = {};
+                  demoEvents.filter((e: any) => e.action === 'open').forEach((e: any) => {
+                    const r = e.referrer?.includes('facebook') ? '📘 Facebook'
+                            : e.referrer?.includes('instagram') ? '📸 Instagram'
+                            : e.referrer?.includes('whatsapp') ? '💬 WhatsApp'
+                            : e.referrer === 'direct' ? '🔗 Direct'
+                            : '🌐 Autre';
+                    refs[r] = (refs[r] || 0) + 1;
+                  });
+                  return Object.entries(refs)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 4)
+                    .map(([r, c], i) => (
+                      <div key={i} className="flex justify-between text-xs text-gray-400 py-1 border-b border-gray-800 last:border-0">
+                        <span>{r}</span>
+                        <span className="text-white font-semibold">{c} sessions</span>
+                      </div>
+                    ));
+                })()}
+              </div>
+            </div>
+
+            {/* Sessions log */}
+            <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
+              <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+                <p className="text-white font-bold">Log des sessions ({sessionList.length})</p>
+                <span className="text-xs text-gray-500">Temps réel · plus récent en premier</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-gray-800">
+                      {['Date/heure', 'Appareil', 'Onglets visités', 'Provenance', 'Inscrit ?'].map(h => (
+                        <th key={h} className="text-left text-gray-500 font-semibold px-4 py-2.5">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sessionList.length === 0 ? (
+                      <tr><td colSpan={5} className="text-center text-gray-600 py-8">Aucune session démo pour l'instant</td></tr>
+                    ) : sessionList.slice(0, 50).map((s: any, i: number) => (
+                      <tr key={i} className={`border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors ${s.converted ? 'bg-green-900/10' : ''}`}>
+                        <td className="px-4 py-2.5 text-gray-400 whitespace-nowrap">
+                          {new Date(s.firstSeen).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                          {' '}
+                          <span className="text-gray-600">{new Date(s.firstSeen).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <span className={`font-semibold ${s.device === 'mobile' ? 'text-cyan-400' : 'text-blue-400'}`}>
+                            {s.device === 'mobile' ? '📱 Mobile' : '🖥️ Desktop'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <div className="flex gap-1 flex-wrap">
+                            {[...new Set(s.tabs)].map((t: any, j: number) => (
+                              <span key={j} className="bg-gray-700 text-gray-300 px-2 py-0.5 rounded text-[10px]">{t}</span>
+                            ))}
+                            {s.tabs.length === 0 && <span className="text-gray-600">accueil seulement</span>}
+                          </div>
+                        </td>
+                        <td className="px-4 py-2.5 text-gray-500">
+                          {s.referrer?.includes('facebook') ? '📘 Facebook'
+                          : s.referrer?.includes('instagram') ? '📸 Instagram'
+                          : s.referrer?.includes('whatsapp') ? '💬 WhatsApp'
+                          : s.referrer === 'direct' ? '🔗 Direct'
+                          : '🌐 Autre'}
+                        </td>
+                        <td className="px-4 py-2.5">
+                          {s.converted
+                            ? <span className="bg-green-900 text-green-400 font-bold px-2.5 py-1 rounded-full">✓ Oui</span>
+                            : <span className="text-gray-600">—</span>
+                          }
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ══ RELANCE MODAL ══════════════════════════════════════════════════════ */}
       {relanceShop && (() => {
