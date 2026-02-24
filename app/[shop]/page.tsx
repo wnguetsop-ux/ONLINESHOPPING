@@ -5,7 +5,8 @@ import { useParams } from 'next/navigation';
 import {
   Search, ShoppingCart, Plus, Minus, Star, Phone, MapPin, MessageCircle,
   SlidersHorizontal, Heart, Eye, Truck, Shield, RotateCcw, X, ChevronRight,
-  Grid3X3, LayoutList, Settings, ArrowLeft, Loader2, CheckCircle, CreditCard, Trash2
+  Grid3X3, LayoutList, Settings, ArrowLeft, Loader2, CheckCircle, CreditCard, Trash2,
+  Share2, Copy, Link2
 } from 'lucide-react';
 import { getShopBySlug, getProducts, getCategories, createOrder } from '@/lib/firestore';
 import PhoneInput from '@/components/PhoneInput';
@@ -43,6 +44,38 @@ export default function ShopPage() {
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [quickView, setQuickView] = useState<Product | null>(null);
   const [cartAnimId, setCartAnimId] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
+  const [showShareToast, setShowShareToast] = useState(false);
+
+  // ── Partage boutique ──────────────────────────────────────────────────────
+  async function shareShop() {
+    const url  = window.location.href;
+    const text = `🛍️ Découvrez la boutique "${shop?.name}" sur Mastershop !\n\nCommandez en ligne directement : ${url}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: shop?.name, text, url });
+        return;
+      } catch { /* user cancelled */ }
+    }
+    // Fallback : copier le lien
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      const el = document.createElement('textarea');
+      el.value = url; document.body.appendChild(el);
+      el.select(); document.execCommand('copy');
+      document.body.removeChild(el);
+    }
+    setShareCopied(true);
+    setShowShareToast(true);
+    setTimeout(() => { setShareCopied(false); setShowShareToast(false); }, 3000);
+  }
+
+  function shareWhatsApp() {
+    const url  = window.location.href;
+    const text = encodeURIComponent(`🛍️ Découvrez ma boutique "${shop?.name}" !\n\nCommandez directement depuis votre téléphone :\n${url}\n\nLivraison disponible 🚀`);
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+  }
 
   // ── CHECKOUT MODAL ────────────────────────────────────────────────────────
   const [showCheckout, setShowCheckout] = useState(false);
@@ -208,6 +241,14 @@ export default function ShopPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {/* Bouton PARTAGER — visible pour tous */}
+            <button onClick={shareShop}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all hover:scale-105 active:scale-95"
+              style={{ backgroundColor: `${pc}15`, color: pc }}
+              title="Partager cette boutique">
+              {shareCopied ? <CheckCircle className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+              <span className="hidden sm:inline">{shareCopied ? 'Copié !' : 'Partager'}</span>
+            </button>
             {shop.whatsapp && (
               <a href={getWhatsAppLink(shop.whatsapp, `Bonjour ${shop.name}!`)} target="_blank"
                 className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-white bg-green-500 hover:bg-green-600 transition-colors">
@@ -777,6 +818,40 @@ export default function ShopPage() {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── TOAST "Lien copié" ── */}
+      {showShareToast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-2 bg-gray-900 text-white text-sm font-bold px-5 py-3 rounded-2xl shadow-2xl animate-bounce">
+          <CheckCircle className="w-4 h-4 text-green-400" />
+          Lien copié ! Partagez-le avec vos clients 🎉
+        </div>
+      )}
+
+      {/* ── BANDEAU PROPRIÉTAIRE — partage boutique ── */}
+      {user && adminShop?.slug === slug && (
+        <div className="fixed z-[9998] left-0 right-0 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-3 shadow-2xl"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 4rem)' }}>
+          <div className="max-w-2xl mx-auto flex flex-col sm:flex-row items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="font-extrabold text-sm">📣 Partagez votre boutique pour attirer plus de clients !</p>
+              <p className="text-indigo-200 text-xs mt-0.5 truncate">
+                🔗 {typeof window !== 'undefined' ? window.location.href : `mastershoppro.com/${slug}`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button onClick={shareWhatsApp}
+                className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-colors">
+                <MessageCircle className="w-4 h-4" /> WhatsApp
+              </button>
+              <button onClick={shareShop}
+                className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-colors border border-white/30">
+                {shareCopied ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                {shareCopied ? 'Copié !' : 'Copier le lien'}
+              </button>
+            </div>
           </div>
         </div>
       )}
