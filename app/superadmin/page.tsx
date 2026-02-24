@@ -130,6 +130,7 @@ export default function SuperAdminPage() {
 
   // Relance
   const [relanceShop, setRelanceShop] = useState<ShopRow | null>(null);
+  const [showAuthGuide, setShowAuthGuide] = useState(false);
 
   // Real-time connection status
   const [liveStatus, setLiveStatus] = useState<'connecting' | 'live' | 'error'>('connecting');
@@ -362,9 +363,6 @@ export default function SuperAdminPage() {
     s.slug.toLowerCase().includes(search.toLowerCase())
   );
 
-  // ── Google Auth guide state ──────────────────────────────────────────────
-  const [showAuthGuide, setShowAuthGuide] = useState(false);
-
   if (!authenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(135deg, #0f172a, #1e1b4b)' }}>
@@ -490,7 +488,7 @@ export default function SuperAdminPage() {
                       <p>4. Va dans <strong>Authentication → Settings → Authorized domains</strong></p>
                       <p>5. Ajoute <span className="font-mono">localhost</span> et ton domaine de production</p>
                       <p>6. Dans <strong>Firestore → Rules</strong>, vérifie que les règles permettent la lecture/écriture aux users authentifiés</p>
-                      <p className="text-amber-400 mt-2">Le code est déjà prêt — c'est uniquement la config Firebase qui manque.</p>
+                      <p className="text-amber-400 mt-2">Le code est déjà prêt — c&apos;est uniquement la config Firebase qui manque.</p>
                     </div>
                   )}
                 </div>
@@ -543,7 +541,7 @@ export default function SuperAdminPage() {
                           /{shop.slug}
                           {shop.whatsapp && <span className="ml-3">📱 {shop.whatsapp}</span>}
                           {shop.ownerEmail && <span className="ml-3">✉️ {shop.ownerEmail}</span>}
-                          {expiryDate && shop.planId !== 'FREE' && <span className={`ml-3 ${expired ? 'text-amber-400' : 'text-emerald-400'}`}>{expired ? '⚠️ Expiré le' : '✓ Jusqu\'au'} {expiryDate}</span>}
+                          {expiryDate && shop.planId !== 'FREE' && <span className={`ml-3 ${expired ? 'text-amber-400' : 'text-emerald-400'}`}>{expired ? "⚠️ Expiré le" : "✓ Jusqu'au"} {expiryDate}</span>}
                         </p>
                         <p className="text-gray-600 text-xs mt-0.5">{shop.ordersThisMonth || 0} cmd ce mois • Inscrit le {new Date(shop.createdAt).toLocaleDateString('fr')}</p>
                       </div>
@@ -796,10 +794,10 @@ export default function SuperAdminPage() {
 
           // Funnel
           const funnelSteps = [
-            { label: 'PageView — Arrivée sur le site',          count: pageViews,   color: '#6366f1', icon: '👁️' },
-            { label: 'ViewContent — A lu la page (scroll 60%)', count: scrollReads, color: '#3b82f6', icon: '📖' },
-            { label: 'AddToCart — A cliqué S'inscrire',        count: leads,       color: '#f59e0b', icon: '🛒' },
-            { label: 'Purchase — A finalisé l'inscription',    count: purchases,   color: '#10b981', icon: '✅' },
+            { label: "PageView — Arrivée sur le site",          count: pageViews,   color: '#6366f1', icon: '👁️' },
+            { label: "ViewContent — A lu la page (scroll 60%)", count: scrollReads, color: '#3b82f6', icon: '📖' },
+            { label: "AddToCart — A cliqué S'inscrire",         count: leads,       color: '#f59e0b', icon: '🛒' },
+            { label: "Purchase — A finalisé l'inscription",     count: purchases,   color: '#10b981', icon: '✅' },
           ];
           const funnelMax = Math.max(pageViews, 1);
 
@@ -818,7 +816,7 @@ export default function SuperAdminPage() {
             if (e.event === 'Purchase')              campaignMap[c].purchases++;
           });
 
-          // 14-day chart  
+          // 14-day chart
           const dayData: Record<string, { views: number; leads: number }> = {};
           for (let i = 13; i >= 0; i--) {
             const d = new Date(); d.setDate(d.getDate()-i);
@@ -864,10 +862,10 @@ export default function SuperAdminPage() {
               {/* ── KPI CARDS ── */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
-                  { label: 'PageViews', val: pageViews,    icon: '👁️',  color: 'text-indigo-400', bg: 'border-indigo-900', sub: 'Arrivées sur le site' },
-                  { label: 'Lectures',  val: scrollReads,  icon: '📖',  color: 'text-blue-400',   bg: 'border-blue-900',   sub: 'Ont scrollé 60%+' },
-                  { label: 'Inscriptions', val: leads,     icon: '🛒',  color: 'text-amber-400',  bg: 'border-amber-900',  sub: 'Ont cliqué S'inscrire' },
-                  { label: 'Conversions', val: purchases,  icon: '✅',  color: 'text-emerald-400',bg: 'border-emerald-900', sub: 'Compte créé' },
+                  { label: 'PageViews',    val: pageViews,   icon: '👁️', color: 'text-indigo-400', bg: 'border-indigo-900', sub: 'Arrivées sur le site' },
+                  { label: 'Lectures',     val: scrollReads, icon: '📖', color: 'text-blue-400',   bg: 'border-blue-900',   sub: 'Ont scrollé 60%+' },
+                  { label: 'Inscriptions', val: leads,       icon: '🛒', color: 'text-amber-400',  bg: 'border-amber-900',  sub: "Ont cliqué S'inscrire" },
+                  { label: 'Conversions',  val: purchases,   icon: '✅', color: 'text-emerald-400',bg: 'border-emerald-900', sub: 'Compte créé' },
                 ].map((k, i) => (
                   <div key={i} className={`bg-gray-900 rounded-2xl p-4 border ${k.bg}`}>
                     <div className="flex items-center justify-between mb-1">
@@ -925,9 +923,9 @@ export default function SuperAdminPage() {
                           <div className="flex items-center gap-2 mt-1.5 bg-red-900/20 border border-red-900/40 rounded-lg px-3 py-1.5">
                             <span className="text-red-400 text-[10px] font-bold">⚠️ Point de friction :</span>
                             <span className="text-red-300 text-[10px]">
-                              {i === 0 && 'Votre landing page ne retient pas — améliorez le titre et le visuel hero'}
-                              {i === 1 && 'Votre CTA S'inscrire n'est pas assez visible — grossissez le bouton vert'}
-                              {i === 2 && 'Le formulaire fait peur — simplifiez-le (juste email + mot de passe)'}
+                              {i === 0 && "Votre landing page ne retient pas — améliorez le titre et le visuel hero"}
+                              {i === 1 && "Votre CTA S'inscrire n'est pas assez visible — grossissez le bouton vert"}
+                              {i === 2 && "Le formulaire fait peur — simplifiez-le (juste email + mot de passe)"}
                             </span>
                           </div>
                         )}
@@ -940,9 +938,9 @@ export default function SuperAdminPage() {
               {/* ── ABANDONS DÉTAILLÉS ── */}
               <div className="grid md:grid-cols-3 gap-4">
                 {[
-                  { title: 'Abandon lecture', icon: '👁️→📖', pct: dropViewToRead, desc: 'Ont quitté sans lire la page', tip: 'Chargement trop lent ou titre pas accrocheur', color: 'red' },
-                  { title: 'Abandon inscription', icon: '📖→🛒', pct: dropReadToCart, desc: 'Ont lu mais pas cliqué S'inscrire', tip: 'CTA pas assez visible ou offre peu claire', color: 'amber' },
-                  { title: 'Abandon formulaire', icon: '🛒→✅', pct: dropCartToBuy, desc: 'Ont cliqué mais pas créé de compte', tip: 'Formulaire trop long ou erreur technique', color: 'orange' },
+                  { title: 'Abandon lecture',      icon: '👁️→📖', pct: dropViewToRead, desc: 'Ont quitté sans lire la page',          tip: "Chargement trop lent ou titre pas accrocheur",  color: 'red' },
+                  { title: "Abandon inscription",  icon: '📖→🛒', pct: dropReadToCart, desc: "Ont lu mais pas cliqué S'inscrire",       tip: "CTA pas assez visible ou offre peu claire",     color: 'amber' },
+                  { title: 'Abandon formulaire',   icon: '🛒→✅', pct: dropCartToBuy,  desc: 'Ont cliqué mais pas créé de compte',      tip: "Formulaire trop long ou erreur technique",      color: 'orange' },
                 ].map((a, i) => {
                   const p = parseInt(a.pct as string);
                   const severity = p > 70 ? 'critique' : p > 40 ? 'attention' : 'ok';
@@ -951,7 +949,7 @@ export default function SuperAdminPage() {
                     <div key={i} className={`rounded-2xl p-4 border ${severityColor}`}>
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-mono text-gray-400">{a.icon}</span>
-                        <span className={`text-2xl font-extrabold`}>{a.pct}%</span>
+                        <span className="text-2xl font-extrabold">{a.pct}%</span>
                       </div>
                       <p className="font-bold text-white text-sm mb-1">{a.title}</p>
                       <p className="text-[11px] text-gray-400 mb-2">{a.desc}</p>
@@ -1087,15 +1085,15 @@ export default function SuperAdminPage() {
                   <div className="flex gap-3 items-start">
                     <span className="w-6 h-6 bg-blue-600 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">1</span>
                     <div>
-                      <p className="text-white font-semibold">Installe l'extension "Meta Pixel Helper" sur Chrome</p>
-                      <p className="text-gray-400 text-xs">Quand tu ouvres mastershoppro.com, l'icône devient verte = Pixel actif ✅</p>
+                      <p className="text-white font-semibold">Installe l&apos;extension &quot;Meta Pixel Helper&quot; sur Chrome</p>
+                      <p className="text-gray-400 text-xs">Quand tu ouvres mastershoppro.com, l&apos;icône devient verte = Pixel actif ✅</p>
                     </div>
                   </div>
                   <div className="flex gap-3 items-start">
                     <span className="w-6 h-6 bg-blue-600 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">2</span>
                     <div>
                       <p className="text-white font-semibold">Va dans Events Manager → Test Events</p>
-                      <p className="text-gray-400 text-xs">business.facebook.com → Gestionnaire d'événements → Ton Pixel → Tester les événements</p>
+                      <p className="text-gray-400 text-xs">business.facebook.com → Gestionnaire d&apos;événements → Ton Pixel → Tester les événements</p>
                       <div className="mt-2 bg-gray-800 rounded-lg p-2 font-mono text-xs text-indigo-300 overflow-x-auto">
                         https://business.facebook.com/events_manager2/list/pixel/1805294393481637/test_events
                       </div>
@@ -1104,15 +1102,15 @@ export default function SuperAdminPage() {
                   <div className="flex gap-3 items-start">
                     <span className="w-6 h-6 bg-blue-600 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">3</span>
                     <div>
-                      <p className="text-white font-semibold">Ouvre mastershoppro.com → les events s'affichent en direct</p>
+                      <p className="text-white font-semibold">Ouvre mastershoppro.com → les events s&apos;affichent en direct</p>
                       <div className="mt-1.5 grid grid-cols-2 gap-1.5">
                         {[
-                          { e: 'PageView',              desc: 'Arrivée sur la page' },
-                          { e: 'ViewContent',           desc: 'A scrollé 60%+' },
-                          { e: 'Lead',                  desc: 'Cliqué sur S'inscrire' },
-                          { e: 'CompleteRegistration',  desc: 'Compte créé' },
-                          { e: 'CustomEvent: CartAbandon', desc: 'Parti du formulaire' },
-                          { e: 'CustomEvent: FbAdClick',   desc: 'Venu d'une pub Facebook' },
+                          { e: 'PageView',                    desc: 'Arrivée sur la page' },
+                          { e: 'ViewContent',                 desc: 'A scrollé 60%+' },
+                          { e: 'Lead',                        desc: "Cliqué sur S'inscrire" },
+                          { e: 'CompleteRegistration',        desc: 'Compte créé' },
+                          { e: 'CustomEvent: CartAbandon',    desc: 'Parti du formulaire' },
+                          { e: 'CustomEvent: FbAdClick',      desc: "Venu d'une pub Facebook" },
                         ].map((ev, i) => (
                           <div key={i} className="bg-gray-800 rounded-lg px-2.5 py-1.5">
                             <p className="text-blue-300 text-[10px] font-mono">{ev.e}</p>
@@ -1129,353 +1127,353 @@ export default function SuperAdminPage() {
           );
         })()}
 
-            {/* ══ TAB DÉMO ══════════════════════════════════════════════════════════ */}
-      {activeTab === 'demo' && (() => {
-        // Sessions uniques (par sessionId)
-        const sessions = [...new Set(demoEvents.map((e: any) => e.sessionId))];
-        const totalSessions = sessions.length;
+        {/* ══ TAB DÉMO ══════════════════════════════════════════════════════════ */}
+        {activeTab === 'demo' && (() => {
+          // Sessions uniques (par sessionId)
+          const sessions = [...new Set(demoEvents.map((e: any) => e.sessionId))];
+          const totalSessions = sessions.length;
 
-        // Filtres période
-        const now = new Date();
-        const todayStr = now.toISOString().slice(0, 10);
-        const weekAgo = new Date(now.getTime() - 7 * 24 * 3600 * 1000);
+          // Filtres période
+          const now = new Date();
+          const todayStr = now.toISOString().slice(0, 10);
+          const weekAgo = new Date(now.getTime() - 7 * 24 * 3600 * 1000);
 
-        const today    = demoEvents.filter((e: any) => e.dateStr === todayStr);
-        const thisWeek = demoEvents.filter((e: any) => new Date(e.createdAt) >= weekAgo);
+          const today    = demoEvents.filter((e: any) => e.dateStr === todayStr);
+          const thisWeek = demoEvents.filter((e: any) => new Date(e.createdAt) >= weekAgo);
 
-        const sessionsToday = new Set(today.map((e: any) => e.sessionId)).size;
-        const sessionsWeek  = new Set(thisWeek.map((e: any) => e.sessionId)).size;
+          const sessionsToday = new Set(today.map((e: any) => e.sessionId)).size;
+          const sessionsWeek  = new Set(thisWeek.map((e: any) => e.sessionId)).size;
 
-        // Conversions (click_signup)
-        const signups = demoEvents.filter((e: any) => e.action === 'click_signup');
-        const signupsToday = signups.filter((e: any) => e.dateStr === todayStr).length;
-        const convRate = totalSessions > 0 ? ((signups.length / totalSessions) * 100).toFixed(1) : '0';
+          // Conversions (click_signup)
+          const signups = demoEvents.filter((e: any) => e.action === 'click_signup');
+          const signupsToday = signups.filter((e: any) => e.dateStr === todayStr).length;
+          const convRate = totalSessions > 0 ? ((signups.length / totalSessions) * 100).toFixed(1) : '0';
 
-        // Tab popularity
-        const tabCounts: Record<string, number> = { dashboard: 0, commandes: 0, produits: 0 };
-        demoEvents.forEach((e: any) => {
-          if (e.action === 'tab_dashboard') tabCounts.dashboard++;
-          if (e.action === 'tab_commandes') tabCounts.commandes++;
-          if (e.action === 'tab_produits')  tabCounts.produits++;
-        });
+          // Tab popularity
+          const tabCounts: Record<string, number> = { dashboard: 0, commandes: 0, produits: 0 };
+          demoEvents.forEach((e: any) => {
+            if (e.action === 'tab_dashboard') tabCounts.dashboard++;
+            if (e.action === 'tab_commandes') tabCounts.commandes++;
+            if (e.action === 'tab_produits')  tabCounts.produits++;
+          });
 
-        // Device split
-        const mobile  = demoEvents.filter((e: any) => e.device === 'mobile' && e.action === 'open').length;
-        const desktop = demoEvents.filter((e: any) => e.device === 'desktop' && e.action === 'open').length;
-        const mobileRate = totalSessions > 0 ? Math.round((mobile / (mobile + desktop || 1)) * 100) : 0;
+          // Device split
+          const mobile  = demoEvents.filter((e: any) => e.device === 'mobile' && e.action === 'open').length;
+          const desktop = demoEvents.filter((e: any) => e.device === 'desktop' && e.action === 'open').length;
+          const mobileRate = totalSessions > 0 ? Math.round((mobile / (mobile + desktop || 1)) * 100) : 0;
 
-        // Sessions groupées (1 ligne par session)
-        const sessionMap: Record<string, any> = {};
-        demoEvents.forEach((e: any) => {
-          if (!sessionMap[e.sessionId]) {
-            sessionMap[e.sessionId] = {
-              sessionId: e.sessionId,
-              device: e.device,
-              referrer: e.referrer,
-              firstSeen: e.createdAt,
-              lastSeen: e.createdAt,
-              tabs: [],
-              converted: false,
-            };
-          }
-          const s = sessionMap[e.sessionId];
-          if (new Date(e.createdAt) < new Date(s.firstSeen)) s.firstSeen = e.createdAt;
-          if (new Date(e.createdAt) > new Date(s.lastSeen))  s.lastSeen  = e.createdAt;
-          if (e.action.startsWith('tab_')) s.tabs.push(e.action.replace('tab_', ''));
-          if (e.action === 'click_signup') s.converted = true;
-        });
-        const sessionList = Object.values(sessionMap)
-          .sort((a: any, b: any) => new Date(b.firstSeen).getTime() - new Date(a.firstSeen).getTime());
+          // Sessions groupées (1 ligne par session)
+          const sessionMap: Record<string, any> = {};
+          demoEvents.forEach((e: any) => {
+            if (!sessionMap[e.sessionId]) {
+              sessionMap[e.sessionId] = {
+                sessionId: e.sessionId,
+                device: e.device,
+                referrer: e.referrer,
+                firstSeen: e.createdAt,
+                lastSeen: e.createdAt,
+                tabs: [],
+                converted: false,
+              };
+            }
+            const s = sessionMap[e.sessionId];
+            if (new Date(e.createdAt) < new Date(s.firstSeen)) s.firstSeen = e.createdAt;
+            if (new Date(e.createdAt) > new Date(s.lastSeen))  s.lastSeen  = e.createdAt;
+            if (e.action.startsWith('tab_')) s.tabs.push(e.action.replace('tab_', ''));
+            if (e.action === 'click_signup') s.converted = true;
+          });
+          const sessionList = Object.values(sessionMap)
+            .sort((a: any, b: any) => new Date(b.firstSeen).getTime() - new Date(a.firstSeen).getTime());
 
-        return (
-          <div className="space-y-6">
-            {/* KPI cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { label: 'Sessions total', val: totalSessions, sub: `${sessionsToday} aujourd'hui`, color: 'text-indigo-400', bg: 'bg-indigo-900/30 border-indigo-800/50' },
-                { label: 'Cette semaine', val: sessionsWeek, sub: `${sessionsToday} aujourd'hui`, color: 'text-cyan-400', bg: 'bg-cyan-900/30 border-cyan-800/50' },
-                { label: 'Clics "Créer compte"', val: signups.length, sub: `${signupsToday} aujourd'hui`, color: 'text-green-400', bg: 'bg-green-900/30 border-green-800/50' },
-                { label: 'Taux de conversion', val: `${convRate}%`, sub: 'démo → inscription', color: 'text-amber-400', bg: 'bg-amber-900/30 border-amber-800/50' },
-              ].map((s, i) => (
-                <div key={i} className={`rounded-2xl border p-4 ${s.bg}`}>
-                  <p className={`text-2xl font-extrabold ${s.color}`}>{s.val}</p>
-                  <p className="text-gray-300 text-xs font-semibold mt-1">{s.label}</p>
-                  <p className="text-gray-500 text-[11px] mt-0.5">{s.sub}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-5">
-              {/* Tab popularity */}
-              <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
-                <p className="text-white font-bold mb-4">Onglets explorés</p>
+          return (
+            <div className="space-y-6">
+              {/* KPI cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                  { label: '📊 Tableau de bord', count: tabCounts.dashboard },
-                  { label: '🛒 Commandes', count: tabCounts.commandes },
-                  { label: '📦 Produits', count: tabCounts.produits },
-                ].map((t, i) => {
-                  const maxVal = Math.max(...Object.values(tabCounts), 1);
-                  const pct = Math.round((t.count / maxVal) * 100);
-                  return (
-                    <div key={i} className="mb-3">
-                      <div className="flex justify-between text-xs text-gray-400 mb-1">
-                        <span>{t.label}</span>
-                        <span className="text-white font-semibold">{t.count} clics</span>
-                      </div>
-                      <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                        <div className="h-full bg-indigo-500 rounded-full transition-all"
-                          style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-                  );
-                })}
+                  { label: 'Sessions total',        val: totalSessions,  sub: `${sessionsToday} aujourd'hui`,  color: 'text-indigo-400', bg: 'bg-indigo-900/30 border-indigo-800/50' },
+                  { label: 'Cette semaine',          val: sessionsWeek,   sub: `${sessionsToday} aujourd'hui`,  color: 'text-cyan-400',   bg: 'bg-cyan-900/30 border-cyan-800/50' },
+                  { label: "Clics \"Créer compte\"", val: signups.length, sub: `${signupsToday} aujourd'hui`,  color: 'text-green-400',  bg: 'bg-green-900/30 border-green-800/50' },
+                  { label: 'Taux de conversion',     val: `${convRate}%`, sub: "démo → inscription",           color: 'text-amber-400',  bg: 'bg-amber-900/30 border-amber-800/50' },
+                ].map((s, i) => (
+                  <div key={i} className={`rounded-2xl border p-4 ${s.bg}`}>
+                    <p className={`text-2xl font-extrabold ${s.color}`}>{s.val}</p>
+                    <p className="text-gray-300 text-xs font-semibold mt-1">{s.label}</p>
+                    <p className="text-gray-500 text-[11px] mt-0.5">{s.sub}</p>
+                  </div>
+                ))}
               </div>
 
-              {/* Device + referrer */}
-              <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
-                <p className="text-white font-bold mb-4">Profil des visiteurs</p>
-
-                {/* Mobile vs Desktop */}
-                <div className="mb-4">
-                  <div className="flex justify-between text-xs text-gray-400 mb-1">
-                    <span>📱 Mobile</span><span className="text-white font-semibold">{mobileRate}%</span>
-                  </div>
-                  <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-cyan-500 rounded-full" style={{ width: `${mobileRate}%` }} />
-                  </div>
-                  <div className="flex justify-between text-xs text-gray-400 mt-2 mb-1">
-                    <span>🖥️ Desktop</span><span className="text-white font-semibold">{100 - mobileRate}%</span>
-                  </div>
-                  <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-blue-500 rounded-full" style={{ width: `${100 - mobileRate}%` }} />
-                  </div>
+              <div className="grid md:grid-cols-2 gap-5">
+                {/* Tab popularity */}
+                <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
+                  <p className="text-white font-bold mb-4">Onglets explorés</p>
+                  {[
+                    { label: '📊 Tableau de bord', count: tabCounts.dashboard },
+                    { label: '🛒 Commandes',        count: tabCounts.commandes },
+                    { label: '📦 Produits',          count: tabCounts.produits },
+                  ].map((t, i) => {
+                    const maxVal = Math.max(...Object.values(tabCounts), 1);
+                    const pct = Math.round((t.count / maxVal) * 100);
+                    return (
+                      <div key={i} className="mb-3">
+                        <div className="flex justify-between text-xs text-gray-400 mb-1">
+                          <span>{t.label}</span>
+                          <span className="text-white font-semibold">{t.count} clics</span>
+                        </div>
+                        <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                          <div className="h-full bg-indigo-500 rounded-full transition-all"
+                            style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
 
-                {/* Top referrers */}
-                <p className="text-gray-400 text-xs font-semibold uppercase tracking-wide mb-2 mt-4">Provenance</p>
-                {(() => {
-                  const refs: Record<string, number> = {};
-                  demoEvents.filter((e: any) => e.action === 'open').forEach((e: any) => {
-                    const r = e.referrer?.includes('facebook') ? '📘 Facebook'
-                            : e.referrer?.includes('instagram') ? '📸 Instagram'
-                            : e.referrer?.includes('whatsapp') ? '💬 WhatsApp'
-                            : e.referrer === 'direct' ? '🔗 Direct'
-                            : '🌐 Autre';
-                    refs[r] = (refs[r] || 0) + 1;
-                  });
-                  return Object.entries(refs)
-                    .sort((a, b) => b[1] - a[1])
-                    .slice(0, 4)
-                    .map(([r, c], i) => (
-                      <div key={i} className="flex justify-between text-xs text-gray-400 py-1 border-b border-gray-800 last:border-0">
-                        <span>{r}</span>
-                        <span className="text-white font-semibold">{c} sessions</span>
-                      </div>
-                    ));
-                })()}
-              </div>
-            </div>
+                {/* Device + referrer */}
+                <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
+                  <p className="text-white font-bold mb-4">Profil des visiteurs</p>
 
-            {/* Sessions log */}
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
-              <div className="p-4 border-b border-gray-800 flex items-center justify-between">
-                <p className="text-white font-bold">Log des sessions ({sessionList.length})</p>
-                <span className="text-xs text-gray-500">Temps réel · plus récent en premier</span>
+                  {/* Mobile vs Desktop */}
+                  <div className="mb-4">
+                    <div className="flex justify-between text-xs text-gray-400 mb-1">
+                      <span>📱 Mobile</span><span className="text-white font-semibold">{mobileRate}%</span>
+                    </div>
+                    <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-cyan-500 rounded-full" style={{ width: `${mobileRate}%` }} />
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-400 mt-2 mb-1">
+                      <span>🖥️ Desktop</span><span className="text-white font-semibold">{100 - mobileRate}%</span>
+                    </div>
+                    <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-blue-500 rounded-full" style={{ width: `${100 - mobileRate}%` }} />
+                    </div>
+                  </div>
+
+                  {/* Top referrers */}
+                  <p className="text-gray-400 text-xs font-semibold uppercase tracking-wide mb-2 mt-4">Provenance</p>
+                  {(() => {
+                    const refs: Record<string, number> = {};
+                    demoEvents.filter((e: any) => e.action === 'open').forEach((e: any) => {
+                      const r = e.referrer?.includes('facebook')  ? '📘 Facebook'
+                              : e.referrer?.includes('instagram') ? '📸 Instagram'
+                              : e.referrer?.includes('whatsapp')  ? '💬 WhatsApp'
+                              : e.referrer === 'direct'           ? '🔗 Direct'
+                              : '🌐 Autre';
+                      refs[r] = (refs[r] || 0) + 1;
+                    });
+                    return Object.entries(refs)
+                      .sort((a, b) => b[1] - a[1])
+                      .slice(0, 4)
+                      .map(([r, c], i) => (
+                        <div key={i} className="flex justify-between text-xs text-gray-400 py-1 border-b border-gray-800 last:border-0">
+                          <span>{r}</span>
+                          <span className="text-white font-semibold">{c} sessions</span>
+                        </div>
+                      ));
+                  })()}
+                </div>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-gray-800">
-                      {['Date/heure', 'Appareil', 'Onglets visités', 'Provenance', 'Inscrit ?'].map(h => (
-                        <th key={h} className="text-left text-gray-500 font-semibold px-4 py-2.5">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sessionList.length === 0 ? (
-                      <tr><td colSpan={5} className="text-center text-gray-600 py-8">Aucune session démo pour l'instant</td></tr>
-                    ) : sessionList.slice(0, 50).map((s: any, i: number) => (
-                      <tr key={i} className={`border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors ${s.converted ? 'bg-green-900/10' : ''}`}>
-                        <td className="px-4 py-2.5 text-gray-400 whitespace-nowrap">
-                          {new Date(s.firstSeen).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
-                          {' '}
-                          <span className="text-gray-600">{new Date(s.firstSeen).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <span className={`font-semibold ${s.device === 'mobile' ? 'text-cyan-400' : 'text-blue-400'}`}>
-                            {s.device === 'mobile' ? '📱 Mobile' : '🖥️ Desktop'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <div className="flex gap-1 flex-wrap">
-                            {[...new Set(s.tabs)].map((t: any, j: number) => (
-                              <span key={j} className="bg-gray-700 text-gray-300 px-2 py-0.5 rounded text-[10px]">{t}</span>
-                            ))}
-                            {s.tabs.length === 0 && <span className="text-gray-600">accueil seulement</span>}
-                          </div>
-                        </td>
-                        <td className="px-4 py-2.5 text-gray-500">
-                          {s.referrer?.includes('facebook') ? '📘 Facebook'
-                          : s.referrer?.includes('instagram') ? '📸 Instagram'
-                          : s.referrer?.includes('whatsapp') ? '💬 WhatsApp'
-                          : s.referrer === 'direct' ? '🔗 Direct'
-                          : '🌐 Autre'}
-                        </td>
-                        <td className="px-4 py-2.5">
-                          {s.converted
-                            ? <span className="bg-green-900 text-green-400 font-bold px-2.5 py-1 rounded-full">✓ Oui</span>
-                            : <span className="text-gray-600">—</span>
-                          }
-                        </td>
+
+              {/* Sessions log */}
+              <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
+                <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+                  <p className="text-white font-bold">Log des sessions ({sessionList.length})</p>
+                  <span className="text-xs text-gray-500">Temps réel · plus récent en premier</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-gray-800">
+                        {['Date/heure', 'Appareil', 'Onglets visités', 'Provenance', 'Inscrit ?'].map(h => (
+                          <th key={h} className="text-left text-gray-500 font-semibold px-4 py-2.5">{h}</th>
+                        ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* ══ TAB LOGS API ══════════════════════════════════════════════════════ */}
-      {activeTab === 'logs' && (() => {
-        const success  = apiLogs.filter((l: any) => l.status === 'success' || l.status === 'success_fallback');
-        const failed   = apiLogs.filter((l: any) => l.status === 'all_failed' || l.status === 'fatal_error');
-        const fallback = apiLogs.filter((l: any) => l.status === 'success_fallback');
-        const avgDur   = success.length ? Math.round(success.reduce((s: number, l: any) => s + (l.durationMs || 0), 0) / success.length) : 0;
-
-        const providerCount: Record<string, number> = {};
-        apiLogs.forEach((l: any) => { if (l.provider) providerCount[l.provider] = (providerCount[l.provider] || 0) + 1; });
-
-        return (
-          <div className="space-y-5">
-            {/* KPI */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { label: 'Total appels IA', val: apiLogs.length, color: 'text-indigo-400', bg: 'bg-indigo-900/30 border-indigo-800' },
-                { label: 'Succès', val: success.length, color: 'text-green-400', bg: 'bg-green-900/30 border-green-800' },
-                { label: '❌ Échecs complets', val: failed.length, color: 'text-red-400', bg: `bg-red-900/30 border-red-800` },
-                { label: 'Durée moyenne', val: `${avgDur}ms`, color: 'text-cyan-400', bg: 'bg-cyan-900/30 border-cyan-800' },
-              ].map((s, i) => (
-                <div key={i} className={`rounded-2xl border p-4 ${s.bg}`}>
-                  <p className={`text-2xl font-extrabold ${s.color}`}>{s.val}</p>
-                  <p className="text-gray-400 text-xs font-semibold mt-1">{s.label}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Provider breakdown */}
-            <div className="grid md:grid-cols-2 gap-5">
-              <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
-                <p className="text-white font-bold mb-4">Répartition par IA</p>
-                {Object.entries(providerCount).sort((a,b) => b[1]-a[1]).map(([p, c], i) => {
-                  const pct = apiLogs.length ? Math.round((c / apiLogs.length) * 100) : 0;
-                  const color = p.includes('gemini') ? 'bg-blue-500' : p.includes('openai') ? 'bg-green-500' : 'bg-red-500';
-                  return (
-                    <div key={i} className="mb-3">
-                      <div className="flex justify-between text-xs text-gray-400 mb-1">
-                        <span className="font-mono">{p}</span>
-                        <span className="text-white font-bold">{c} ({pct}%)</span>
-                      </div>
-                      <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                        <div className={`h-full ${color} rounded-full`} style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-                  );
-                })}
-                {fallback.length > 0 && (
-                  <div className="mt-4 bg-amber-900/30 border border-amber-800 rounded-xl p-3 text-xs text-amber-300">
-                    ⚠️ <strong>{fallback.length} fois</strong> Gemini a échoué → OpenAI a pris le relais.
-                    Vérifiez votre quota Gemini sur aistudio.google.com
-                  </div>
-                )}
-              </div>
-
-              {/* Erreurs fréquentes */}
-              <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
-                <p className="text-white font-bold mb-4">Erreurs les plus fréquentes</p>
-                {(() => {
-                  const errCount: Record<string, number> = {};
-                  failed.forEach((l: any) => {
-                    const key = (l.error || 'Unknown').slice(0, 80);
-                    errCount[key] = (errCount[key] || 0) + 1;
-                  });
-                  const sorted = Object.entries(errCount).sort((a,b) => b[1]-a[1]).slice(0,5);
-                  if (sorted.length === 0) return <p className="text-green-400 text-sm">✅ Aucune erreur récente</p>;
-                  return sorted.map(([err, count], i) => (
-                    <div key={i} className="border-b border-gray-800 py-2 last:border-0">
-                      <div className="flex justify-between">
-                        <span className="text-red-400 text-xs font-mono leading-relaxed flex-1 mr-2">{err}</span>
-                        <span className="text-white text-xs font-bold flex-shrink-0">{count}×</span>
-                      </div>
-                    </div>
-                  ));
-                })()}
-              </div>
-            </div>
-
-            {/* Log détaillé */}
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
-              <div className="p-4 border-b border-gray-800 flex items-center justify-between">
-                <p className="text-white font-bold">Log détaillé (200 derniers)</p>
-                <span className="text-xs text-gray-500">Temps réel · nouveau en haut</span>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-gray-800 text-gray-500 font-semibold">
-                      {['Heure','Statut','Provider','Durée','Image','Produit trouvé','Erreur'].map(h => (
-                        <th key={h} className="text-left px-3 py-2.5">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {apiLogs.length === 0 && (
-                      <tr><td colSpan={7} className="text-center text-gray-600 py-8">
-                        Les logs apparaîtront ici dès qu'un utilisateur analyse une photo
-                      </td></tr>
-                    )}
-                    {apiLogs.map((l: any, i: number) => {
-                      const isOk  = l.status === 'success' || l.status === 'success_fallback';
-                      const isFallback = l.status === 'success_fallback';
-                      const isFail = l.status === 'all_failed' || l.status === 'fatal_error';
-                      return (
-                        <tr key={i} className={`border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors ${isFail ? 'bg-red-900/10' : isFallback ? 'bg-amber-900/10' : ''}`}>
-                          <td className="px-3 py-2 text-gray-400 whitespace-nowrap">
-                            {new Date(l.createdAt).toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit', second:'2-digit' })}
+                    </thead>
+                    <tbody>
+                      {sessionList.length === 0 ? (
+                        <tr><td colSpan={5} className="text-center text-gray-600 py-8">Aucune session démo pour l&apos;instant</td></tr>
+                      ) : sessionList.slice(0, 50).map((s: any, i: number) => (
+                        <tr key={i} className={`border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors ${s.converted ? 'bg-green-900/10' : ''}`}>
+                          <td className="px-4 py-2.5 text-gray-400 whitespace-nowrap">
+                            {new Date(s.firstSeen).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                            {' '}
+                            <span className="text-gray-600">{new Date(s.firstSeen).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
                           </td>
-                          <td className="px-3 py-2">
-                            {isOk && !isFallback && <span className="bg-green-900 text-green-400 font-bold px-2 py-0.5 rounded text-[10px]">✓ OK</span>}
-                            {isFallback && <span className="bg-amber-900 text-amber-400 font-bold px-2 py-0.5 rounded text-[10px]">⚠ Fallback</span>}
-                            {isFail && <span className="bg-red-900 text-red-400 font-bold px-2 py-0.5 rounded text-[10px]">✗ ECHEC</span>}
-                            {!isOk && !isFail && <span className="text-gray-600 text-[10px]">{l.status}</span>}
-                          </td>
-                          <td className="px-3 py-2 font-mono text-indigo-400 text-[10px]">{l.provider || '—'}</td>
-                          <td className="px-3 py-2 text-gray-400">
-                            <span className={l.durationMs > 5000 ? 'text-red-400 font-bold' : l.durationMs > 2000 ? 'text-amber-400' : 'text-green-400'}>
-                              {l.durationMs ? `${l.durationMs}ms` : '—'}
+                          <td className="px-4 py-2.5">
+                            <span className={`font-semibold ${s.device === 'mobile' ? 'text-cyan-400' : 'text-blue-400'}`}>
+                              {s.device === 'mobile' ? '📱 Mobile' : '🖥️ Desktop'}
                             </span>
                           </td>
-                          <td className="px-3 py-2 text-gray-400">{l.imageKb ? `${l.imageKb}KB` : '—'}</td>
-                          <td className="px-3 py-2 text-white font-semibold max-w-[140px] truncate">{l.productName || '—'}</td>
-                          <td className="px-3 py-2 text-red-400 text-[10px] max-w-[200px] truncate">{l.error || ''}</td>
+                          <td className="px-4 py-2.5">
+                            <div className="flex gap-1 flex-wrap">
+                              {[...new Set(s.tabs)].map((t: any, j: number) => (
+                                <span key={j} className="bg-gray-700 text-gray-300 px-2 py-0.5 rounded text-[10px]">{t}</span>
+                              ))}
+                              {s.tabs.length === 0 && <span className="text-gray-600">accueil seulement</span>}
+                            </div>
+                          </td>
+                          <td className="px-4 py-2.5 text-gray-500">
+                            {s.referrer?.includes('facebook')  ? '📘 Facebook'
+                            : s.referrer?.includes('instagram') ? '📸 Instagram'
+                            : s.referrer?.includes('whatsapp')  ? '💬 WhatsApp'
+                            : s.referrer === 'direct'           ? '🔗 Direct'
+                            : '🌐 Autre'}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            {s.converted
+                              ? <span className="bg-green-900 text-green-400 font-bold px-2.5 py-1 rounded-full">✓ Oui</span>
+                              : <span className="text-gray-600">—</span>
+                            }
+                          </td>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
 
-      {/* ══ RELANCE MODAL ══════════════════════════════════════════════════════ */}
-      {relanceShop && (() => {
-        const shopUrl = `https://mastershoppro.com/${relanceShop.slug}`;
-        const adminUrl = `https://mastershoppro.com/admin/dashboard`;
+        {/* ══ TAB LOGS API ══════════════════════════════════════════════════════ */}
+        {activeTab === 'logs' && (() => {
+          const success  = apiLogs.filter((l: any) => l.status === 'success' || l.status === 'success_fallback');
+          const failed   = apiLogs.filter((l: any) => l.status === 'all_failed' || l.status === 'fatal_error');
+          const fallback = apiLogs.filter((l: any) => l.status === 'success_fallback');
+          const avgDur   = success.length ? Math.round(success.reduce((s: number, l: any) => s + (l.durationMs || 0), 0) / success.length) : 0;
 
-        const waGuide = `Bonjour ! 👋
+          const providerCount: Record<string, number> = {};
+          apiLogs.forEach((l: any) => { if (l.provider) providerCount[l.provider] = (providerCount[l.provider] || 0) + 1; });
+
+          return (
+            <div className="space-y-5">
+              {/* KPI */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { label: 'Total appels IA', val: apiLogs.length, color: 'text-indigo-400', bg: 'bg-indigo-900/30 border-indigo-800' },
+                  { label: 'Succès',           val: success.length, color: 'text-green-400',  bg: 'bg-green-900/30 border-green-800' },
+                  { label: '❌ Échecs complets', val: failed.length, color: 'text-red-400',    bg: 'bg-red-900/30 border-red-800' },
+                  { label: 'Durée moyenne',    val: `${avgDur}ms`,  color: 'text-cyan-400',   bg: 'bg-cyan-900/30 border-cyan-800' },
+                ].map((s, i) => (
+                  <div key={i} className={`rounded-2xl border p-4 ${s.bg}`}>
+                    <p className={`text-2xl font-extrabold ${s.color}`}>{s.val}</p>
+                    <p className="text-gray-400 text-xs font-semibold mt-1">{s.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Provider breakdown */}
+              <div className="grid md:grid-cols-2 gap-5">
+                <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
+                  <p className="text-white font-bold mb-4">Répartition par IA</p>
+                  {Object.entries(providerCount).sort((a,b) => b[1]-a[1]).map(([p, c], i) => {
+                    const pct = apiLogs.length ? Math.round((c / apiLogs.length) * 100) : 0;
+                    const color = p.includes('gemini') ? 'bg-blue-500' : p.includes('openai') ? 'bg-green-500' : 'bg-red-500';
+                    return (
+                      <div key={i} className="mb-3">
+                        <div className="flex justify-between text-xs text-gray-400 mb-1">
+                          <span className="font-mono">{p}</span>
+                          <span className="text-white font-bold">{c} ({pct}%)</span>
+                        </div>
+                        <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                          <div className={`h-full ${color} rounded-full`} style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {fallback.length > 0 && (
+                    <div className="mt-4 bg-amber-900/30 border border-amber-800 rounded-xl p-3 text-xs text-amber-300">
+                      ⚠️ <strong>{fallback.length} fois</strong> Gemini a échoué → OpenAI a pris le relais.
+                      Vérifiez votre quota Gemini sur aistudio.google.com
+                    </div>
+                  )}
+                </div>
+
+                {/* Erreurs fréquentes */}
+                <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
+                  <p className="text-white font-bold mb-4">Erreurs les plus fréquentes</p>
+                  {(() => {
+                    const errCount: Record<string, number> = {};
+                    failed.forEach((l: any) => {
+                      const key = (l.error || 'Unknown').slice(0, 80);
+                      errCount[key] = (errCount[key] || 0) + 1;
+                    });
+                    const sorted = Object.entries(errCount).sort((a,b) => b[1]-a[1]).slice(0,5);
+                    if (sorted.length === 0) return <p className="text-green-400 text-sm">✅ Aucune erreur récente</p>;
+                    return sorted.map(([err, count], i) => (
+                      <div key={i} className="border-b border-gray-800 py-2 last:border-0">
+                        <div className="flex justify-between">
+                          <span className="text-red-400 text-xs font-mono leading-relaxed flex-1 mr-2">{err}</span>
+                          <span className="text-white text-xs font-bold flex-shrink-0">{count}×</span>
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
+
+              {/* Log détaillé */}
+              <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
+                <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+                  <p className="text-white font-bold">Log détaillé (200 derniers)</p>
+                  <span className="text-xs text-gray-500">Temps réel · nouveau en haut</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-gray-800 text-gray-500 font-semibold">
+                        {['Heure','Statut','Provider','Durée','Image','Produit trouvé','Erreur'].map(h => (
+                          <th key={h} className="text-left px-3 py-2.5">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {apiLogs.length === 0 && (
+                        <tr><td colSpan={7} className="text-center text-gray-600 py-8">
+                          Les logs apparaîtront ici dès qu&apos;un utilisateur analyse une photo
+                        </td></tr>
+                      )}
+                      {apiLogs.map((l: any, i: number) => {
+                        const isOk      = l.status === 'success' || l.status === 'success_fallback';
+                        const isFallback = l.status === 'success_fallback';
+                        const isFail    = l.status === 'all_failed' || l.status === 'fatal_error';
+                        return (
+                          <tr key={i} className={`border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors ${isFail ? 'bg-red-900/10' : isFallback ? 'bg-amber-900/10' : ''}`}>
+                            <td className="px-3 py-2 text-gray-400 whitespace-nowrap">
+                              {new Date(l.createdAt).toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit', second:'2-digit' })}
+                            </td>
+                            <td className="px-3 py-2">
+                              {isOk && !isFallback && <span className="bg-green-900 text-green-400 font-bold px-2 py-0.5 rounded text-[10px]">✓ OK</span>}
+                              {isFallback && <span className="bg-amber-900 text-amber-400 font-bold px-2 py-0.5 rounded text-[10px]">⚠ Fallback</span>}
+                              {isFail && <span className="bg-red-900 text-red-400 font-bold px-2 py-0.5 rounded text-[10px]">✗ ECHEC</span>}
+                              {!isOk && !isFail && <span className="text-gray-600 text-[10px]">{l.status}</span>}
+                            </td>
+                            <td className="px-3 py-2 font-mono text-indigo-400 text-[10px]">{l.provider || '—'}</td>
+                            <td className="px-3 py-2 text-gray-400">
+                              <span className={l.durationMs > 5000 ? 'text-red-400 font-bold' : l.durationMs > 2000 ? 'text-amber-400' : 'text-green-400'}>
+                                {l.durationMs ? `${l.durationMs}ms` : '—'}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 text-gray-400">{l.imageKb ? `${l.imageKb}KB` : '—'}</td>
+                            <td className="px-3 py-2 text-white font-semibold max-w-[140px] truncate">{l.productName || '—'}</td>
+                            <td className="px-3 py-2 text-red-400 text-[10px] max-w-[200px] truncate">{l.error || ''}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ══ RELANCE MODAL ══════════════════════════════════════════════════════ */}
+        {relanceShop && (() => {
+          const shopUrl  = `https://mastershoppro.com/${relanceShop.slug}`;
+          const adminUrl = `https://mastershoppro.com/admin/dashboard`;
+
+          const waGuide = `Bonjour ! 👋
 
 Je suis votre support ShopMaster. Je voulais m'assurer que tout se passe bien pour la boutique *${relanceShop.name}* 🏪
 
@@ -1506,261 +1504,262 @@ Voici un guide rapide pour bien démarrer :
 Besoin d'aide ? Répondez directement à ce message 😊
 Support disponible 7j/7 sur WhatsApp.`;
 
-        const emailSubject = 'Guide de demarrage - Boutique ' + relanceShop.name + ' sur ShopMaster';
-        const emailLines = [
-          'Bonjour,',
-          '',
-          'J espere que vous allez bien ! Voici un guide rapide pour configurer votre boutique ' + relanceShop.name + ' sur ShopMaster.',
-          '',
-          '--------------------------------------------------',
-          'ETAPE 1 - Ajouter vos produits',
-          '--------------------------------------------------',
-          '1. Connectez-vous sur ' + adminUrl,
-          '2. Allez dans Produits puis cliquez + Nouveau produit',
-          '3. Astuce IA : cliquez icone camera, photographiez le produit - l IA remplit nom, description, prix automatiquement !',
-          '4. Renseignez le prix d achat ET le prix de vente pour voir vos benefices.',
-          '',
-          '--------------------------------------------------',
-          'ETAPE 2 - Creer une commande',
-          '--------------------------------------------------',
-          '1. Allez dans Commandes puis + Commande manuelle',
-          '2. Entrez le nom et numero du client',
-          '3. Selectionnez les produits ou scannez leur code-barres',
-          '4. Choisissez Especes ou Mobile Money',
-          '5. Validez - la commande passe automatiquement en preparation',
-          '',
-          '--------------------------------------------------',
-          'ETAPE 3 - Partager votre boutique en ligne',
-          '--------------------------------------------------',
-          'Votre lien boutique : ' + shopUrl,
-          '- Partagez sur WhatsApp, Facebook, Instagram',
-          '- Vos clients commandent depuis leur telephone',
-          '- Vous recevez une notification a chaque commande',
-          '',
-          '--------------------------------------------------',
-          'ETAPE 4 - Imprimer des recus',
-          '--------------------------------------------------',
-          '- Apres chaque vente cliquez Imprimer le recu',
-          '- Compatible imprimantes thermiques Bluetooth',
-          '- Vous pouvez aussi envoyer par WhatsApp',
-          '',
-          '--------------------------------------------------',
-          'ETAPE 5 - Suivre vos ventes',
-          '--------------------------------------------------',
-          '- Tableau de bord : ventes du jour, semaine, mois',
-          '- Benefice net calcule automatiquement',
-          '- Top produits, historique complet',
-          '',
-          '--------------------------------------------------',
-          '',
-          'Une question ? Repondez a cet email ou contactez-nous sur WhatsApp.',
-          'Nous sommes disponibles 7j/7 !',
-          '',
-          'L equipe ShopMaster',
-          'WhatsApp : +393299639430',
-          'Site : https://mastershoppro.com',
-        ];
-        const emailBody = emailLines.join('%0D%0A');
-        const emailLink = relanceShop.ownerEmail
-          ? 'mailto:' + relanceShop.ownerEmail + '?subject=' + encodeURIComponent(emailSubject) + '&body=' + emailBody
-          : null;
+          const emailSubject = 'Guide de demarrage - Boutique ' + relanceShop.name + ' sur ShopMaster';
+          const emailLines = [
+            'Bonjour,',
+            '',
+            "J espere que vous allez bien ! Voici un guide rapide pour configurer votre boutique " + relanceShop.name + " sur ShopMaster.",
+            '',
+            '--------------------------------------------------',
+            'ETAPE 1 - Ajouter vos produits',
+            '--------------------------------------------------',
+            '1. Connectez-vous sur ' + adminUrl,
+            '2. Allez dans Produits puis cliquez + Nouveau produit',
+            "3. Astuce IA : cliquez icone camera, photographiez le produit - l IA remplit nom, description, prix automatiquement !",
+            '4. Renseignez le prix d achat ET le prix de vente pour voir vos benefices.',
+            '',
+            '--------------------------------------------------',
+            'ETAPE 2 - Creer une commande',
+            '--------------------------------------------------',
+            '1. Allez dans Commandes puis + Commande manuelle',
+            '2. Entrez le nom et numero du client',
+            '3. Selectionnez les produits ou scannez leur code-barres',
+            '4. Choisissez Especes ou Mobile Money',
+            '5. Validez - la commande passe automatiquement en preparation',
+            '',
+            '--------------------------------------------------',
+            'ETAPE 3 - Partager votre boutique en ligne',
+            '--------------------------------------------------',
+            '→ Votre lien boutique : ' + shopUrl,
+            '- Partagez sur WhatsApp, Facebook, Instagram',
+            '- Vos clients commandent depuis leur telephone',
+            '- Vous recevez une notification a chaque commande',
+            '',
+            '--------------------------------------------------',
+            'ETAPE 4 - Imprimer des recus',
+            '--------------------------------------------------',
+            '- Apres chaque vente cliquez Imprimer le recu',
+            '- Compatible imprimantes thermiques Bluetooth',
+            '- Vous pouvez aussi envoyer par WhatsApp',
+            '',
+            '--------------------------------------------------',
+            'ETAPE 5 - Suivre vos ventes',
+            '--------------------------------------------------',
+            '- Tableau de bord : ventes du jour, semaine, mois',
+            '- Benefice net calcule automatiquement',
+            '- Top produits, historique complet',
+            '',
+            '--------------------------------------------------',
+            '',
+            'Une question ? Repondez a cet email ou contactez-nous sur WhatsApp.',
+            'Nous sommes disponibles 7j/7 !',
+            '',
+            "L equipe ShopMaster",
+            'WhatsApp : +393299639430',
+            'Site : https://mastershoppro.com',
+          ];
+          const emailBody = emailLines.join('%0D%0A');
+          const emailLink = relanceShop.ownerEmail
+            ? 'mailto:' + relanceShop.ownerEmail + '?subject=' + encodeURIComponent(emailSubject) + '&body=' + emailBody
+            : null;
 
-        const waNumber = relanceShop.whatsapp?.replace(/[^0-9]/g, '');
-        const waLink = waNumber ? `https://wa.me/${waNumber}?text=${encodeURIComponent(waGuide)}` : null;
+          const waNumber = relanceShop.whatsapp?.replace(/[^0-9]/g, '');
+          const waLink = waNumber ? `https://wa.me/${waNumber}?text=${encodeURIComponent(waGuide)}` : null;
 
-        return (
-          <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="bg-gray-900 border border-gray-700 rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden">
+          return (
+            <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+              <div className="bg-gray-900 border border-gray-700 rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden">
 
-              {/* Header */}
-              <div className="bg-gradient-to-r from-indigo-900 to-indigo-800 p-5 flex items-center justify-between">
-                <div>
-                  <p className="text-indigo-300 text-xs font-semibold uppercase tracking-wide mb-0.5">Relancer le client</p>
-                  <h2 className="text-white text-lg font-bold">{relanceShop.name}</h2>
-                  <p className="text-indigo-300 text-xs mt-0.5">/{relanceShop.slug} · Plan {relanceShop.planId}</p>
-                </div>
-                <button onClick={() => setRelanceShop(null)}
-                  className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-colors">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="p-5 space-y-4">
-                {/* Guide preview */}
-                <div className="bg-gray-800 rounded-2xl p-4 border border-gray-700">
-                  <p className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-3 flex items-center gap-2">
-                    📋 Guide envoyé avec le message
-                  </p>
-                  <div className="space-y-2 text-xs text-gray-400">
-                    {[
-                      { icon: '📦', step: '1', title: 'Ajouter les produits', desc: 'Via IA caméra ou manuellement, avec prix achat/vente' },
-                      { icon: '🛒', step: '2', title: 'Créer une commande', desc: 'Commande manuelle ou scan code-barres, Mobile Money / Espèces' },
-                      { icon: '🌐', step: '3', title: 'Partager la boutique en ligne', desc: `Lien : mastershoppro.com/${relanceShop.slug}` },
-                      { icon: '🖨️', step: '4', title: 'Imprimer les reçus', desc: 'Thermique Bluetooth ou envoi WhatsApp' },
-                      { icon: '📊', step: '5', title: 'Suivre les ventes', desc: 'Dashboard temps réel, bénéfices, top produits' },
-                    ].map(s => (
-                      <div key={s.step} className="flex items-start gap-3 py-2 border-b border-gray-700/50 last:border-0">
-                        <span className="text-base flex-shrink-0">{s.icon}</span>
-                        <div>
-                          <p className="text-gray-200 font-semibold text-xs">Étape {s.step} — {s.title}</p>
-                          <p className="text-gray-500 text-[11px] mt-0.5">{s.desc}</p>
-                        </div>
-                      </div>
-                    ))}
+                {/* Header */}
+                <div className="bg-gradient-to-r from-indigo-900 to-indigo-800 p-5 flex items-center justify-between">
+                  <div>
+                    <p className="text-indigo-300 text-xs font-semibold uppercase tracking-wide mb-0.5">Relancer le client</p>
+                    <h2 className="text-white text-lg font-bold">{relanceShop.name}</h2>
+                    <p className="text-indigo-300 text-xs mt-0.5">/{relanceShop.slug} · Plan {relanceShop.planId}</p>
                   </div>
-                </div>
-
-                {/* Send buttons */}
-                <div className="space-y-2.5">
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">Envoyer via</p>
-
-                  {/* WhatsApp */}
-                  {waLink ? (
-                    <a href={waLink} target="_blank" onClick={() => setTimeout(() => setRelanceShop(null), 500)}
-                      className="flex items-center gap-4 bg-green-900/50 hover:bg-green-900 border border-green-800 rounded-2xl p-4 transition-all group">
-                      <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
-                        <svg viewBox="0 0 24 24" className="w-6 h-6 fill-white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.122 1.532 5.855L.057 23.882l6.187-1.452A11.955 11.955 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.882 0-3.64-.49-5.17-1.348l-.37-.22-3.673.862.925-3.57-.24-.385A9.945 9.945 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-white font-bold text-sm">WhatsApp</p>
-                        <p className="text-green-400 text-xs">+{waNumber}</p>
-                        <p className="text-gray-400 text-[11px] mt-0.5">Message pré-rempli avec guide complet · 1 clic</p>
-                      </div>
-                      <div className="text-green-400 text-xs font-bold group-hover:translate-x-1 transition-transform">→</div>
-                    </a>
-                  ) : (
-                    <div className="flex items-center gap-4 bg-gray-800 border border-gray-700 rounded-2xl p-4 opacity-50">
-                      <div className="w-12 h-12 bg-gray-700 rounded-xl flex items-center justify-center">
-                        <svg viewBox="0 0 24 24" className="w-6 h-6 fill-gray-500"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
-                      </div>
-                      <div>
-                        <p className="text-gray-400 font-bold text-sm">WhatsApp</p>
-                        <p className="text-gray-600 text-xs">Numéro non configuré pour cette boutique</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Email */}
-                  {emailLink ? (
-                    <a href={emailLink} onClick={() => setTimeout(() => setRelanceShop(null), 500)}
-                      className="flex items-center gap-4 bg-orange-900/30 hover:bg-orange-900/50 border border-orange-800/50 rounded-2xl p-4 transition-all group">
-                      <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
-                        <svg viewBox="0 0 24 24" className="w-6 h-6 fill-white"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-white font-bold text-sm">Email</p>
-                        <p className="text-orange-400 text-xs truncate">{relanceShop.ownerEmail}</p>
-                        <p className="text-gray-400 text-[11px] mt-0.5">Guide complet en 5 étapes · Ouvre votre client mail</p>
-                      </div>
-                      <div className="text-orange-400 text-xs font-bold group-hover:translate-x-1 transition-transform">→</div>
-                    </a>
-                  ) : (
-                    <div className="flex items-center gap-4 bg-gray-800 border border-gray-700 rounded-2xl p-4 opacity-50">
-                      <div className="w-12 h-12 bg-gray-700 rounded-xl flex items-center justify-center">
-                        <svg viewBox="0 0 24 24" className="w-6 h-6 fill-gray-500"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-                      </div>
-                      <div>
-                        <p className="text-gray-400 font-bold text-sm">Email</p>
-                        <p className="text-gray-600 text-xs">Email non disponible pour cette boutique</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Copy shop link */}
-                <div className="bg-gray-800 rounded-xl p-3 flex items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-500 mb-0.5">Lien boutique publique</p>
-                    <p className="text-sm font-mono text-indigo-300 truncate">{shopUrl}</p>
-                  </div>
-                  <button onClick={() => { navigator.clipboard.writeText(shopUrl); }}
-                    className="text-xs px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg transition-colors flex-shrink-0">
-                    Copier
+                  <button onClick={() => setRelanceShop(null)}
+                    className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-colors">
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
 
-                <button onClick={() => setRelanceShop(null)}
-                  className="w-full py-2.5 text-sm text-gray-500 hover:text-gray-300 transition-colors">
-                  Fermer
-                </button>
+                <div className="p-5 space-y-4">
+                  {/* Guide preview */}
+                  <div className="bg-gray-800 rounded-2xl p-4 border border-gray-700">
+                    <p className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-3 flex items-center gap-2">
+                      📋 Guide envoyé avec le message
+                    </p>
+                    <div className="space-y-2 text-xs text-gray-400">
+                      {[
+                        { icon: '📦', step: '1', title: 'Ajouter les produits',          desc: "Via IA caméra ou manuellement, avec prix achat/vente" },
+                        { icon: '🛒', step: '2', title: 'Créer une commande',             desc: "Commande manuelle ou scan code-barres, Mobile Money / Espèces" },
+                        { icon: '🌐', step: '3', title: 'Partager la boutique en ligne',  desc: `Lien : mastershoppro.com/${relanceShop.slug}` },
+                        { icon: '🖨️', step: '4', title: 'Imprimer les reçus',            desc: "Thermique Bluetooth ou envoi WhatsApp" },
+                        { icon: '📊', step: '5', title: 'Suivre les ventes',              desc: "Dashboard temps réel, bénéfices, top produits" },
+                      ].map(s => (
+                        <div key={s.step} className="flex items-start gap-3 py-2 border-b border-gray-700/50 last:border-0">
+                          <span className="text-base flex-shrink-0">{s.icon}</span>
+                          <div>
+                            <p className="text-gray-200 font-semibold text-xs">Étape {s.step} — {s.title}</p>
+                            <p className="text-gray-500 text-[11px] mt-0.5">{s.desc}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Send buttons */}
+                  <div className="space-y-2.5">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">Envoyer via</p>
+
+                    {/* WhatsApp */}
+                    {waLink ? (
+                      <a href={waLink} target="_blank" onClick={() => setTimeout(() => setRelanceShop(null), 500)}
+                        className="flex items-center gap-4 bg-green-900/50 hover:bg-green-900 border border-green-800 rounded-2xl p-4 transition-all group">
+                        <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+                          <svg viewBox="0 0 24 24" className="w-6 h-6 fill-white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.122 1.532 5.855L.057 23.882l6.187-1.452A11.955 11.955 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.882 0-3.64-.49-5.17-1.348l-.37-.22-3.673.862.925-3.57-.24-.385A9.945 9.945 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white font-bold text-sm">WhatsApp</p>
+                          <p className="text-green-400 text-xs">+{waNumber}</p>
+                          <p className="text-gray-400 text-[11px] mt-0.5">Message pré-rempli avec guide complet · 1 clic</p>
+                        </div>
+                        <div className="text-green-400 text-xs font-bold group-hover:translate-x-1 transition-transform">→</div>
+                      </a>
+                    ) : (
+                      <div className="flex items-center gap-4 bg-gray-800 border border-gray-700 rounded-2xl p-4 opacity-50">
+                        <div className="w-12 h-12 bg-gray-700 rounded-xl flex items-center justify-center">
+                          <svg viewBox="0 0 24 24" className="w-6 h-6 fill-gray-500"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
+                        </div>
+                        <div>
+                          <p className="text-gray-400 font-bold text-sm">WhatsApp</p>
+                          <p className="text-gray-600 text-xs">Numéro non configuré pour cette boutique</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Email */}
+                    {emailLink ? (
+                      <a href={emailLink} onClick={() => setTimeout(() => setRelanceShop(null), 500)}
+                        className="flex items-center gap-4 bg-orange-900/30 hover:bg-orange-900/50 border border-orange-800/50 rounded-2xl p-4 transition-all group">
+                        <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+                          <svg viewBox="0 0 24 24" className="w-6 h-6 fill-white"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white font-bold text-sm">Email</p>
+                          <p className="text-orange-400 text-xs truncate">{relanceShop.ownerEmail}</p>
+                          <p className="text-gray-400 text-[11px] mt-0.5">Guide complet en 5 étapes · Ouvre votre client mail</p>
+                        </div>
+                        <div className="text-orange-400 text-xs font-bold group-hover:translate-x-1 transition-transform">→</div>
+                      </a>
+                    ) : (
+                      <div className="flex items-center gap-4 bg-gray-800 border border-gray-700 rounded-2xl p-4 opacity-50">
+                        <div className="w-12 h-12 bg-gray-700 rounded-xl flex items-center justify-center">
+                          <svg viewBox="0 0 24 24" className="w-6 h-6 fill-gray-500"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                        </div>
+                        <div>
+                          <p className="text-gray-400 font-bold text-sm">Email</p>
+                          <p className="text-gray-600 text-xs">Email non disponible pour cette boutique</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Copy shop link */}
+                  <div className="bg-gray-800 rounded-xl p-3 flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-gray-500 mb-0.5">Lien boutique publique</p>
+                      <p className="text-sm font-mono text-indigo-300 truncate">{shopUrl}</p>
+                    </div>
+                    <button onClick={() => { navigator.clipboard.writeText(shopUrl); }}
+                      className="text-xs px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg transition-colors flex-shrink-0">
+                      Copier
+                    </button>
+                  </div>
+
+                  <button onClick={() => setRelanceShop(null)}
+                    className="w-full py-2.5 text-sm text-gray-500 hover:text-gray-300 transition-colors">
+                    Fermer
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
 
-      {/* Add Event Modal */}
-      {showAddEvent && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-md p-6">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="font-bold text-white">Ajouter un événement de coût</h2>
-              <button onClick={() => setShowAddEvent(false)} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
-            </div>
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
+        {/* Add Event Modal */}
+        {showAddEvent && (
+          <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+            <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-md p-6">
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="font-bold text-white">Ajouter un événement de coût</h2>
+                <button onClick={() => setShowAddEvent(false)} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
+              </div>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Type *</label>
+                    <select value={newEvent.type} onChange={e => setNewEvent({ ...newEvent, type: e.target.value as any })}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+                      {Object.entries(TYPE_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Sous-type</label>
+                    <input type="text" value={newEvent.subtype || ''} onChange={e => setNewEvent({ ...newEvent, subtype: e.target.value })}
+                      placeholder="vision, text..." className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500" />
+                  </div>
+                </div>
                 <div>
-                  <label className="text-xs text-gray-400 mb-1 block">Type *</label>
-                  <select value={newEvent.type} onChange={e => setNewEvent({ ...newEvent, type: e.target.value as any })}
+                  <label className="text-xs text-gray-400 mb-1 block">Shop ID</label>
+                  <select value={newEvent.shopId || ''} onChange={e => setNewEvent({ ...newEvent, shopId: e.target.value })}
                     className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
-                    {Object.entries(TYPE_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                    <option value="">— Choisir une boutique —</option>
+                    {shops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
+                {(newEvent.type === 'gemini' || newEvent.type === 'gpt4o') && (
+                  <div className="grid grid-cols-3 gap-2">
+                    <div><label className="text-xs text-gray-400 mb-1 block">Tokens in</label><input type="number" value={newEvent.tokens_in || ''} onChange={e => setNewEvent({ ...newEvent, tokens_in: +e.target.value })} className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500" /></div>
+                    <div><label className="text-xs text-gray-400 mb-1 block">Tokens out</label><input type="number" value={newEvent.tokens_out || ''} onChange={e => setNewEvent({ ...newEvent, tokens_out: +e.target.value })} className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500" /></div>
+                    <div><label className="text-xs text-gray-400 mb-1 block">Images</label><input type="number" value={newEvent.images || ''} onChange={e => setNewEvent({ ...newEvent, images: +e.target.value })} className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500" /></div>
+                  </div>
+                )}
+                {newEvent.type === 'firestore' && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><label className="text-xs text-gray-400 mb-1 block">Lectures</label><input type="number" value={newEvent.reads || ''} onChange={e => setNewEvent({ ...newEvent, reads: +e.target.value })} className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none" /></div>
+                    <div><label className="text-xs text-gray-400 mb-1 block">Écritures</label><input type="number" value={newEvent.writes || ''} onChange={e => setNewEvent({ ...newEvent, writes: +e.target.value })} className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none" /></div>
+                  </div>
+                )}
+                {newEvent.type === 'subscription' && (
+                  <div><label className="text-xs text-gray-400 mb-1 block">Revenu (FCFA)</label><input type="number" value={newEvent.revenue || ''} onChange={e => setNewEvent({ ...newEvent, revenue: +e.target.value })} className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none" /></div>
+                )}
                 <div>
-                  <label className="text-xs text-gray-400 mb-1 block">Sous-type</label>
-                  <input type="text" value={newEvent.subtype || ''} onChange={e => setNewEvent({ ...newEvent, subtype: e.target.value })}
-                    placeholder="vision, text..." className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500" />
+                  <label className="text-xs text-gray-400 mb-1 block">Note / Description</label>
+                  <input type="text" value={newEvent.note || ''} onChange={e => setNewEvent({ ...newEvent, note: e.target.value })}
+                    placeholder="Analyse produit par IA, scan lot de 50..." className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Date & heure</label>
+                  <input type="datetime-local" value={newEvent.createdAt?.slice(0, 16) || ''} onChange={e => setNewEvent({ ...newEvent, createdAt: e.target.value })}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500" />
+                </div>
+                {/* Preview cost */}
+                <div className="bg-gray-800 rounded-xl p-3 flex justify-between items-center">
+                  <span className="text-xs text-gray-400">Coût calculé</span>
+                  <span className="text-sm font-bold text-amber-400">
+                    {newEvent.type === 'subscription' ? `+${fmtRevXAF(newEvent.revenue || 0)}` : `-${fmtUSD(computeCost(newEvent as CostEvent))}`}
+                  </span>
                 </div>
               </div>
-              <div>
-                <label className="text-xs text-gray-400 mb-1 block">Shop ID</label>
-                <select value={newEvent.shopId || ''} onChange={e => setNewEvent({ ...newEvent, shopId: e.target.value })}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
-                  <option value="">— Choisir une boutique —</option>
-                  {shops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
+              <div className="flex gap-3 mt-5">
+                <button onClick={() => setShowAddEvent(false)} className="flex-1 py-2.5 bg-gray-800 text-gray-400 rounded-xl text-sm">Annuler</button>
+                <button onClick={addCostEvent} className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold">Enregistrer</button>
               </div>
-              {(newEvent.type === 'gemini' || newEvent.type === 'gpt4o') && (
-                <div className="grid grid-cols-3 gap-2">
-                  <div><label className="text-xs text-gray-400 mb-1 block">Tokens in</label><input type="number" value={newEvent.tokens_in || ''} onChange={e => setNewEvent({ ...newEvent, tokens_in: +e.target.value })} className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500" /></div>
-                  <div><label className="text-xs text-gray-400 mb-1 block">Tokens out</label><input type="number" value={newEvent.tokens_out || ''} onChange={e => setNewEvent({ ...newEvent, tokens_out: +e.target.value })} className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500" /></div>
-                  <div><label className="text-xs text-gray-400 mb-1 block">Images</label><input type="number" value={newEvent.images || ''} onChange={e => setNewEvent({ ...newEvent, images: +e.target.value })} className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500" /></div>
-                </div>
-              )}
-              {newEvent.type === 'firestore' && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div><label className="text-xs text-gray-400 mb-1 block">Lectures</label><input type="number" value={newEvent.reads || ''} onChange={e => setNewEvent({ ...newEvent, reads: +e.target.value })} className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none" /></div>
-                  <div><label className="text-xs text-gray-400 mb-1 block">Écritures</label><input type="number" value={newEvent.writes || ''} onChange={e => setNewEvent({ ...newEvent, writes: +e.target.value })} className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none" /></div>
-                </div>
-              )}
-              {newEvent.type === 'subscription' && (
-                <div><label className="text-xs text-gray-400 mb-1 block">Revenu (FCFA)</label><input type="number" value={newEvent.revenue || ''} onChange={e => setNewEvent({ ...newEvent, revenue: +e.target.value })} className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none" /></div>
-              )}
-              <div>
-                <label className="text-xs text-gray-400 mb-1 block">Note / Description</label>
-                <input type="text" value={newEvent.note || ''} onChange={e => setNewEvent({ ...newEvent, note: e.target.value })}
-                  placeholder="Analyse produit par IA, scan lot de 50..." className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500" />
-              </div>
-              <div>
-                <label className="text-xs text-gray-400 mb-1 block">Date & heure</label>
-                <input type="datetime-local" value={newEvent.createdAt?.slice(0, 16) || ''} onChange={e => setNewEvent({ ...newEvent, createdAt: e.target.value })}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500" />
-              </div>
-              {/* Preview cost */}
-              <div className="bg-gray-800 rounded-xl p-3 flex justify-between items-center">
-                <span className="text-xs text-gray-400">Coût calculé</span>
-                <span className="text-sm font-bold text-amber-400">
-                  {newEvent.type === 'subscription' ? `+${fmtRevXAF(newEvent.revenue || 0)}` : `-${fmtUSD(computeCost(newEvent as CostEvent))}`}
-                </span>
-              </div>
-            </div>
-            <div className="flex gap-3 mt-5">
-              <button onClick={() => setShowAddEvent(false)} className="flex-1 py-2.5 bg-gray-800 text-gray-400 rounded-xl text-sm">Annuler</button>
-              <button onClick={addCostEvent} className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold">Enregistrer</button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
