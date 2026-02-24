@@ -771,8 +771,9 @@ export default function SuperAdminPage() {
           </div>
         )}
 
-        {/* ── TRAFFIC TAB ── */}
+        {/* ══ TAB PIXEL FACEBOOK — TOUR DE CONTRÔLE ════════════════════════════ */}
         {activeTab === 'traffic' && (() => {
+          // ── Calculs ────────────────────────────────────────────────────────────
           const filtered = trafficEvents.filter((e: any) => {
             const d = new Date(e.createdAt);
             if (trafficPeriod === 'today') { const t = new Date(); t.setHours(0,0,0,0); return d >= t; }
@@ -781,348 +782,354 @@ export default function SuperAdminPage() {
             return true;
           });
 
-          const sessions = new Set(filtered.map((e: any) => e.sessionId)).size;
-          const orderHits = filtered.filter((e: any) => e.page === 'order_success').length;
-          const convRate = sessions > 0 ? ((orderHits / sessions) * 100).toFixed(1) : '0.0';
+          // Séparer events Pixel vs anciens events
+          const pixelEvents   = filtered.filter((e: any) => e.source === 'pixel');
+          const fbEvents      = filtered.filter((e: any) => e.fbclid || e.utmSource === 'facebook');
 
-          const pageCount: Record<string, number> = {};
-          filtered.forEach((e: any) => { const k = e.page || 'unknown'; pageCount[k] = (pageCount[k]||0)+1; });
+          // KPIs Pixel
+          const pageViews     = filtered.filter((e: any) => e.event === 'PageView').length;
+          const scrollReads   = filtered.filter((e: any) => e.event === 'ViewContent').length;
+          const cartAbandons  = filtered.filter((e: any) => e.event === 'AddToCart' && !e.converted).length;
+          const leads         = filtered.filter((e: any) => e.event === 'Lead' || e.event === 'CompleteRegistration').length;
+          const purchases     = filtered.filter((e: any) => e.event === 'Purchase').length;
+          const fbVisitors    = new Set(fbEvents.map((e: any) => e.sessionId)).size;
 
-          const shopVisits: Record<string, { visits: number; orders: number }> = {};
-          filtered.filter((e: any) => e.shopSlug).forEach((e: any) => {
-            if (!shopVisits[e.shopSlug]) shopVisits[e.shopSlug] = { visits:0, orders:0 };
-            if (e.page === 'shop') shopVisits[e.shopSlug].visits++;
-            if (e.page === 'order_success') shopVisits[e.shopSlug].orders++;
-          });
+          // Funnel
+          const funnelSteps = [
+            { label: 'PageView — Arrivée sur le site',          count: pageViews,   color: '#6366f1', icon: '👁️' },
+            { label: 'ViewContent — A lu la page (scroll 60%)', count: scrollReads, color: '#3b82f6', icon: '📖' },
+            { label: 'AddToCart — A cliqué S'inscrire',        count: leads,       color: '#f59e0b', icon: '🛒' },
+            { label: 'Purchase — A finalisé l'inscription',    count: purchases,   color: '#10b981', icon: '✅' },
+          ];
+          const funnelMax = Math.max(pageViews, 1);
 
-          const deviceCount: Record<string, number> = {};
-          filtered.forEach((e: any) => { const k = e.device||'unknown'; deviceCount[k]=(deviceCount[k]||0)+1; });
+          // Drop-offs
+          const dropViewToRead  = pageViews > 0   ? (((pageViews - scrollReads) / pageViews) * 100).toFixed(0) : '0';
+          const dropReadToCart  = scrollReads > 0 ? (((scrollReads - leads) / scrollReads) * 100).toFixed(0)   : '0';
+          const dropCartToBuy   = leads > 0       ? (((leads - purchases) / leads) * 100).toFixed(0)           : '0';
 
-          const refCount: Record<string, number> = {};
-          filtered.forEach((e: any) => {
-            const r = e.referrer || 'direct';
-            let label = 'Direct';
-            if (r.includes('whatsapp')) label = 'WhatsApp';
-            else if (r.includes('facebook')||r.includes('fb.')) label = 'Facebook';
-            else if (r.includes('instagram')) label = 'Instagram';
-            else if (r.includes('tiktok')) label = 'TikTok';
-            else if (r.includes('google')) label = 'Google';
-            else if (r !== 'direct' && r !== '') label = 'Autre site';
-            refCount[label] = (refCount[label]||0)+1;
-          });
-
-          const utmCount: Record<string, number> = {};
+          // Campagnes Facebook
+          const campaignMap: Record<string, { clicks: number; leads: number; purchases: number }> = {};
           filtered.filter((e: any) => e.utmCampaign).forEach((e: any) => {
-            utmCount[e.utmCampaign] = (utmCount[e.utmCampaign]||0)+1;
+            const c = e.utmCampaign;
+            if (!campaignMap[c]) campaignMap[c] = { clicks: 0, leads: 0, purchases: 0 };
+            if (e.event === 'PageView')              campaignMap[c].clicks++;
+            if (e.event === 'Lead' || e.event === 'CompleteRegistration') campaignMap[c].leads++;
+            if (e.event === 'Purchase')              campaignMap[c].purchases++;
           });
 
-          // 14-day chart
-          const dayData: Record<string, { visits: number; orders: number }> = {};
+          // 14-day chart  
+          const dayData: Record<string, { views: number; leads: number }> = {};
           for (let i = 13; i >= 0; i--) {
             const d = new Date(); d.setDate(d.getDate()-i);
-            dayData[d.toISOString().slice(0,10)] = { visits:0, orders:0 };
+            dayData[d.toISOString().slice(0,10)] = { views: 0, leads: 0 };
           }
-          trafficEvents.forEach((e: any) => {
+          filtered.forEach((e: any) => {
             const k = new Date(e.createdAt).toISOString().slice(0,10);
             if (dayData[k]) {
-              if (['shop','landing'].includes(e.page)) dayData[k].visits++;
-              if (e.page === 'order_success') dayData[k].orders++;
+              if (e.event === 'PageView') dayData[k].views++;
+              if (e.event === 'Lead' || e.event === 'CompleteRegistration') dayData[k].leads++;
             }
           });
-          const maxDay = Math.max(...Object.values(dayData).map(d => d.visits), 1);
-
-          const PAGE_LABELS: Record<string,string> = {
-            landing:"🏠 Page d'accueil", shop:"🛍️ Boutique", product:"📦 Produit",
-            checkout:"🛒 Checkout", order_success:"✅ Commande passée", register:"📝 Inscription", login:"🔑 Connexion",
-          };
-          const DEVICE_ICONS: Record<string,string> = { mobile:'📱', desktop:'💻', tablet:'📟', unknown:'❓' };
-          const REF_COLORS: Record<string,string> = {
-            Direct:'#6366f1', WhatsApp:'#25D366', Facebook:'#1877F2',
-            Instagram:'#E1306C', TikTok:'#6b7280', Google:'#4285F4', 'Autre site':'#9ca3af',
-          };
+          const maxDay = Math.max(...Object.values(dayData).map(d => d.views), 1);
 
           return (
             <div className="space-y-5">
-              {/* Filters */}
-              <div className="flex flex-wrap gap-3 items-center">
-                <div className="flex gap-1 bg-gray-900 border border-gray-800 rounded-xl p-1">
-                  {[{id:'today',label:'Auj.'},{id:'week',label:'7 jours'},{id:'month',label:'Ce mois'},{id:'all',label:'Tout'}].map(p => (
-                    <button key={p.id} onClick={() => setTrafficPeriod(p.id as any)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium ${trafficPeriod===p.id?'bg-indigo-600 text-white':'text-gray-400 hover:text-white'}`}>
-                      {p.label}
-                    </button>
-                  ))}
+              {/* Header */}
+              <div className="flex flex-wrap gap-3 items-center justify-between">
+                <div>
+                  <h2 className="text-white font-extrabold text-lg flex items-center gap-2">
+                    🎯 Tour de contrôle — Meta Pixel
+                  </h2>
+                  <p className="text-gray-500 text-xs mt-0.5">Pixel ID : <span className="text-indigo-400 font-mono">1805294393481637</span></p>
                 </div>
-                <button onClick={manualRefresh}
-                  className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-gray-800 ml-auto">
-                  <RefreshCw className={`w-3.5 h-3.5 ${trafficLoading?'animate-spin':''}`} />Actualiser
-                </button>
-              </div>
-
-              {/* ── LIVE indicator ── */}
-              <div className={`flex items-center justify-between rounded-2xl px-4 py-3 border ${
-                liveStatus === 'live' ? 'bg-emerald-950 border-emerald-800' : 'bg-gray-900 border-gray-800'
-              }`}>
                 <div className="flex items-center gap-2">
-                  {liveStatus === 'live'
-                    ? <><span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" /><span className="text-emerald-400 text-sm font-semibold">Synchronisation en direct</span></>
-                    : <><RefreshCw className="w-3.5 h-3.5 text-gray-500 animate-spin" /><span className="text-gray-500 text-sm">Connexion...</span></>
-                  }
-                </div>
-                {trafficEvents[0] && (
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <span>Dernier événement :</span>
-                    <span className="text-gray-300 font-medium">
-                      {trafficEvents[0].page === 'shop' ? '🛍️ Visite boutique' :
-                       trafficEvents[0].page === 'order_success' ? '✅ Commande' :
-                       trafficEvents[0].page === 'landing' ? '🏠 Landing' : trafficEvents[0].page}
-                    </span>
-                    <span className="text-gray-600">
-                      {new Date(trafficEvents[0].createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                    </span>
+                  <div className="flex gap-1 bg-gray-900 border border-gray-800 rounded-xl p-1">
+                    {[{id:'today',label:'Auj.'},{id:'week',label:'7j'},{id:'month',label:'Mois'},{id:'all',label:'Tout'}].map(p => (
+                      <button key={p.id} onClick={() => setTrafficPeriod(p.id as any)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium ${trafficPeriod===p.id?'bg-indigo-600 text-white':'text-gray-400 hover:text-white'}`}>
+                        {p.label}
+                      </button>
+                    ))}
                   </div>
-                )}
+                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border ${
+                    liveStatus === 'live' ? 'bg-emerald-950 border-emerald-800 text-emerald-400' : 'bg-gray-900 border-gray-800 text-gray-500'
+                  }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${liveStatus === 'live' ? 'bg-emerald-400 animate-pulse' : 'bg-gray-600'}`} />
+                    {liveStatus === 'live' ? 'Live' : 'Connexion...'}
+                  </div>
+                </div>
               </div>
 
-              {/* KPI Cards */}
+              {/* ── KPI CARDS ── */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
-                  { label:'Visites totales', value:filtered.length, icon:'👁️', color:'text-indigo-400', border:'border-indigo-900' },
-                  { label:'Sessions uniques', value:sessions, icon:'👤', color:'text-blue-400', border:'border-blue-900' },
-                  { label:'Commandes', value:orderHits, icon:'✅', color:'text-emerald-400', border:'border-emerald-900' },
-                  { label:'Taux de conversion', value:convRate+'%', icon:'📈', color:'text-amber-400', border:'border-amber-900' },
-                ].map(k => (
-                  <div key={k.label} className={`bg-gray-900 rounded-2xl p-4 border ${k.border}`}>
-                    <p className="text-xl mb-1">{k.icon}</p>
-                    <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{k.label}</p>
+                  { label: 'PageViews', val: pageViews,    icon: '👁️',  color: 'text-indigo-400', bg: 'border-indigo-900', sub: 'Arrivées sur le site' },
+                  { label: 'Lectures',  val: scrollReads,  icon: '📖',  color: 'text-blue-400',   bg: 'border-blue-900',   sub: 'Ont scrollé 60%+' },
+                  { label: 'Inscriptions', val: leads,     icon: '🛒',  color: 'text-amber-400',  bg: 'border-amber-900',  sub: 'Ont cliqué S'inscrire' },
+                  { label: 'Conversions', val: purchases,  icon: '✅',  color: 'text-emerald-400',bg: 'border-emerald-900', sub: 'Compte créé' },
+                ].map((k, i) => (
+                  <div key={i} className={`bg-gray-900 rounded-2xl p-4 border ${k.bg}`}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-lg">{k.icon}</span>
+                      {i > 0 && funnelSteps[i-1].count > 0 && (
+                        <span className="text-[10px] text-red-400 font-bold bg-red-900/30 px-1.5 py-0.5 rounded">
+                          -{Math.round(((funnelSteps[i-1].count - funnelSteps[i].count) / funnelSteps[i-1].count) * 100)}%
+                        </span>
+                      )}
+                    </div>
+                    <p className={`text-2xl font-extrabold ${k.color}`}>{k.val}</p>
+                    <p className="text-xs text-white font-semibold mt-0.5">{k.label}</p>
+                    <p className="text-[10px] text-gray-500">{k.sub}</p>
                   </div>
                 ))}
               </div>
 
-              {/* Bar chart — 14 days */}
+              {/* ── FUNNEL VISUEL ── */}
               <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-                <h3 className="font-bold text-white text-sm uppercase tracking-wide mb-1 flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-indigo-400" />Évolution — 14 derniers jours
+                <h3 className="font-bold text-white mb-1 flex items-center gap-2">
+                  🔽 Entonnoir de conversion Facebook
                 </h3>
-                <p className="text-xs text-gray-500 mb-4">Visites (barres) et commandes (points verts)</p>
+                <p className="text-gray-500 text-xs mb-5">Où perdez-vous vos visiteurs Facebook ?</p>
+                <div className="space-y-3">
+                  {funnelSteps.map((step, i) => {
+                    const pct = Math.round((step.count / funnelMax) * 100);
+                    const dropPct = i > 0 && funnelSteps[i-1].count > 0
+                      ? Math.round(((funnelSteps[i-1].count - step.count) / funnelSteps[i-1].count) * 100)
+                      : 0;
+                    return (
+                      <div key={i}>
+                        <div className="flex items-center justify-between text-xs mb-1.5">
+                          <div className="flex items-center gap-2">
+                            <span>{step.icon}</span>
+                            <span className="text-gray-300 font-semibold">{step.label}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {dropPct > 0 && (
+                              <span className={`font-bold px-2 py-0.5 rounded text-[10px] ${
+                                dropPct > 70 ? 'text-red-400 bg-red-900/40' :
+                                dropPct > 40 ? 'text-amber-400 bg-amber-900/40' :
+                                'text-green-400 bg-green-900/40'
+                              }`}>↓ -{dropPct}%</span>
+                            )}
+                            <span className="text-white font-extrabold tabular-nums w-10 text-right">{step.count}</span>
+                          </div>
+                        </div>
+                        <div className="h-7 bg-gray-800 rounded-lg overflow-hidden relative">
+                          <div className="h-full rounded-lg transition-all duration-700 flex items-center pl-3"
+                            style={{ width: `${Math.max(pct, 2)}%`, backgroundColor: step.color }}>
+                            {pct > 10 && <span className="text-white text-[10px] font-bold">{pct}%</span>}
+                          </div>
+                        </div>
+                        {i < funnelSteps.length - 1 && dropPct > 60 && (
+                          <div className="flex items-center gap-2 mt-1.5 bg-red-900/20 border border-red-900/40 rounded-lg px-3 py-1.5">
+                            <span className="text-red-400 text-[10px] font-bold">⚠️ Point de friction :</span>
+                            <span className="text-red-300 text-[10px]">
+                              {i === 0 && 'Votre landing page ne retient pas — améliorez le titre et le visuel hero'}
+                              {i === 1 && 'Votre CTA S'inscrire n'est pas assez visible — grossissez le bouton vert'}
+                              {i === 2 && 'Le formulaire fait peur — simplifiez-le (juste email + mot de passe)'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ── ABANDONS DÉTAILLÉS ── */}
+              <div className="grid md:grid-cols-3 gap-4">
+                {[
+                  { title: 'Abandon lecture', icon: '👁️→📖', pct: dropViewToRead, desc: 'Ont quitté sans lire la page', tip: 'Chargement trop lent ou titre pas accrocheur', color: 'red' },
+                  { title: 'Abandon inscription', icon: '📖→🛒', pct: dropReadToCart, desc: 'Ont lu mais pas cliqué S'inscrire', tip: 'CTA pas assez visible ou offre peu claire', color: 'amber' },
+                  { title: 'Abandon formulaire', icon: '🛒→✅', pct: dropCartToBuy, desc: 'Ont cliqué mais pas créé de compte', tip: 'Formulaire trop long ou erreur technique', color: 'orange' },
+                ].map((a, i) => {
+                  const p = parseInt(a.pct as string);
+                  const severity = p > 70 ? 'critique' : p > 40 ? 'attention' : 'ok';
+                  const severityColor = p > 70 ? 'text-red-400 bg-red-900/30 border-red-800' : p > 40 ? 'text-amber-400 bg-amber-900/30 border-amber-800' : 'text-green-400 bg-green-900/30 border-green-800';
+                  return (
+                    <div key={i} className={`rounded-2xl p-4 border ${severityColor}`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-mono text-gray-400">{a.icon}</span>
+                        <span className={`text-2xl font-extrabold`}>{a.pct}%</span>
+                      </div>
+                      <p className="font-bold text-white text-sm mb-1">{a.title}</p>
+                      <p className="text-[11px] text-gray-400 mb-2">{a.desc}</p>
+                      {p > 40 && (
+                        <div className="bg-black/30 rounded-lg p-2">
+                          <p className="text-[10px] text-yellow-300">💡 {a.tip}</p>
+                        </div>
+                      )}
+                      <div className="mt-2 flex items-center gap-1.5">
+                        <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
+                          severity === 'critique' ? 'bg-red-900 text-red-300' :
+                          severity === 'attention' ? 'bg-amber-900 text-amber-300' :
+                          'bg-green-900 text-green-300'
+                        }`}>{severity}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* ── VISITEURS FACEBOOK ── */}
+              <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-white flex items-center gap-2">
+                    <span className="w-5 h-5 bg-blue-600 rounded flex items-center justify-center text-white text-xs font-black">f</span>
+                    Visiteurs depuis Facebook Ads
+                  </h3>
+                  <span className="text-blue-400 font-extrabold text-lg">{fbVisitors}</span>
+                </div>
+                {fbEvents.length === 0 ? (
+                  <div className="bg-blue-950/40 border border-blue-900/50 rounded-xl p-4 text-center">
+                    <p className="text-blue-300 text-sm font-semibold mb-1">En attente de données Facebook</p>
+                    <p className="text-blue-400/70 text-xs">Les visiteurs venant de tes pubs apparaîtront ici automatiquement dès que le Pixel sera actif</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {fbEvents.slice(0, 10).map((e: any, i: number) => (
+                      <div key={i} className="flex items-center gap-3 py-2 border-b border-gray-800 last:border-0">
+                        <div className="w-7 h-7 bg-blue-900 rounded-full flex items-center justify-center text-xs">f</div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white text-xs font-semibold truncate">
+                            {e.event || 'PageView'} — {e.utmCampaign || 'Pub Facebook'}
+                          </p>
+                          <p className="text-gray-500 text-[10px]">
+                            fbclid: {e.fbclid ? e.fbclid.slice(0,16)+'...' : 'n/a'} · {new Date(e.createdAt).toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' })}
+                          </p>
+                        </div>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                          e.event === 'Purchase' ? 'bg-green-900 text-green-400' :
+                          e.event === 'Lead'     ? 'bg-amber-900 text-amber-400' :
+                          'bg-gray-800 text-gray-400'
+                        }`}>{e.event || 'View'}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* ── GRAPHIQUE 14 JOURS ── */}
+              <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+                <h3 className="font-bold text-white text-sm mb-1">📈 Évolution — 14 derniers jours</h3>
+                <p className="text-xs text-gray-500 mb-4">PageViews (barres) et inscriptions (points verts)</p>
                 <div className="flex items-end gap-1" style={{ height: '100px' }}>
                   {Object.entries(dayData).map(([date, d]) => {
-                    const barH = Math.round((d.visits / maxDay) * 88);
+                    const barH = Math.round((d.views / maxDay) * 88);
                     return (
                       <div key={date} className="flex-1 flex flex-col items-center justify-end group relative" style={{ height: '100px' }}>
-                        {/* Bar */}
                         <div className="w-full rounded-t-sm transition-all duration-300 relative"
                           style={{ height: barH > 0 ? `${barH}px` : '2px', backgroundColor: barH > 0 ? '#6366f1' : '#1f2937' }}>
-                          {d.orders > 0 && (
-                            <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-2 h-2 bg-emerald-400 rounded-full" />
-                          )}
+                          {d.leads > 0 && <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-2 h-2 bg-emerald-400 rounded-full" />}
                         </div>
-                        {/* Label */}
                         <span className="text-[7px] text-gray-600 mt-1">{date.slice(8)}</span>
-                        {/* Hover tooltip */}
                         <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block z-20 pointer-events-none">
                           <div className="bg-gray-800 border border-gray-600 rounded-lg px-2 py-1.5 text-[10px] text-white whitespace-nowrap shadow-xl">
                             <p className="font-bold text-gray-300">{date.slice(5)}</p>
-                            <p className="text-indigo-400">👁️ {d.visits} visites</p>
-                            {d.orders > 0 && <p className="text-emerald-400">✅ {d.orders} commandes</p>}
+                            <p className="text-indigo-400">👁️ {d.views} vues</p>
+                            {d.leads > 0 && <p className="text-emerald-400">✅ {d.leads} inscriptions</p>}
                           </div>
                         </div>
                       </div>
                     );
                   })}
                 </div>
-                <div className="flex gap-4 mt-2 justify-end">
-                  <span className="flex items-center gap-1 text-[10px] text-gray-500"><span className="w-3 h-2 bg-indigo-500 rounded inline-block" />Visites</span>
-                  <span className="flex items-center gap-1 text-[10px] text-gray-500"><span className="w-2 h-2 bg-emerald-400 rounded-full inline-block" />Commandes</span>
-                </div>
               </div>
 
-              {/* 3 columns: pages / devices / sources */}
-              <div className="grid md:grid-cols-3 gap-4">
-                {/* Pages */}
-                <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4">
-                  <h3 className="font-bold text-white text-xs uppercase tracking-wide mb-3">Pages visitées</h3>
-                  <div className="space-y-2.5">
-                    {Object.entries(pageCount).sort((a,b)=>b[1]-a[1]).map(([page,count]) => {
-                      const total = Object.values(pageCount).reduce((s,v)=>s+v,0);
-                      const pct = total > 0 ? (count/total)*100 : 0;
-                      return (
-                        <div key={page}>
-                          <div className="flex justify-between text-xs mb-1">
-                            <span className="text-gray-300 truncate pr-1">{PAGE_LABELS[page]||page}</span>
-                            <span className="text-gray-400 font-mono">{count}</span>
-                          </div>
-                          <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                            <div className="h-full bg-indigo-500 rounded-full" style={{ width:`${pct}%` }} />
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {!Object.keys(pageCount).length && <p className="text-gray-600 text-xs text-center py-3">Aucune donnée</p>}
-                  </div>
-                </div>
-
-                {/* Devices */}
-                <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4">
-                  <h3 className="font-bold text-white text-xs uppercase tracking-wide mb-3">Appareils</h3>
-                  <div className="space-y-2.5">
-                    {Object.entries(deviceCount).sort((a,b)=>b[1]-a[1]).map(([device,count]) => {
-                      const total = Object.values(deviceCount).reduce((s,v)=>s+v,0);
-                      const pct = total>0?(count/total)*100:0;
-                      return (
-                        <div key={device}>
-                          <div className="flex items-center justify-between text-xs mb-1">
-                            <span className="text-gray-300">{DEVICE_ICONS[device]||'❓'} {device}</span>
-                            <span className="text-gray-400">{pct.toFixed(0)}%</span>
-                          </div>
-                          <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                            <div className="h-full bg-blue-500 rounded-full" style={{ width:`${pct}%` }} />
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {!Object.keys(deviceCount).length && <p className="text-gray-600 text-xs text-center py-3">Aucune donnée</p>}
-                  </div>
-                </div>
-
-                {/* Sources */}
-                <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4">
-                  <h3 className="font-bold text-white text-xs uppercase tracking-wide mb-3">Sources de trafic</h3>
-                  <div className="space-y-2.5">
-                    {Object.entries(refCount).sort((a,b)=>b[1]-a[1]).map(([ref,count]) => {
-                      const total = Object.values(refCount).reduce((s,v)=>s+v,0);
-                      const pct = total>0?(count/total)*100:0;
-                      const col = REF_COLORS[ref]||'#6b7280';
-                      return (
-                        <div key={ref}>
-                          <div className="flex justify-between text-xs mb-1">
-                            <span className="text-gray-300">{ref}</span>
-                            <span className="text-gray-400">{count} ({pct.toFixed(0)}%)</span>
-                          </div>
-                          <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                            <div className="h-full rounded-full" style={{ width:`${pct}%`, backgroundColor:col }} />
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {!Object.keys(refCount).length && <p className="text-gray-600 text-xs text-center py-3">Aucune donnée</p>}
-                  </div>
-                </div>
-              </div>
-
-              {/* UTM Campaigns */}
+              {/* ── CAMPAGNES PUB ── */}
               <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-                <h3 className="font-bold text-white text-sm uppercase tracking-wide mb-3">🎯 Campagnes publicitaires</h3>
-                {Object.keys(utmCount).length > 0 ? (
-                  <div className="space-y-2 mb-4">
-                    {Object.entries(utmCount).sort((a,b)=>b[1]-a[1]).map(([campaign,count]) => {
-                      const total = Object.values(utmCount).reduce((s,v)=>s+v,0);
-                      const pct = total>0?(count/total)*100:0;
-                      return (
-                        <div key={campaign} className="flex items-center gap-3">
-                          <div className="w-2 h-2 bg-amber-400 rounded-full flex-shrink-0" />
-                          <span className="text-sm text-gray-300 flex-1 min-w-0 truncate">{campaign}</span>
-                          <div className="w-24 h-1.5 bg-gray-800 rounded-full flex-shrink-0">
-                            <div className="h-full rounded-full bg-amber-500" style={{ width:`${pct}%` }} />
-                          </div>
-                          <span className="text-sm font-bold text-amber-400 w-8 text-right">{count}</span>
-                        </div>
-                      );
-                    })}
+                <h3 className="font-bold text-white mb-4">🎯 Performance des campagnes publicitaires</h3>
+                {Object.keys(campaignMap).length === 0 ? (
+                  <div className="bg-gray-800 rounded-xl p-4 text-center">
+                    <p className="text-gray-400 text-sm mb-2">Aucune campagne détectée pour cette période</p>
+                    <p className="text-gray-600 text-xs">Assure-toi que tes pubs Facebook pointent vers mastershoppro.com avec le Pixel actif</p>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500 mb-3">Aucune campagne détectée pour cette période.</p>
-                )}
-                <div className="bg-gray-800 rounded-xl p-3">
-                  <p className="text-xs font-bold text-gray-300 mb-2">Comment tracker tes publicités :</p>
-                  <div className="font-mono text-xs text-indigo-300 bg-gray-900 rounded-lg p-2 overflow-x-auto">
-                    {'https://mastershoppro.com/ta-boutique?utm_source=facebook&utm_campaign=soldes_jan'}
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 mt-2 text-[10px]">
-                    <div className="bg-gray-900 rounded-lg p-2"><p className="text-indigo-400 font-mono">utm_source</p><p className="text-gray-500">facebook, whatsapp, tiktok</p></div>
-                    <div className="bg-gray-900 rounded-lg p-2"><p className="text-indigo-400 font-mono">utm_medium</p><p className="text-gray-500">social, paid, story</p></div>
-                    <div className="bg-gray-900 rounded-lg p-2"><p className="text-indigo-400 font-mono">utm_campaign</p><p className="text-gray-500">promo_noel, soldes_jan</p></div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Shop performance */}
-              <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-                <h3 className="font-bold text-white text-sm uppercase tracking-wide mb-4">Performance par boutique</h3>
-                {Object.entries(shopVisits).length === 0 ? (
-                  <div className="text-center py-6 text-gray-500">
-                    <BarChart3 className="w-7 h-7 mx-auto mb-2 opacity-30" />
-                    <p className="text-sm">Les visites s'enregistrent automatiquement dès qu'un client visite une boutique</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {Object.entries(shopVisits).sort((a,b)=>b[1].visits-a[1].visits).map(([slug, data]) => {
-                      const cr = data.visits > 0 ? ((data.orders/data.visits)*100).toFixed(1) : '0.0';
-                      const crNum = parseFloat(cr);
-                      return (
-                        <div key={slug} className="flex items-center gap-3 py-2.5 border-b border-gray-800 last:border-0">
-                          <div className="w-9 h-9 rounded-xl bg-indigo-900/60 flex items-center justify-center text-indigo-300 font-bold text-sm flex-shrink-0">
-                            {slug.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-white">/{slug}</p>
-                            <div className="flex gap-3 mt-0.5">
-                              <span className="text-xs text-indigo-400">👁️ {data.visits}</span>
-                              <span className="text-xs text-emerald-400">✅ {data.orders}</span>
-                            </div>
-                          </div>
-                          <div className="text-right flex-shrink-0">
-                            <p className="text-sm font-bold" style={{ color: crNum>=5?'#22c55e':crNum>=2?'#f59e0b':'#ef4444' }}>{cr}%</p>
-                            <p className="text-[10px] text-gray-600">conversion</p>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-gray-800 text-gray-500">
+                          {['Campagne','Clics','Inscriptions','Conversions','Taux'].map(h => (
+                            <th key={h} className="text-left px-3 py-2 font-semibold">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Object.entries(campaignMap).sort((a,b)=>b[1].clicks-a[1].clicks).map(([name, data], i) => {
+                          const rate = data.clicks > 0 ? ((data.purchases / data.clicks)*100).toFixed(1) : '0.0';
+                          return (
+                            <tr key={i} className="border-b border-gray-800/50 hover:bg-gray-800/30">
+                              <td className="px-3 py-2.5 text-amber-300 font-semibold">{name}</td>
+                              <td className="px-3 py-2.5 text-indigo-400 font-bold">{data.clicks}</td>
+                              <td className="px-3 py-2.5 text-amber-400 font-bold">{data.leads}</td>
+                              <td className="px-3 py-2.5 text-emerald-400 font-bold">{data.purchases}</td>
+                              <td className="px-3 py-2.5">
+                                <span className={`font-extrabold px-2 py-0.5 rounded ${parseFloat(rate)>5?'bg-green-900 text-green-400':parseFloat(rate)>1?'bg-amber-900 text-amber-400':'bg-red-900 text-red-400'}`}>
+                                  {rate}%
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </div>
 
-              {/* Recent events */}
-              <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
-                <div className="p-4 border-b border-gray-800 flex justify-between items-center">
-                  <h3 className="font-bold text-white text-sm uppercase tracking-wide">Visites récentes</h3>
-                  <span className="text-xs text-gray-500">{filtered.length} événements</span>
-                </div>
-                <div className="max-h-72 overflow-y-auto divide-y divide-gray-800">
-                  {trafficLoading ? (
-                    <div className="p-8 text-center text-gray-500 animate-pulse">Chargement...</div>
-                  ) : filtered.length === 0 ? (
-                    <div className="p-8 text-center text-gray-500">
-                      <Activity className="w-7 h-7 mx-auto mb-2 opacity-30" />
-                      <p className="text-sm">Aucune visite</p>
+              {/* ── TEST EVENTS GUIDE ── */}
+              <div className="bg-gray-900 border border-amber-800/50 rounded-2xl p-5">
+                <h3 className="font-bold text-amber-400 mb-3 flex items-center gap-2">
+                  🧪 Comment tester que le Pixel fonctionne
+                </h3>
+                <div className="space-y-3 text-sm">
+                  <div className="flex gap-3 items-start">
+                    <span className="w-6 h-6 bg-blue-600 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">1</span>
+                    <div>
+                      <p className="text-white font-semibold">Installe l'extension "Meta Pixel Helper" sur Chrome</p>
+                      <p className="text-gray-400 text-xs">Quand tu ouvres mastershoppro.com, l'icône devient verte = Pixel actif ✅</p>
                     </div>
-                  ) : filtered.slice(0,50).map((e: any, i: number) => (
-                    <div key={e.id||i} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-800/40">
-                      <span className="text-sm flex-shrink-0">{DEVICE_ICONS[e.device]||'❓'}</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-medium text-white">{PAGE_LABELS[e.page]||e.page}</span>
-                          {e.shopSlug && <span className="text-[10px] text-gray-500">/{e.shopSlug}</span>}
-                          {e.utmCampaign && <span className="text-[10px] bg-amber-900 text-amber-300 px-1.5 py-0.5 rounded font-medium">📣 {e.utmCampaign}</span>}
-                        </div>
-                        <p className="text-[10px] text-gray-600 mt-0.5">
-                          {e.referrer && e.referrer !== 'direct' ? `↩ ${e.referrer.slice(0,40)}` : '↩ direct'}
-                        </p>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <span className="w-6 h-6 bg-blue-600 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">2</span>
+                    <div>
+                      <p className="text-white font-semibold">Va dans Events Manager → Test Events</p>
+                      <p className="text-gray-400 text-xs">business.facebook.com → Gestionnaire d'événements → Ton Pixel → Tester les événements</p>
+                      <div className="mt-2 bg-gray-800 rounded-lg p-2 font-mono text-xs text-indigo-300 overflow-x-auto">
+                        https://business.facebook.com/events_manager2/list/pixel/1805294393481637/test_events
                       </div>
-                      <span className="text-[10px] text-gray-600 flex-shrink-0">
-                        {new Date(e.createdAt).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}
-                      </span>
                     </div>
-                  ))}
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <span className="w-6 h-6 bg-blue-600 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">3</span>
+                    <div>
+                      <p className="text-white font-semibold">Ouvre mastershoppro.com → les events s'affichent en direct</p>
+                      <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+                        {[
+                          { e: 'PageView',              desc: 'Arrivée sur la page' },
+                          { e: 'ViewContent',           desc: 'A scrollé 60%+' },
+                          { e: 'Lead',                  desc: 'Cliqué sur S'inscrire' },
+                          { e: 'CompleteRegistration',  desc: 'Compte créé' },
+                          { e: 'CustomEvent: CartAbandon', desc: 'Parti du formulaire' },
+                          { e: 'CustomEvent: FbAdClick',   desc: 'Venu d'une pub Facebook' },
+                        ].map((ev, i) => (
+                          <div key={i} className="bg-gray-800 rounded-lg px-2.5 py-1.5">
+                            <p className="text-blue-300 text-[10px] font-mono">{ev.e}</p>
+                            <p className="text-gray-400 text-[10px]">{ev.desc}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
+
             </div>
           );
         })()}
-      </div>
 
-      {/* ══ TAB DÉMO ══════════════════════════════════════════════════════════ */}
+            {/* ══ TAB DÉMO ══════════════════════════════════════════════════════════ */}
       {activeTab === 'demo' && (() => {
         // Sessions uniques (par sessionId)
         const sessions = [...new Set(demoEvents.map((e: any) => e.sessionId))];

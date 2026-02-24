@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Store, Mail, Lock, User, Loader2, Eye, EyeOff, Phone, CheckCircle, AlertCircle } from 'lucide-react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { trackRegistrationComplete, trackLeadClick } from '@/components/MetaPixel';
 import { auth } from '@/lib/firebase';
 import { createShop, createAdmin, checkSlugAvailable } from '@/lib/firestore';
 import { slugify } from '@/lib/utils';
@@ -138,7 +139,10 @@ export default function RegisterPage() {
         createdAt: new Date().toISOString(),
       });
       
-      // 4. Redirect to dashboard
+      // 4. Track conversion Meta Pixel
+      trackRegistrationComplete('FREE');
+
+      // 5. Redirect to dashboard
       router.push('/admin/dashboard');
       
     } catch (err: any) {
@@ -179,7 +183,7 @@ export default function RegisterPage() {
         </div>
         
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={(e) => { trackLeadClick(); handleSubmit(e); }} className="p-6 space-y-4">
           {error && (
             <div className="bg-red-50 text-red-600 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
               <AlertCircle className="w-5 h-5 flex-shrink-0" />

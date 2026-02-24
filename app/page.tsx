@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useEffect, useState, useRef } from 'react';
 import { CheckCircle, ArrowRight, Star, MessageCircle, X, Play, WifiOff, Zap, Shield } from 'lucide-react';
 import { trackVisit } from '@/lib/analytics';
+import MetaPixelEvents, { trackLeadClick } from '@/components/MetaPixel';
 
 const APP_URL  = 'https://mastershoppro.com/register';
 const DEMO_URL = '/demo';
@@ -50,6 +51,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-white" style={{ fontFamily: "'Plus Jakarta Sans','Nunito',system-ui,sans-serif" }}>
+      <MetaPixelEvents />
       {showVideo && <VideoModal onClose={() => setShowVideo(false)} />}
 
       {/* ── Barre urgence ── */}
@@ -132,7 +134,7 @@ export default function HomePage() {
 
             {/* CTA */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6">
-              <a href={APP_URL} target="_blank"
+              <a href={APP_URL} target="_blank" onClick={trackLeadClick}
                 className="group w-full sm:w-auto inline-flex items-center justify-center gap-3 text-white font-extrabold text-xl px-8 py-5 rounded-2xl shadow-lg hover:shadow-2xl hover:scale-105 active:scale-100 transition-all duration-200"
                 style={{ background: 'linear-gradient(135deg,#16a34a,#15803d)', boxShadow: '0 4px 24px rgba(22,163,74,0.4)' }}>
                 <span className="text-2xl">📲</span>
@@ -454,7 +456,7 @@ export default function HomePage() {
           style={{ borderColor:'#f97316', color:'#ea580c' }}>
           Tester d'abord
         </a>
-        <a href={APP_URL} target="_blank"
+        <a href={APP_URL} target="_blank" onClick={trackLeadClick}
           className="flex-1 flex items-center justify-center gap-1.5 text-white font-extrabold text-sm py-3 rounded-xl"
           style={{ background:'linear-gradient(135deg,#16a34a,#15803d)' }}>
           📲 S'inscrire gratuit
