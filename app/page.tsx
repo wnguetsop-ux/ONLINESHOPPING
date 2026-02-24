@@ -171,15 +171,21 @@ export default function HomePage() {
               <div className="relative rounded-[3rem] p-[10px] shadow-2xl border-[6px] border-gray-800 bg-gray-900">
                 <div className="absolute top-[10px] left-1/2 -translate-x-1/2 w-16 h-4 bg-black rounded-full z-10" />
                 <div className="relative rounded-[2.2rem] overflow-hidden bg-black" style={{ aspectRatio:'9/16' }}>
-                  <iframe className="absolute inset-0 w-full h-full"
-                    src={`https://www.youtube.com/embed/${YT_ID}?autoplay=1&mute=1&loop=1&playlist=${YT_ID}&rel=0&modestbranding=1&controls=0&playsinline=1`}
-                    title="Mastershop démo"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    style={{ pointerEvents:'none' }} />
+                  {/* Miniature YouTube — pas d'iframe = chargement instantané */}
+                  <img
+                    src={`https://i.ytimg.com/vi/${YT_ID}/hqdefault.jpg`}
+                    alt="Mastershop démo vidéo"
+                    className="absolute inset-0 w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                  {/* Overlay play button */}
                   <button onClick={() => setShowVideo(true)}
-                    className="absolute inset-0 flex items-end justify-center pb-5 bg-gradient-to-t from-black/50 via-transparent to-transparent z-10">
-                    <span className="flex items-center gap-2 bg-white/95 text-black text-xs font-extrabold px-4 py-2 rounded-full shadow-lg">
-                      <Play className="w-3.5 h-3.5 fill-black" /> Voir avec le son
+                    className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/40 z-10 hover:bg-black/50 transition-colors">
+                    <div className="w-14 h-14 bg-red-600 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform">
+                      <Play className="w-6 h-6 text-white fill-white ml-1" />
+                    </div>
+                    <span className="bg-white/95 text-black text-xs font-extrabold px-4 py-2 rounded-full shadow-lg">
+                      ▶ Voir la démo (30 sec)
                     </span>
                   </button>
                 </div>

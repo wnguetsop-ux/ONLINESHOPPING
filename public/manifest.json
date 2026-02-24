@@ -1,15 +1,20 @@
 {
-  "name": "ShopMaster - E-commerce",
-  "short_name": "ShopMaster",
-  "description": "Votre boutique en ligne - Gérez vos produits et commandes facilement",
+  "name": "Mastershop — Gestion de boutique",
+  "short_name": "Mastershop",
+  "description": "Gérez vos ventes, stock et bénéfices en FCFA depuis votre téléphone. Fonctionne sans internet.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#ec4899",
+  "theme_color": "#16a34a",
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "fr",
-  "categories": ["shopping", "business", "productivity"],
+  "categories": [
+    "shopping",
+    "business",
+    "productivity",
+    "finance"
+  ],
   "icons": [
     {
       "src": "/icons/icon-72x72.png",
@@ -66,14 +71,14 @@
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "ShopMaster Dashboard"
+      "label": "Mastershop Dashboard"
     },
     {
       "src": "/icons/screenshot-mobile.png",
       "sizes": "750x1334",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "ShopMaster Mobile"
+      "label": "Mastershop Mobile"
     }
   ],
   "shortcuts": [
@@ -81,22 +86,37 @@
       "name": "Tableau de bord",
       "short_name": "Dashboard",
       "description": "Accéder au tableau de bord",
-      "url": "/dashboard",
-      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+      "url": "/admin/dashboard",
+      "icons": [
+        {
+          "src": "/icons/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
     },
     {
       "name": "Produits",
       "short_name": "Produits",
       "description": "Gérer les produits",
-      "url": "/products",
-      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+      "url": "/admin/products",
+      "icons": [
+        {
+          "src": "/icons/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
     },
     {
       "name": "Commandes",
       "short_name": "Commandes",
       "description": "Voir les commandes",
-      "url": "/orders",
-      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+      "url": "/admin/orders",
+      "icons": [
+        {
+          "src": "/icons/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
     }
   ],
   "related_applications": [],

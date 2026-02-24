@@ -1,13 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // ══════════════════════════════════════════════════════════════════════
-// ANALYSE IA DE PRODUITS — Gemini (gratuit) + ChatGPT (fallback)
-// 
-// Variables .env.local:
-//   GEMINI_API_KEY=AIzaSy...      (gratuit: aistudio.google.com/app/apikey)
-//   OPENAI_API_KEY=sk-...         (payant, ~$0.001/image: platform.openai.com)
-//
-// Priorité: Gemini 1.5 Flash → Gemini 1.5 Flash 8B → GPT-4o mini → erreur
+// ANALYSE IA — Gemini (gratuit) + GPT-4o mini (fallback)
+// Chaque appel est logué dans Firestore → collection 'api_logs'
+// Visible dans SuperAdmin → onglet "🔍 Logs API"
 // ══════════════════════════════════════════════════════════════════════
 
 const PROMPT = `Tu es un expert e-commerce spécialisé en Afrique francophone.
@@ -20,6 +16,36 @@ Analyse la photo de ce produit et réponds UNIQUEMENT avec ce JSON (aucun texte 
   "brand": "marque visible ou vide",
   "suggestedPrice": "prix suggéré en FCFA si estimable, sinon vide"
 }`;
+
+// ── Log vers Firestore via REST (pas besoin Firebase Admin SDK) ───────────
+async function writeLog(entry: Record<string, any>) {
+  try {
+    const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+    const apiKey    = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+    if (!projectId || !apiKey) return;
+
+    const doc = {
+      ...entry,
+      createdAt: new Date().toISOString(),
+      dateStr:   new Date().toISOString().slice(0, 10),
+    };
+
+    const fields: Record<string, any> = {};
+    for (const [k, v] of Object.entries(doc)) {
+      if (typeof v === 'string')  fields[k] = { stringValue: v };
+      if (typeof v === 'number')  fields[k] = { integerValue: String(v) };
+      if (typeof v === 'boolean') fields[k] = { booleanValue: v };
+    }
+
+    const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/api_logs?key=${apiKey}`;
+    // fire & forget — ne bloque pas la réponse
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields }),
+    }).catch(() => {});
+  } catch { /* ne jamais bloquer l'API pour un log */ }
+}
 
 // ── Gemini ─────────────────────────────────────────────────────────────────
 async function callGemini(apiKey: string, base64: string, mediaType: string, model: string) {
@@ -43,14 +69,14 @@ async function callGemini(apiKey: string, base64: string, mediaType: string, mod
   });
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`Gemini ${model} ${res.status}: ${body.slice(0, 200)}`);
+    throw new Error(`Gemini ${model} HTTP${res.status}: ${body.slice(0, 300)}`);
   }
   const data = await res.json();
   const candidate = data?.candidates?.[0];
-  if (!candidate) throw new Error('No candidates');
-  if (candidate.finishReason === 'SAFETY') throw new Error('Safety block');
+  if (!candidate)                              throw new Error('Gemini: no candidates');
+  if (candidate.finishReason === 'SAFETY')     throw new Error('Gemini: safety block');
   const text: string = candidate?.content?.parts?.[0]?.text || '';
-  if (!text) throw new Error('Empty response');
+  if (!text)                                   throw new Error('Gemini: empty text');
   return text;
 }
 
@@ -59,12 +85,12 @@ async function callOpenAI(apiKey: string, base64: string, mediaType: string) {
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type':  'application/json',
       'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      max_tokens: 512,
+      model:       'gpt-4o-mini',
+      max_tokens:  512,
       temperature: 0.1,
       messages: [{
         role: 'user',
@@ -77,11 +103,11 @@ async function callOpenAI(apiKey: string, base64: string, mediaType: string) {
   });
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`OpenAI ${res.status}: ${body.slice(0, 200)}`);
+    throw new Error(`OpenAI HTTP${res.status}: ${body.slice(0, 300)}`);
   }
   const data = await res.json();
   const text: string = data?.choices?.[0]?.message?.content || '';
-  if (!text) throw new Error('Empty OpenAI response');
+  if (!text) throw new Error('OpenAI: empty response');
   return text;
 }
 
@@ -110,60 +136,86 @@ function parseAIResponse(text: string) {
 
 // ── Main handler ───────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
+  const startMs = Date.now();
+
+  // Contexte de base pour le log
+  const logCtx = {
+    endpoint:    'analyze-product',
+    userAgent:   (req.headers.get('user-agent') || '').slice(0, 120),
+    origin:      req.headers.get('origin') || req.headers.get('referer') || 'unknown',
+    imageKb:     0,
+    provider:    '',
+    status:      '',
+    durationMs:  0,
+    productName: '',
+    category:    '',
+    error:       '',
+  };
+
   try {
-    const { base64, mediaType = 'image/jpeg' } = await req.json();
-    if (!base64) return NextResponse.json({ error: 'No image' }, { status: 400 });
+    const body = await req.json().catch(() => ({}));
+    const { base64, mediaType = 'image/jpeg' } = body;
+
+    if (!base64) {
+      writeLog({ ...logCtx, status: 'error_no_image', durationMs: Date.now() - startMs });
+      return NextResponse.json({ error: 'No image' }, { status: 400 });
+    }
+
+    logCtx.imageKb = Math.round(base64.length * 0.75 / 1024);
 
     const geminiKey = process.env.GEMINI_API_KEY || '';
     const openaiKey = process.env.OPENAI_API_KEY || '';
-
     const errors: string[] = [];
 
-    // 1️⃣ Gemini 1.5 Flash (gratuit)
+    // ── 1. Gemini 1.5 Flash ──────────────────────────────────────────────
     if (geminiKey && !geminiKey.includes('VOTRE_CLE')) {
       for (const model of ['gemini-1.5-flash', 'gemini-1.5-flash-8b']) {
         try {
-          console.log(`[AI] Trying Gemini ${model}...`);
-          const text = await callGemini(geminiKey, base64, mediaType, model);
+          const text   = await callGemini(geminiKey, base64, mediaType, model);
           const result = parseAIResponse(text);
-          console.log(`[AI] ✅ Gemini ${model} success:`, result.name);
+          const dur    = Date.now() - startMs;
+          writeLog({ ...logCtx, provider: `gemini-${model}`, status: 'success', durationMs: dur, productName: result.name, category: result.category });
           return NextResponse.json({ ...result, _source: `gemini-${model}` });
         } catch (e: any) {
-          const msg = e.message || String(e);
-          errors.push(`Gemini ${model}: ${msg}`);
+          const msg = String(e.message || e);
+          errors.push(`[${model}] ${msg}`);
           console.warn(`[AI] Gemini ${model} failed:`, msg);
         }
       }
     } else {
-      errors.push('Gemini: clé API non configurée');
+      errors.push('[gemini] clé non configurée');
     }
 
-    // 2️⃣ OpenAI GPT-4o mini (fallback)
+    // ── 2. OpenAI GPT-4o mini ─────────────────────────────────────────────
     if (openaiKey && !openaiKey.includes('VOTRE_CLE')) {
       try {
-        console.log('[AI] Trying OpenAI GPT-4o mini...');
-        const text = await callOpenAI(openaiKey, base64, mediaType);
+        const text   = await callOpenAI(openaiKey, base64, mediaType);
         const result = parseAIResponse(text);
-        console.log('[AI] ✅ OpenAI success:', result.name);
+        const dur    = Date.now() - startMs;
+        writeLog({ ...logCtx, provider: 'openai-gpt4o-mini', status: 'success_fallback', durationMs: dur, productName: result.name, category: result.category, error: errors.join(' | ') });
         return NextResponse.json({ ...result, _source: 'openai-gpt4o-mini' });
       } catch (e: any) {
-        const msg = e.message || String(e);
-        errors.push(`OpenAI: ${msg}`);
+        const msg = String(e.message || e);
+        errors.push(`[openai] ${msg}`);
         console.warn('[AI] OpenAI failed:', msg);
       }
     } else {
-      errors.push('OpenAI: clé API non configurée');
+      errors.push('[openai] clé non configurée');
     }
 
-    // Toutes les IA ont échoué
-    console.error('[AI] ❌ All providers failed:', errors);
+    // ── Tout a échoué ─────────────────────────────────────────────────────
+    const errorStr = errors.join(' | ');
+    console.error('[AI] ALL PROVIDERS FAILED:', errorStr);
+    writeLog({ ...logCtx, provider: 'none', status: 'all_failed', durationMs: Date.now() - startMs, error: errorStr });
+
     return NextResponse.json({
       name: '', description: '', specifications: '', category: '', brand: '', suggestedPrice: '',
-      _error: errors.join(' | '),
+      _error: errorStr,
     });
 
   } catch (err: any) {
-    console.error('[analyze-product] Fatal error:', err);
+    const msg = String(err.message || err);
+    writeLog({ ...logCtx, provider: 'none', status: 'fatal_error', durationMs: Date.now() - startMs, error: msg });
     return NextResponse.json({ name: '', description: '', specifications: '', category: '', brand: '', suggestedPrice: '' });
   }
 }

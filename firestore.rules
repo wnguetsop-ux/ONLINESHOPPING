@@ -51,5 +51,12 @@ service cloud.firestore {
       allow read: if request.auth != null;      // only superadmin can read
       allow update, delete: if false;           // immutable
     }
+
+    // ── API logs — écrits par l'API route, lus par superadmin
+    match /api_logs/{logId} {
+      allow create: if true;
+      allow read: if request.auth != null;
+      allow update, delete: if false;
+    }
   }
 }

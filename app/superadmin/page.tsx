@@ -99,7 +99,7 @@ export default function SuperAdminPage() {
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [activeTab, setActiveTab] = useState<'shops' | 'costs' | 'traffic' | 'demo'>('shops');
+  const [activeTab, setActiveTab] = useState<'shops' | 'costs' | 'traffic' | 'demo' | 'logs'>('shops');
 
   // Shops
   const [shops, setShops] = useState<ShopRow[]>([]);
@@ -124,6 +124,9 @@ export default function SuperAdminPage() {
   // Demo events
   const [demoEvents, setDemoEvents] = useState<any[]>([]);
   const unsubDemo = useRef<(() => void) | null>(null);
+
+  // API logs
+  const [apiLogs, setApiLogs] = useState<any[]>([]);
 
   // Relance
   const [relanceShop, setRelanceShop] = useState<ShopRow | null>(null);
@@ -213,12 +216,24 @@ export default function SuperAdminPage() {
       (err) => { console.error('demo listener:', err); }
     );
 
+    // 5. API logs — live (derniers 200)
+    const unsubLogs = onSnapshot(
+      query(collection(db, 'api_logs')),
+      (snap) => {
+        const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        list.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setApiLogs(list.slice(0, 200));
+      },
+      () => {}
+    );
+
     // Cleanup on unmount
     return () => {
       unsubShops.current?.();
       unsubCosts.current?.();
       unsubTraffic.current?.();
       unsubDemo.current?.();
+      unsubLogs();
     };
   }, [authenticated]);
 
@@ -437,10 +452,11 @@ export default function SuperAdminPage() {
         {/* Tabs */}
         <div className="flex gap-1 bg-gray-900 rounded-xl p-1 border border-gray-800 mb-6 w-fit flex-wrap">
           {[
-            { id: 'shops', label: '🏪 Boutiques', count: shops.length },
-            { id: 'costs', label: '💰 Coûts & Revenus', count: null },
-            { id: 'traffic', label: '📊 Trafic & Analytics', count: null },
-            { id: 'demo', label: '🧪 Utilisateurs Démo', count: demoEvents.filter((e: any) => e.action === 'open').length || null },
+            { id: 'shops',   label: '🏪 Boutiques',          count: shops.length },
+            { id: 'costs',   label: '💰 Coûts & Revenus',     count: null },
+            { id: 'traffic', label: '📊 Trafic & Analytics',  count: null },
+            { id: 'demo',    label: '🧪 Utilisateurs Démo',   count: demoEvents.filter((e: any) => e.action === 'open').length || null },
+            { id: 'logs',    label: '🔍 Logs API',             count: apiLogs.filter((l: any) => l.status === 'all_failed' || l.status === 'fatal_error').length || null },
           ].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
               className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id ? 'bg-indigo-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}>
@@ -1306,6 +1322,139 @@ export default function SuperAdminPage() {
                         </td>
                       </tr>
                     ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ══ TAB LOGS API ══════════════════════════════════════════════════════ */}
+      {activeTab === 'logs' && (() => {
+        const success  = apiLogs.filter((l: any) => l.status === 'success' || l.status === 'success_fallback');
+        const failed   = apiLogs.filter((l: any) => l.status === 'all_failed' || l.status === 'fatal_error');
+        const fallback = apiLogs.filter((l: any) => l.status === 'success_fallback');
+        const avgDur   = success.length ? Math.round(success.reduce((s: number, l: any) => s + (l.durationMs || 0), 0) / success.length) : 0;
+
+        const providerCount: Record<string, number> = {};
+        apiLogs.forEach((l: any) => { if (l.provider) providerCount[l.provider] = (providerCount[l.provider] || 0) + 1; });
+
+        return (
+          <div className="space-y-5">
+            {/* KPI */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: 'Total appels IA', val: apiLogs.length, color: 'text-indigo-400', bg: 'bg-indigo-900/30 border-indigo-800' },
+                { label: 'Succès', val: success.length, color: 'text-green-400', bg: 'bg-green-900/30 border-green-800' },
+                { label: '❌ Échecs complets', val: failed.length, color: 'text-red-400', bg: `bg-red-900/30 border-red-800` },
+                { label: 'Durée moyenne', val: `${avgDur}ms`, color: 'text-cyan-400', bg: 'bg-cyan-900/30 border-cyan-800' },
+              ].map((s, i) => (
+                <div key={i} className={`rounded-2xl border p-4 ${s.bg}`}>
+                  <p className={`text-2xl font-extrabold ${s.color}`}>{s.val}</p>
+                  <p className="text-gray-400 text-xs font-semibold mt-1">{s.label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Provider breakdown */}
+            <div className="grid md:grid-cols-2 gap-5">
+              <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
+                <p className="text-white font-bold mb-4">Répartition par IA</p>
+                {Object.entries(providerCount).sort((a,b) => b[1]-a[1]).map(([p, c], i) => {
+                  const pct = apiLogs.length ? Math.round((c / apiLogs.length) * 100) : 0;
+                  const color = p.includes('gemini') ? 'bg-blue-500' : p.includes('openai') ? 'bg-green-500' : 'bg-red-500';
+                  return (
+                    <div key={i} className="mb-3">
+                      <div className="flex justify-between text-xs text-gray-400 mb-1">
+                        <span className="font-mono">{p}</span>
+                        <span className="text-white font-bold">{c} ({pct}%)</span>
+                      </div>
+                      <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                        <div className={`h-full ${color} rounded-full`} style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+                {fallback.length > 0 && (
+                  <div className="mt-4 bg-amber-900/30 border border-amber-800 rounded-xl p-3 text-xs text-amber-300">
+                    ⚠️ <strong>{fallback.length} fois</strong> Gemini a échoué → OpenAI a pris le relais.
+                    Vérifiez votre quota Gemini sur aistudio.google.com
+                  </div>
+                )}
+              </div>
+
+              {/* Erreurs fréquentes */}
+              <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
+                <p className="text-white font-bold mb-4">Erreurs les plus fréquentes</p>
+                {(() => {
+                  const errCount: Record<string, number> = {};
+                  failed.forEach((l: any) => {
+                    const key = (l.error || 'Unknown').slice(0, 80);
+                    errCount[key] = (errCount[key] || 0) + 1;
+                  });
+                  const sorted = Object.entries(errCount).sort((a,b) => b[1]-a[1]).slice(0,5);
+                  if (sorted.length === 0) return <p className="text-green-400 text-sm">✅ Aucune erreur récente</p>;
+                  return sorted.map(([err, count], i) => (
+                    <div key={i} className="border-b border-gray-800 py-2 last:border-0">
+                      <div className="flex justify-between">
+                        <span className="text-red-400 text-xs font-mono leading-relaxed flex-1 mr-2">{err}</span>
+                        <span className="text-white text-xs font-bold flex-shrink-0">{count}×</span>
+                      </div>
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+
+            {/* Log détaillé */}
+            <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
+              <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+                <p className="text-white font-bold">Log détaillé (200 derniers)</p>
+                <span className="text-xs text-gray-500">Temps réel · nouveau en haut</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-gray-800 text-gray-500 font-semibold">
+                      {['Heure','Statut','Provider','Durée','Image','Produit trouvé','Erreur'].map(h => (
+                        <th key={h} className="text-left px-3 py-2.5">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {apiLogs.length === 0 && (
+                      <tr><td colSpan={7} className="text-center text-gray-600 py-8">
+                        Les logs apparaîtront ici dès qu'un utilisateur analyse une photo
+                      </td></tr>
+                    )}
+                    {apiLogs.map((l: any, i: number) => {
+                      const isOk  = l.status === 'success' || l.status === 'success_fallback';
+                      const isFallback = l.status === 'success_fallback';
+                      const isFail = l.status === 'all_failed' || l.status === 'fatal_error';
+                      return (
+                        <tr key={i} className={`border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors ${isFail ? 'bg-red-900/10' : isFallback ? 'bg-amber-900/10' : ''}`}>
+                          <td className="px-3 py-2 text-gray-400 whitespace-nowrap">
+                            {new Date(l.createdAt).toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit', second:'2-digit' })}
+                          </td>
+                          <td className="px-3 py-2">
+                            {isOk && !isFallback && <span className="bg-green-900 text-green-400 font-bold px-2 py-0.5 rounded text-[10px]">✓ OK</span>}
+                            {isFallback && <span className="bg-amber-900 text-amber-400 font-bold px-2 py-0.5 rounded text-[10px]">⚠ Fallback</span>}
+                            {isFail && <span className="bg-red-900 text-red-400 font-bold px-2 py-0.5 rounded text-[10px]">✗ ECHEC</span>}
+                            {!isOk && !isFail && <span className="text-gray-600 text-[10px]">{l.status}</span>}
+                          </td>
+                          <td className="px-3 py-2 font-mono text-indigo-400 text-[10px]">{l.provider || '—'}</td>
+                          <td className="px-3 py-2 text-gray-400">
+                            <span className={l.durationMs > 5000 ? 'text-red-400 font-bold' : l.durationMs > 2000 ? 'text-amber-400' : 'text-green-400'}>
+                              {l.durationMs ? `${l.durationMs}ms` : '—'}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 text-gray-400">{l.imageKb ? `${l.imageKb}KB` : '—'}</td>
+                          <td className="px-3 py-2 text-white font-semibold max-w-[140px] truncate">{l.productName || '—'}</td>
+                          <td className="px-3 py-2 text-red-400 text-[10px] max-w-[200px] truncate">{l.error || ''}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
