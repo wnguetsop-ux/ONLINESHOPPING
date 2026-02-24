@@ -1,7 +1,16 @@
 import type { Metadata, Viewport } from 'next';
+import { Plus_Jakarta_Sans } from 'next/font/google';
 import { AuthProvider } from '@/hooks/useAuth';
 import { CartProvider } from '@/hooks/useCart';
 import './globals.css';
+
+// ── Police chargée via next/font (interdit d'utiliser <link> en Next.js 14) ──
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  weight: ['400', '600', '700', '800'],
+  display: 'swap',
+  variable: '--font-jakarta',
+});
 
 export const metadata: Metadata = {
   title: 'Mastershop — Gérez vos ventes et bénéfices en FCFA depuis votre téléphone',
@@ -20,14 +29,12 @@ export const metadata: Metadata = {
     siteName: 'Mastershop',
     locale: 'fr_FR',
     type: 'website',
-    images: [
-      {
-        url: 'https://www.mastershoppro.com/icons/og-image.png',
-        width: 1200,
-        height: 630,
-        alt: 'Mastershop — Application de gestion de boutique',
-      },
-    ],
+    images: [{
+      url: 'https://www.mastershoppro.com/icons/og-image.png',
+      width: 1200,
+      height: 630,
+      alt: 'Mastershop — Application de gestion de boutique',
+    }],
   },
   twitter: {
     card: 'summary_large_image',
@@ -38,10 +45,7 @@ export const metadata: Metadata = {
   robots: {
     index: true,
     follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-    },
+    googleBot: { index: true, follow: true },
   },
   alternates: {
     canonical: 'https://www.mastershoppro.com',
@@ -58,7 +62,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr">
+    <html lang="fr" className={jakarta.variable}>
       <head>
         <link rel="manifest" href="/manifest.json" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -68,14 +72,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="application-name" content="Mastershop" />
         <meta name="format-detection" content="telephone=no" />
-        {/* Préchargement Google Fonts pour vitesse */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap"
-          rel="stylesheet"
-        />
-        {/* Données structurées pour Google */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -84,22 +80,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             "name": "Mastershop",
             "applicationCategory": "BusinessApplication",
             "operatingSystem": "Android, Web",
-            "description": "Application de gestion de boutique pour commerçants africains. Ventes, stock, reçus, Mobile Money en FCFA.",
+            "description": "Gestion de boutique pour commerçants africains. Ventes, stock, reçus, Mobile Money en FCFA.",
             "url": "https://www.mastershoppro.com",
-            "offers": {
-              "@type": "Offer",
-              "price": "0",
-              "priceCurrency": "XOF"
-            },
-            "aggregateRating": {
-              "@type": "AggregateRating",
-              "ratingValue": "4.9",
-              "ratingCount": "127"
-            }
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "XOF" },
+            "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "ratingCount": "127" }
           })}}
         />
       </head>
-      <body>
+      <body className={jakarta.className}>
         <AuthProvider>
           <CartProvider>
             {children}
