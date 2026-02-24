@@ -5,7 +5,8 @@ import { useParams } from 'next/navigation';
 import {
   Search, ShoppingCart, Plus, Minus, Star, Phone, MapPin, MessageCircle,
   SlidersHorizontal, Heart, Eye, Truck, Shield, RotateCcw, X, ChevronRight,
-  Grid3X3, LayoutList, Settings, ArrowLeft, Loader2, CheckCircle, CreditCard, Trash2
+  Grid3X3, LayoutList, Settings, ArrowLeft, Loader2, CheckCircle, CreditCard, Trash2,
+  Share2, Copy, Link2
 } from 'lucide-react';
 import { getShopBySlug, getProducts, getCategories, createOrder } from '@/lib/firestore';
 import PhoneInput from '@/components/PhoneInput';
@@ -43,6 +44,39 @@ export default function ShopPage() {
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [quickView, setQuickView] = useState<Product | null>(null);
   const [cartAnimId, setCartAnimId] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
+  const [showShareToast, setShowShareToast] = useState(false);
+  const [showSharePanel, setShowSharePanel] = useState(false);
+
+  // ── Partage boutique ──────────────────────────────────────────────────────
+  async function shareShop() {
+    const url  = window.location.href;
+    const text = `🛍️ Découvrez la boutique "${shop?.name}" sur Mastershop !\n\nCommandez en ligne directement : ${url}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: shop?.name, text, url });
+        return;
+      } catch { /* user cancelled */ }
+    }
+    // Fallback : copier le lien
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      const el = document.createElement('textarea');
+      el.value = url; document.body.appendChild(el);
+      el.select(); document.execCommand('copy');
+      document.body.removeChild(el);
+    }
+    setShareCopied(true);
+    setShowShareToast(true);
+    setTimeout(() => { setShareCopied(false); setShowShareToast(false); }, 3000);
+  }
+
+  function shareWhatsApp() {
+    const url  = window.location.href;
+    const text = encodeURIComponent(`🛍️ Découvrez ma boutique "${shop?.name}" !\n\nCommandez directement depuis votre téléphone :\n${url}\n\nLivraison disponible 🚀`);
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+  }
 
   // ── CHECKOUT MODAL ────────────────────────────────────────────────────────
   const [showCheckout, setShowCheckout] = useState(false);
@@ -208,6 +242,14 @@ export default function ShopPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {/* Bouton PARTAGER — visible pour tous */}
+            <button onClick={shareShop}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all hover:scale-105 active:scale-95"
+              style={{ backgroundColor: `${pc}15`, color: pc }}
+              title="Partager cette boutique">
+              {shareCopied ? <CheckCircle className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+              <span className="hidden sm:inline">{shareCopied ? 'Copié !' : 'Partager'}</span>
+            </button>
             {shop.whatsapp && (
               <a href={getWhatsAppLink(shop.whatsapp, `Bonjour ${shop.name}!`)} target="_blank"
                 className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-white bg-green-500 hover:bg-green-600 transition-colors">
@@ -781,25 +823,148 @@ export default function ShopPage() {
         </div>
       )}
 
-      {/* ── ADMIN BUTTON — visible seulement pour le propriétaire ── */}
-      {user && adminShop?.slug === slug && (
-        <Link
-          href="/admin/dashboard"
-          className="fixed z-[9999] flex items-center gap-2 text-white text-xs font-bold shadow-xl"
-          style={{
-            bottom: 'calc(env(safe-area-inset-bottom, 0px) + 5rem)',
-            right: '0px',
-            background: 'linear-gradient(135deg, #1e1b4b, #4f46e5)',
-            padding: '0.5rem 0.75rem 0.5rem 0.6rem',
-            borderRadius: '0.75rem 0 0 0.75rem',
-            boxShadow: '-4px 4px 20px rgba(79,70,229,0.45)',
-            writingMode: 'horizontal-tb',
-          }}
-        >
-          <Settings className="w-3.5 h-3.5 flex-shrink-0" />
-          <span>Admin</span>
-        </Link>
+      {/* ── TOAST "Lien copié" ── */}
+      {showShareToast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-2 bg-gray-900 text-white text-sm font-bold px-5 py-3 rounded-2xl shadow-2xl">
+          <CheckCircle className="w-4 h-4 text-green-400" />
+          Lien copié ! Partagez avec vos clients 🎉
+        </div>
       )}
+
+      {/* ════════════════════════════════════════════════════════════════
+          BOUTONS FLOTTANTS PROPRIÉTAIRE — droite de l'écran, empilés
+          Visible uniquement pour l'admin de cette boutique
+      ════════════════════════════════════════════════════════════════ */}
+      {user && adminShop?.slug === slug && (
+        <div
+          className="fixed right-0 z-[9990] flex flex-col items-end gap-2"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom,0px) + 5.5rem)' }}
+        >
+          {/* Bouton Admin → dashboard */}
+          <Link href="/admin/dashboard"
+            className="flex items-center gap-2 text-white text-xs font-bold shadow-xl transition-all hover:pr-5 group"
+            style={{
+              background: 'linear-gradient(135deg,#1e1b4b,#4f46e5)',
+              padding: '0.55rem 0.75rem 0.55rem 0.65rem',
+              borderRadius: '0.75rem 0 0 0.75rem',
+              boxShadow: '-4px 4px 20px rgba(79,70,229,0.5)',
+            }}>
+            <Settings className="w-3.5 h-3.5 flex-shrink-0" />
+            <span>Admin</span>
+          </Link>
+
+          {/* Bouton Partager — ouvre le panneau */}
+          <button
+            onClick={() => setShowSharePanel(v => !v)}
+            className="flex items-center gap-2 text-white text-xs font-bold shadow-xl transition-all hover:pr-5"
+            style={{
+              background: showSharePanel
+                ? 'linear-gradient(135deg,#059669,#047857)'
+                : 'linear-gradient(135deg,#f97316,#ea580c)',
+              padding: '0.55rem 0.75rem 0.55rem 0.65rem',
+              borderRadius: '0.75rem 0 0 0.75rem',
+              boxShadow: '-4px 4px 20px rgba(249,115,22,0.5)',
+            }}>
+            {showSharePanel
+              ? <X className="w-3.5 h-3.5 flex-shrink-0" />
+              : <Share2 className="w-3.5 h-3.5 flex-shrink-0" />
+            }
+            <span>{showSharePanel ? 'Fermer' : 'Partager'}</span>
+          </button>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════
+          PANNEAU PARTAGE — slide depuis la droite
+      ════════════════════════════════════════════════════════════════ */}
+      {user && adminShop?.slug === slug && showSharePanel && (
+        <>
+          {/* Overlay */}
+          <div className="fixed inset-0 z-[9991] bg-black/30 backdrop-blur-sm"
+            onClick={() => setShowSharePanel(false)} />
+
+          {/* Panneau */}
+          <div className="fixed right-0 z-[9992] bg-white rounded-l-3xl shadow-2xl p-5 w-80 max-w-[90vw]"
+            style={{ bottom: 'calc(env(safe-area-inset-bottom,0px) + 4rem)', top: '5rem' }}>
+
+            {/* Header panneau */}
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <p className="font-extrabold text-gray-900 text-base">📣 Partagez votre boutique</p>
+                <p className="text-gray-400 text-xs mt-0.5">Plus de partages = plus de clients</p>
+              </div>
+              <button onClick={() => setShowSharePanel(false)}
+                className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
+                <X className="w-4 h-4 text-gray-500" />
+              </button>
+            </div>
+
+            {/* Lien boutique */}
+            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-3 mb-4">
+              <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1">Votre lien boutique</p>
+              <p className="text-xs font-mono text-orange-600 font-bold break-all leading-relaxed">
+                {typeof window !== 'undefined' ? window.location.origin : 'https://mastershoppro.com'}/{slug}
+              </p>
+            </div>
+
+            {/* Boutons de partage */}
+            <div className="space-y-2.5">
+              {/* WhatsApp */}
+              <button onClick={() => { shareWhatsApp(); setShowSharePanel(false); }}
+                className="w-full flex items-center gap-3 bg-green-500 hover:bg-green-600 text-white font-bold py-3.5 px-4 rounded-2xl transition-all hover:scale-[1.02] active:scale-100">
+                <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <MessageCircle className="w-4 h-4" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm leading-tight">Envoyer sur WhatsApp</p>
+                  <p className="text-green-200 text-[10px]">Message pré-rédigé avec votre lien</p>
+                </div>
+              </button>
+
+              {/* Copier le lien */}
+              <button onClick={shareShop}
+                className={`w-full flex items-center gap-3 font-bold py-3.5 px-4 rounded-2xl transition-all hover:scale-[1.02] active:scale-100 border-2 ${
+                  shareCopied
+                    ? 'bg-emerald-50 border-emerald-400 text-emerald-700'
+                    : 'bg-white border-gray-200 text-gray-800 hover:border-orange-300'
+                }`}>
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                  shareCopied ? 'bg-emerald-100' : 'bg-gray-100'
+                }`}>
+                  {shareCopied ? <CheckCircle className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-gray-600" />}
+                </div>
+                <div className="text-left">
+                  <p className="text-sm leading-tight">{shareCopied ? 'Lien copié !' : 'Copier le lien'}</p>
+                  <p className="text-[10px] text-gray-400">{shareCopied ? 'Collez-le sur Facebook, Instagram...' : 'Pour Facebook, Instagram, SMS...'}</p>
+                </div>
+              </button>
+
+              {/* Partage natif (si dispo) */}
+              {'share' in navigator && (
+                <button onClick={() => { shareShop(); setShowSharePanel(false); }}
+                  className="w-full flex items-center gap-3 bg-gray-900 hover:bg-gray-800 text-white font-bold py-3.5 px-4 rounded-2xl transition-all hover:scale-[1.02] active:scale-100">
+                  <div className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Share2 className="w-4 h-4" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm leading-tight">Plus d'options</p>
+                    <p className="text-gray-400 text-[10px]">SMS, email, autres apps...</p>
+                  </div>
+                </button>
+              )}
+            </div>
+
+            {/* Conseil */}
+            <div className="mt-4 bg-orange-50 border border-orange-200 rounded-2xl p-3">
+              <p className="text-orange-700 text-xs font-semibold leading-relaxed">
+                💡 <strong>Conseil :</strong> Partagez dans vos groupes WhatsApp de quartier et sur votre statut. C'est gratuit et très efficace !
+              </p>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── ADMIN BUTTON classique supprimé — remplacé par le système ci-dessus ── */}
     </div>
   );
 }
