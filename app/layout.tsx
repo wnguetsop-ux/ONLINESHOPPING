@@ -4,7 +4,6 @@ import { AuthProvider } from '@/hooks/useAuth';
 import { CartProvider } from '@/hooks/useCart';
 import './globals.css';
 
-// ── Police chargée via next/font (interdit d'utiliser <link> en Next.js 14) ──
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
   weight: ['400', '600', '700', '800'],
@@ -33,7 +32,8 @@ export const metadata: Metadata = {
       url: 'https://www.mastershoppro.com/icons/og-image.png',
       width: 1200,
       height: 630,
-      alt: 'Mastershop — Application de gestion de boutique',
+      alt: 'Mastershop — Gérez vos ventes et bénéfices en FCFA depuis votre téléphone. Gratuit pour démarrer.',
+      type: 'image/png',
     }],
   },
   twitter: {
@@ -72,6 +72,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="application-name" content="Mastershop" />
         <meta name="format-detection" content="telephone=no" />
+
+        {/* ════════════════════════════════════════════════════════════
+            FACEBOOK DOMAIN VERIFICATION (CODE MIS À JOUR)
+            ════════════════════════════════════════════════════════════ */}
+        <meta name="facebook-domain-verification" content="pj407smood5te9u9ok6v5crobeqh4s" />
+        
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify({
