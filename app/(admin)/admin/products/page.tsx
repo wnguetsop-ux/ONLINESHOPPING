@@ -544,6 +544,16 @@ export default function ProductsPage() {
         const sRes=await fetch('/api/photo-studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64:b64,shopId:shop?.id})});
         if (sRes.ok) {
           const sData=await sRes.json();
+          // remove.bg : image avec fond retiré retournée directement
+          if (sData.processedImage) {
+            const processedBlob = await fetch(sData.processedImage).then(r => r.blob());
+            const processedUrl = URL.createObjectURL(processedBlob);
+            setPhotoPreview(processedUrl);
+            setRawSrc(sData.processedImage);
+            setPhotoFile(new File([processedBlob], `studio-${Date.now()}.png`, { type: 'image/png' }));
+            setPhotoMode('done');
+          }
+          // fallback ancienne version
           if (sData.analysis) {
             setAiAnalysis(sData.analysis);
             setStudio(prev=>({...prev, brightness:Math.max(-60,Math.min(60,sData.analysis.brightness_adj||0)), contrast:Math.max(-40,Math.min(40,sData.analysis.contrast_adj||0))}));
