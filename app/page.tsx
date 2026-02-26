@@ -91,25 +91,19 @@ function HomePageContent() {
       <section className="px-6 pt-12 pb-10" style={{ background: 'linear-gradient(180deg,#fff7ed 0%,#fff 100%)' }}>
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
-
-            {/* Texte + CTAs */}
             <div className="flex-1 w-full text-center lg:text-left">
               <div className="inline-flex items-center gap-2 bg-orange-100 text-orange-700 text-xs font-bold px-3 py-1.5 rounded-full mb-5">
                 <span className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse" />
                 Gestion de boutique mobile - 21 pays africains
               </div>
-
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-tight mb-4">
                 Gerez vos ventes<br />et benefices<br />
                 <span style={{ color: '#ea580c' }}>en FCFA automatiquement</span>
               </h1>
-
               <p className="text-base lg:text-lg text-gray-500 mb-7 leading-relaxed max-w-lg mx-auto lg:mx-0">
                 Votre telephone devient une vraie caisse enregistreuse.
                 Stock, commandes, recus &mdash; <strong className="text-gray-700">tout en 1 application.</strong>
               </p>
-
-              {/* CTA ORANGE - VOIR COMMENT CA MARCHE */}
               <button onClick={() => setShowVideo(true)}
                 className="group relative w-full overflow-hidden rounded-2xl mb-3 max-w-md mx-auto lg:mx-0 block"
                 style={{ background: 'linear-gradient(135deg,#f97316,#dc2626)', boxShadow: '0 8px 32px rgba(249,115,22,0.55)' }}>
@@ -132,8 +126,6 @@ function HomePageContent() {
                   <span>Video gratuite</span><span>|</span><span>Sans compte</span><span>|</span><span>Demarre maintenant</span>
                 </div>
               </button>
-
-              {/* CTA VERT - COMMENCER */}
               <a href={APP_URL} target="_blank" onClick={trackLeadClick}
                 className="group relative w-full flex items-center gap-4 rounded-2xl overflow-hidden mb-5 max-w-md mx-auto lg:mx-0"
                 style={{ background: 'linear-gradient(135deg,#16a34a,#15803d)', boxShadow: '0 6px 28px rgba(22,163,74,0.5)', padding: '18px 24px' }}>
@@ -148,7 +140,6 @@ function HomePageContent() {
                 </div>
                 <ArrowRight className="w-5 h-5 text-white group-hover:translate-x-1 transition-transform flex-shrink-0" />
               </a>
-
               <div className="flex flex-wrap justify-center lg:justify-start gap-2">
                 {['Sans internet', 'Leger sur telephone', '100% securise', 'Gratuit pour demarrer'].map((b, i) => (
                   <span key={i} className="text-xs font-semibold text-gray-500 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-full">
@@ -157,8 +148,6 @@ function HomePageContent() {
                 ))}
               </div>
             </div>
-
-            {/* Telephone avec video */}
             <div className="flex-shrink-0 flex flex-col items-center">
               <div className="relative">
                 <div className="absolute inset-0 rounded-[3rem] blur-3xl opacity-40 scale-110 pointer-events-none"
@@ -188,7 +177,6 @@ function HomePageContent() {
                 <p className="text-center text-gray-400 text-xs mt-3 font-semibold">Votre boutique en action</p>
               </div>
             </div>
-
           </div>
         </div>
       </section>
@@ -301,14 +289,10 @@ function HomePageContent() {
           <h2 className="text-center text-2xl lg:text-3xl font-extrabold text-gray-900 mb-8">Ils gerent leur boutique avec Mastershop</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { avatar: '👩🏾', name: 'Aminata K.', info: 'Tissus · Dakar',
-                text: "Avant je calculais mes benefices a la main. Maintenant je vois tout en temps reel. +30% de benefices !" },
-              { avatar: '👨🏿', name: 'Jean-Paul M.', info: "Epicerie · Abidjan",
-                text: "Le scanner avec mon telephone m'a change la vie. Mes clients croient que j'ai une vraie caisse pro !" },
-              { avatar: '👩🏽', name: 'Fatou D.', info: "Cosmetiques · Douala",
-                text: "Ca marche meme quand le reseau est coupe. Quand internet revient, tout se synchronise." },
-              { avatar: '👨🏾', name: 'Moussa T.', info: "Telephonie · Bamako",
-                text: "J'ai 3 vendeurs avec chacun son acces. Je vois toutes les ventes depuis mon telephone." },
+              { avatar: '👩🏾', name: 'Aminata K.', info: 'Tissus · Dakar', text: "Avant je calculais mes benefices a la main. Maintenant je vois tout en temps reel. +30% de benefices !" },
+              { avatar: '👨🏿', name: 'Jean-Paul M.', info: "Epicerie · Abidjan", text: "Le scanner avec mon telephone m'a change la vie. Mes clients croient que j'ai une vraie caisse pro !" },
+              { avatar: '👩🏽', name: 'Fatou D.', info: "Cosmetiques · Douala", text: "Ca marche meme quand le reseau est coupe. Quand internet revient, tout se synchronise." },
+              { avatar: '👨🏾', name: 'Moussa T.', info: "Telephonie · Bamako", text: "J'ai 3 vendeurs avec chacun son acces. Je vois toutes les ventes depuis mon telephone." },
             ].map((t, i) => (
               <div key={i} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
                 <div className="flex gap-0.5 mb-3">
@@ -345,13 +329,11 @@ function HomePageContent() {
                   </li>
                 ))}
               </ul>
-              <a href={APP_URL} target="_blank"
-                className="block w-full text-center font-bold py-3 rounded-xl text-sm bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors">
+              <a href={APP_URL} target="_blank" className="block w-full text-center font-bold py-3 rounded-xl text-sm bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors">
                 Commencer gratuitement
               </a>
             </div>
-            <div className="relative rounded-2xl border-2 border-orange-400 p-6"
-              style={{ background: 'linear-gradient(160deg,#fff7ed,#fff)' }}>
+            <div className="relative rounded-2xl border-2 border-orange-400 p-6" style={{ background: 'linear-gradient(160deg,#fff7ed,#fff)' }}>
               <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 text-white text-xs font-extrabold px-4 py-1 rounded-full whitespace-nowrap"
                 style={{ background: 'linear-gradient(135deg,#f97316,#ea580c)' }}>
                 ⭐ LE PLUS CHOISI
@@ -415,8 +397,7 @@ function HomePageContent() {
               <MessageCircle className="w-4 h-4" />
               Recevoir le lien sur WhatsApp
             </a>
-            <a href={DEMO_URL}
-              className="flex items-center justify-center gap-2 text-green-300 hover:text-white text-sm font-semibold transition-colors">
+            <a href={DEMO_URL} className="flex items-center justify-center gap-2 text-green-300 hover:text-white text-sm font-semibold transition-colors">
               <Play className="w-3.5 h-3.5" />
               Tester la demo sans compte d&apos;abord
             </a>
@@ -468,8 +449,7 @@ function HomePageContent() {
       {/* BARRE MOBILE STICKY */}
       <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white border-t border-gray-200 shadow-2xl flex gap-2 px-3 py-2.5"
         style={{ paddingBottom: 'max(10px,env(safe-area-inset-bottom))' }}>
-        <a href={DEMO_URL}
-          className="flex-1 text-center font-bold text-sm py-3 rounded-xl border-2 transition-colors"
+        <a href={DEMO_URL} className="flex-1 text-center font-bold text-sm py-3 rounded-xl border-2 transition-colors"
           style={{ borderColor: '#f97316', color: '#ea580c' }}>
           Demo gratuite
         </a>
@@ -479,7 +459,6 @@ function HomePageContent() {
           🛍️ S&apos;inscrire gratuit
         </a>
       </div>
-
       <div className="h-16 md:hidden" />
     </div>
   );
