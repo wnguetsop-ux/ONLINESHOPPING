@@ -1,10 +1,9 @@
 import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans } from 'next/font/google';
-import { AuthProvider } from '@/hooks/useAuth';
-import { CartProvider } from '@/hooks/useCart';
+import Providers from './providers';
 import './globals.css';
 
-// ── Police chargée via next/font ──────────────────────────────────────────────
+// -- Police chargee via next/font (interdit d'utiliser <link> en Next.js 14) --
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
   weight: ['400', '600', '700', '800'],
@@ -13,9 +12,9 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'Mastershop — Gérez vos ventes et bénéfices en FCFA depuis votre téléphone',
-  description: 'Application de gestion de boutique pour commerçants africains. Ventes, stock, reçus, Mobile Money — tout sur votre téléphone Android. Fonctionne sans internet. Gratuit pour démarrer.',
-  keywords: 'gestion boutique Afrique, caisse enregistreuse téléphone, FCFA, Mobile Money, Orange Money, Wave, MTN MoMo, Dakar, Abidjan, Douala',
+  title: 'Mastershop - Gerez vos ventes et benefices en FCFA depuis votre telephone',
+  description: 'Application de gestion de boutique pour commercants africains. Ventes, stock, recus, Mobile Money - tout sur votre telephone Android. Fonctionne sans internet. Gratuit pour demarrer.',
+  keywords: 'gestion boutique Afrique, caisse enregistreuse telephone, FCFA, Mobile Money, Orange Money, Wave, MTN MoMo, Dakar, Abidjan, Douala',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -23,8 +22,8 @@ export const metadata: Metadata = {
     title: 'Mastershop',
   },
   openGraph: {
-    title: 'Mastershop — Gérez votre boutique depuis votre téléphone',
-    description: 'Ventes, stock, reçus, bénéfices en FCFA — tout depuis votre téléphone Android. Fonctionne sans internet. 500+ commerçants à Dakar, Abidjan, Douala.',
+    title: 'Mastershop - Gerez votre boutique depuis votre telephone',
+    description: 'Ventes, stock, recus, benefices en FCFA - tout depuis votre telephone Android. Fonctionne sans internet. 500+ commercants a Dakar, Abidjan, Douala.',
     url: 'https://www.mastershoppro.com',
     siteName: 'Mastershop',
     locale: 'fr_FR',
@@ -33,14 +32,14 @@ export const metadata: Metadata = {
       url: 'https://www.mastershoppro.com/icons/og-image.png',
       width: 1200,
       height: 630,
-      alt: 'Mastershop — Gérez vos ventes et bénéfices en FCFA depuis votre téléphone. Gratuit pour démarrer.',
+      alt: 'Mastershop - Gerez vos ventes et benefices en FCFA depuis votre telephone. Gratuit pour demarrer.',
       type: 'image/png',
     }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Mastershop — Gérez votre boutique depuis votre téléphone',
-    description: 'Ventes, stock, reçus, bénéfices en FCFA — tout depuis votre téléphone. Gratuit pour démarrer.',
+    title: 'Mastershop - Gerez votre boutique depuis votre telephone',
+    description: 'Ventes, stock, recus, benefices en FCFA - tout depuis votre telephone. Gratuit pour demarrer.',
     images: ['https://www.mastershoppro.com/icons/og-image.png'],
   },
   robots: {
@@ -74,10 +73,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="application-name" content="Mastershop" />
         <meta name="format-detection" content="telephone=no" />
 
-        {/* ── Facebook Domain Verification ─────────────────────────────── */}
-        <meta name="facebook-domain-verification" content="pj407smood5te9u9ok6v5crobeqh4s" />
-
-        {/* ── Données structurées Google ───────────────────────────────── */}
+        {/* ============================================================
+            FACEBOOK DOMAIN VERIFICATION
+            Remplace XXXXX par le code donne dans :
+            business.facebook.com  Securite de la marque  Domaines
+            ============================================================ */}
+        <meta name="facebook-domain-verification" content="REMPLACE_PAR_TON_CODE_FACEBOOK" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -86,25 +87,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             "name": "Mastershop",
             "applicationCategory": "BusinessApplication",
             "operatingSystem": "Android, Web",
-            "description": "Gestion de boutique pour commerçants africains. Ventes, stock, reçus, Mobile Money en FCFA.",
+            "description": "Gestion de boutique pour commercants africains. Ventes, stock, recus, Mobile Money en FCFA.",
             "url": "https://www.mastershoppro.com",
             "offers": { "@type": "Offer", "price": "0", "priceCurrency": "XOF" },
             "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "ratingCount": "127" }
           })}}
         />
 
-        {/* ── Meta Pixel — ID 1805294393481637 ────────────────────────────
-            Events trackés automatiquement :
-              · PageView              → arrivée sur le site
-              · ViewContent           → scroll 60%+ (via MetaPixel.tsx)
-              · Lead                  → clic bouton S'inscrire
-              · CompleteRegistration  → compte créé avec succès
-              · CartAbandon           → formulaire touché puis abandonné
-              · FbAdClick             → visiteur venant d'une pub Facebook
-
-            Tester en direct :
-            business.facebook.com/events_manager2/list/pixel/1805294393481637/test_events
-        ─────────────────────────────────────────────────────────────── */}
+        {/* ================================================================
+            META PIXEL - ID : 1805294393481637
+            Tracking : PageView  ViewContent (scroll 60%)  Lead (clic S'inscrire)
+                       CompleteRegistration  CartAbandon  FbAdClick (fbclid detecte)
+            Test : https://business.facebook.com/events_manager2/list/pixel/1805294393481637/test_events
+        ================================================================ */}
         <script
           id="meta-pixel"
           dangerouslySetInnerHTML={{ __html: `
@@ -127,11 +122,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className={jakarta.className}>
-        <AuthProvider>
-          <CartProvider>
-            {children}
-          </CartProvider>
-        </AuthProvider>
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );

@@ -4,25 +4,27 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, Package, ShoppingCart, Settings, LogOut, Menu, X, Store, Crown, ExternalLink, Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useI18n } from '@/hooks/useI18n';
 import { PINManager } from '@/lib/pin';
 import PINSetup from '@/components/PINSetup';
 import PINUnlock from '@/components/PINUnlock';
 
-const navItems = [
-  { label: 'Tableau de bord', href: '/admin/dashboard', icon: LayoutDashboard },
-  { label: 'Produits',        href: '/admin/products',  icon: Package },
-  { label: 'Commandes',       href: '/admin/orders',    icon: ShoppingCart },
-  { label: 'Abonnement',      href: '/admin/subscription', icon: Crown },
-  { label: 'Paramètres',      href: '/admin/settings',  icon: Settings },
-];
-
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, admin, shop, loading, logout } = useAuth();
+  const { t } = useI18n();
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [pinState, setPinState] = useState<'none' | 'setup' | 'locked'>('none');
   const [pinChecked, setPinChecked] = useState(false);
+
+  const navItems = [
+    { label: t('nav.dashboard'),    href: '/admin/dashboard', icon: LayoutDashboard },
+    { label: t('nav.products'),     href: '/admin/products',  icon: Package },
+    { label: t('nav.orders'),       href: '/admin/orders',    icon: ShoppingCart },
+    { label: t('nav.subscription'), href: '/admin/subscription', icon: Crown },
+    { label: t('nav.settings'),     href: '/admin/settings',  icon: Settings },
+  ];
 
   useEffect(() => {
     if (!loading && !user) { router.push('/login'); return; }
@@ -124,11 +126,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <button onClick={() => setPinState('setup')}
             className="w-full flex items-center justify-center gap-2 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg mb-1">
             <Shield className="w-4 h-4" style={{ color: primaryColor }} />
-            {PINManager.hasPin() ? 'Modifier le PIN' : 'Créer un PIN accès rapide'}
+            {PINManager.hasPin() ? 'Modifier le PIN' : 'Creer un PIN acces rapide'}
           </button>
           <button onClick={handleLogout}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-red-600 hover:bg-red-50 rounded-lg font-medium">
-            <LogOut className="w-4 h-4" />Déconnexion
+            <LogOut className="w-4 h-4" />Deconnexion
           </button>
         </div>
       </aside>
