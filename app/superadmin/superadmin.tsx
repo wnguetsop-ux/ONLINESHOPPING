@@ -140,29 +140,20 @@ function StripePaymentsTab({ shops }: { shops: any[] }) {
     }
     setActivating(pendingDoc.id);
     try {
-      const shopRes = await fetch(`${base}/shops/${shopId}?key=${apiKey}`);
-      const shopDoc = await shopRes.json();
-      if (!shopRes.ok) {
-        const errMsg = shopDoc?.error?.message || shopDoc?.error?.status || `HTTP ${shopRes.status}`;
-        throw new Error(`Firestore: ${errMsg} (ID: ${shopId})`);
-      }
-      const current = parseInt(shopDoc.fields?.photoCredits?.integerValue ?? '0');
-      await fetch(`${base}/shops/${shopId}?key=${apiKey}&updateMask.fieldPaths=photoCredits&updateMask.fieldPaths=updatedAt`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fields: {
-          photoCredits: { integerValue: String(current + pendingDoc.credits) },
-          updatedAt:    { stringValue: new Date().toISOString() },
-        }}),
+      // Utilise le SDK Firebase directement (pas la REST API)
+      const shopRef = doc(db, 'shops', shopId);
+      const shopSnap = await getDocs(query(collection(db, 'shops')));
+      const shopDoc = shopSnap.docs.find(d => d.id === shopId);
+      if (!shopDoc) throw new Error(`Boutique introuvable (ID: ${shopId})`);
+      const current = shopDoc.data().photoCredits || 0;
+      await updateDoc(shopRef, {
+        photoCredits: current + pendingDoc.credits,
+        updatedAt: new Date().toISOString(),
       });
-      await fetch(`${base}/pending_credits/${pendingDoc.id}?key=${apiKey}&updateMask.fieldPaths=status&updateMask.fieldPaths=activatedShopId&updateMask.fieldPaths=activatedAt`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fields: {
-          status:          { stringValue: 'ACTIVATED' },
-          activatedShopId: { stringValue: shopId },
-          activatedAt:     { stringValue: new Date().toISOString() },
-        }}),
+      await updateDoc(doc(db, 'pending_credits', pendingDoc.id), {
+        status: 'ACTIVATED',
+        activatedShopId: shopId,
+        activatedAt: new Date().toISOString(),
       });
       setMsg(`✅ ${pendingDoc.credits} credits ajoutes avec succes !`);
       await loadPayments();
@@ -177,20 +168,15 @@ function StripePaymentsTab({ shops }: { shops: any[] }) {
     if (!credits || credits <= 0) { setMsg('Nombre de credits invalide'); setTimeout(() => setMsg(''), 3000); return; }
     setActivating('manual');
     try {
-      const shopRes = await fetch(`${base}/shops/${manualShopId}?key=${apiKey}`);
-      const shopDoc = await shopRes.json();
-      if (!shopRes.ok) {
-        const errMsg = shopDoc?.error?.message || shopDoc?.error?.status || `HTTP ${shopRes.status}`;
-        throw new Error(`Firestore: ${errMsg} (ID: ${manualShopId})`);
-      }
-      const current = parseInt(shopDoc.fields?.photoCredits?.integerValue ?? '0');
-      await fetch(`${base}/shops/${manualShopId}?key=${apiKey}&updateMask.fieldPaths=photoCredits&updateMask.fieldPaths=updatedAt`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fields: {
-          photoCredits: { integerValue: String(current + credits) },
-          updatedAt:    { stringValue: new Date().toISOString() },
-        }}),
+      // Utilise le SDK Firebase directement
+      const shopRef = doc(db, 'shops', manualShopId);
+      const shopSnap = await getDocs(query(collection(db, 'shops')));
+      const shopDoc = shopSnap.docs.find(d => d.id === manualShopId);
+      if (!shopDoc) throw new Error(`Boutique introuvable (ID: ${manualShopId})`);
+      const current = shopDoc.data().photoCredits || 0;
+      await updateDoc(shopRef, {
+        photoCredits: current + credits,
+        updatedAt: new Date().toISOString(),
       });
       const shopName = shops.find((s: any) => s.id === manualShopId)?.name || manualShopId;
       setMsg(`✅ ${credits} credits ajoutes a "${shopName}" (total : ${current + credits})`);
