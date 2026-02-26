@@ -141,8 +141,11 @@ function StripePaymentsTab({ shops }: { shops: any[] }) {
     setActivating(pendingDoc.id);
     try {
       const shopRes = await fetch(`${base}/shops/${shopId}?key=${apiKey}`);
-      if (!shopRes.ok) throw new Error(`Boutique introuvable (ID: ${shopId})`);
       const shopDoc = await shopRes.json();
+      if (!shopRes.ok) {
+        const errMsg = shopDoc?.error?.message || shopDoc?.error?.status || `HTTP ${shopRes.status}`;
+        throw new Error(`Firestore: ${errMsg} (ID: ${shopId})`);
+      }
       const current = parseInt(shopDoc.fields?.photoCredits?.integerValue ?? '0');
       await fetch(`${base}/shops/${shopId}?key=${apiKey}&updateMask.fieldPaths=photoCredits&updateMask.fieldPaths=updatedAt`, {
         method: 'PATCH',
@@ -175,8 +178,11 @@ function StripePaymentsTab({ shops }: { shops: any[] }) {
     setActivating('manual');
     try {
       const shopRes = await fetch(`${base}/shops/${manualShopId}?key=${apiKey}`);
-      if (!shopRes.ok) throw new Error(`Boutique introuvable (ID: ${manualShopId})`);
       const shopDoc = await shopRes.json();
+      if (!shopRes.ok) {
+        const errMsg = shopDoc?.error?.message || shopDoc?.error?.status || `HTTP ${shopRes.status}`;
+        throw new Error(`Firestore: ${errMsg} (ID: ${manualShopId})`);
+      }
       const current = parseInt(shopDoc.fields?.photoCredits?.integerValue ?? '0');
       await fetch(`${base}/shops/${manualShopId}?key=${apiKey}&updateMask.fieldPaths=photoCredits&updateMask.fieldPaths=updatedAt`, {
         method: 'PATCH',
