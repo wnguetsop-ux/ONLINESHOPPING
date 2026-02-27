@@ -550,28 +550,34 @@ export default function ProductsPage() {
         }));
       }
       try {
-        console.log('[PhotoStudio] Appel remove.bg pour shopId:', shop?.id);
-        const sRes=await fetch('/api/photo-studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64:b64,shopId:shop?.id})});
+        // Vérifier + déduire 1 crédit via SDK Firebase (côté client)
+        if (shop?.id) {
+          const { doc: fsDoc, getDoc, updateDoc } = await import('firebase/firestore');
+          const { db: fsDb } = await import('@/lib/firebase');
+          const shopRef = fsDoc(fsDb, 'shops', shop.id);
+          const shopSnap = await getDoc(shopRef);
+          const currentCredits = shopSnap.data()?.photoCredits || 0;
+          if (currentCredits <= 0) {
+            console.warn('[PhotoStudio] Crédits insuffisants');
+            return;
+          }
+          await updateDoc(shopRef, { photoCredits: currentCredits - 1, updatedAt: new Date().toISOString() });
+          console.log('[PhotoStudio] 1 crédit déduit, reste:', currentCredits - 1);
+        }
+        console.log('[PhotoStudio] Appel remove.bg...');
+        const sRes=await fetch('/api/photo-studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64:b64})});
         const sData=await sRes.json();
-        console.log('[PhotoStudio] Réponse:', sRes.status, JSON.stringify(sData).slice(0,200));
-        if (sRes.ok) {
-          // remove.bg : image avec fond retiré retournée directement
-          if (sData.processedImage) {
-            console.log('[PhotoStudio] ✅ Image traitée reçue, application...');
-            const processedBlob = await fetch(sData.processedImage).then(r => r.blob());
-            const processedUrl = URL.createObjectURL(processedBlob);
-            setPhotoPreview(processedUrl);
-            setRawSrc(sData.processedImage);
-            setPhotoFile(new File([processedBlob], `studio-${Date.now()}.png`, { type: 'image/png' }));
-            setPhotoMode('done');
-          }
-          // fallback ancienne version
-          if (sData.analysis) {
-            setAiAnalysis(sData.analysis);
-            setStudio(prev=>({...prev, brightness:Math.max(-60,Math.min(60,sData.analysis.brightness_adj||0)), contrast:Math.max(-40,Math.min(40,sData.analysis.contrast_adj||0))}));
-          }
-        } else {
-          console.error('[PhotoStudio] ❌ Erreur:', sData.error, sData.code);
+        console.log('[PhotoStudio] Réponse:', sRes.status, sData.success ? '✅ OK' : sData.error);
+        if (sRes.ok && sData.processedImage) {
+          const processedBlob = await fetch(sData.processedImage).then(r => r.blob());
+          const processedUrl = URL.createObjectURL(processedBlob);
+          setPhotoPreview(processedUrl);
+          setRawSrc(sData.processedImage);
+          setPhotoFile(new File([processedBlob], `studio-${Date.now()}.png`, { type: 'image/png' }));
+          setPhotoMode('done');
+          console.log('[PhotoStudio] ✅ Fond retiré, image pro appliquée');
+        } else if (!sRes.ok) {
+          console.error('[PhotoStudio] ❌', sData.error);
         }
       } catch(studioErr) { console.error('[PhotoStudio] Exception:', studioErr); }
     } catch {}
