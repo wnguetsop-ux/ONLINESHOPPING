@@ -401,11 +401,20 @@ export default function ProductsPage() {
   useEffect(() => { if (shop?.id) loadData(); }, [shop?.id]);
   useEffect(() => () => { if (cameraStream) cameraStream.getTracks().forEach(t=>t.stop()); }, [cameraStream]);
 
+  // Proxy Firebase Storage URLs pour éviter CORS sur canvas
+  function proxySrc(src: string): string {
+    if (src && src.includes('firebasestorage.googleapis.com')) {
+      return `/api/proxy-image?url=${encodeURIComponent(src)}`;
+    }
+    return src;
+  }
+
   // Live studio preview
   useEffect(() => {
     if (!showStudio || !rawSrc) return;
     const id = setTimeout(() => {
       const img = new Image();
+      img.crossOrigin = 'anonymous';
       img.onload = () => {
         const c = document.createElement('canvas'); c.width=280; c.height=280;
         const ctx = c.getContext('2d')!;
@@ -417,7 +426,7 @@ export default function ProductsPage() {
         ctx.drawImage(img,(280-sw)/2,(280-sh)/2,sw,sh);
         setStudioPreview(c.toDataURL('image/jpeg',0.85));
       };
-      img.src = rawSrc;
+      img.src = proxySrc(rawSrc);
     }, 60);
     return () => clearTimeout(id);
   }, [studio, rawSrc, showStudio]);
@@ -541,11 +550,14 @@ export default function ProductsPage() {
         }));
       }
       try {
+        console.log('[PhotoStudio] Appel remove.bg pour shopId:', shop?.id);
         const sRes=await fetch('/api/photo-studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64:b64,shopId:shop?.id})});
+        const sData=await sRes.json();
+        console.log('[PhotoStudio] Réponse:', sRes.status, JSON.stringify(sData).slice(0,200));
         if (sRes.ok) {
-          const sData=await sRes.json();
           // remove.bg : image avec fond retiré retournée directement
           if (sData.processedImage) {
+            console.log('[PhotoStudio] ✅ Image traitée reçue, application...');
             const processedBlob = await fetch(sData.processedImage).then(r => r.blob());
             const processedUrl = URL.createObjectURL(processedBlob);
             setPhotoPreview(processedUrl);
@@ -558,8 +570,10 @@ export default function ProductsPage() {
             setAiAnalysis(sData.analysis);
             setStudio(prev=>({...prev, brightness:Math.max(-60,Math.min(60,sData.analysis.brightness_adj||0)), contrast:Math.max(-40,Math.min(40,sData.analysis.contrast_adj||0))}));
           }
+        } else {
+          console.error('[PhotoStudio] ❌ Erreur:', sData.error, sData.code);
         }
-      } catch {}
+      } catch(studioErr) { console.error('[PhotoStudio] Exception:', studioErr); }
     } catch {}
     setIsAnalyzing(false);
   }
@@ -568,7 +582,7 @@ export default function ProductsPage() {
     if (!rawSrc) return;
     setApplyingStudio(true);
     try {
-      const blob=await applyStudioToCanvas(rawSrc,studio,1024);
+      const blob=await applyStudioToCanvas(proxySrc(rawSrc),studio,1024);
       const url=URL.createObjectURL(blob);
       setPhotoFile(new File([blob],`studio-${Date.now()}.jpg`,{type:'image/jpeg'}));
       setPhotoPreview(url); setShowStudio(false); setPhotoMode('done');
