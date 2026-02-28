@@ -16,6 +16,7 @@ const RATES = {
   gpt4o:    { input_per_1k: 0.0025,   output_per_1k: 0.01,     image_per_call: 0.00213 },
   firestore:{ read_per_100k: 0.06,    write_per_100k: 0.18,    delete_per_100k: 0.02,  storage_per_gb: 0.18 },
   storage:  { per_gb_month: 0.026,    per_100k_ops: 0.004 },
+  removebg: { per_image: 0.02 }, // ~$0.02/image après quota gratuit
 };
 
 const USD_TO_XAF = 620;
@@ -28,7 +29,7 @@ interface ShopRow {
 
 interface CostEvent {
   id?: string; shopId: string; shopName?: string;
-  type: 'gemini' | 'gpt4o' | 'firestore' | 'storage' | 'subscription';
+  type: 'gemini' | 'gpt4o' | 'firestore' | 'storage' | 'subscription' | 'removebg';
   subtype?: string; tokens_in?: number; tokens_out?: number; images?: number;
   reads?: number; writes?: number; bytes?: number; planId?: string;
   revenue?: number; cost_usd?: number; note?: string; createdAt: string;
@@ -50,6 +51,8 @@ function computeCost(event: CostEvent): number {
     usd += ((event.writes || 0) / 100000) * RATES.firestore.write_per_100k;
   } else if (event.type === 'storage') {
     usd += ((event.bytes || 0) / (1024 ** 3)) * RATES.storage.per_gb_month;
+  } else if (event.type === 'removebg') {
+    usd += (event.images || 0) * RATES.removebg.per_image;
   }
   return usd;
 }
@@ -60,6 +63,7 @@ const TYPE_CONFIG = {
   firestore:    { label: 'Firestore',    color: '#FFA000', bg: '#FFF8E1', icon: Database },
   storage:      { label: 'Storage',      color: '#7C3AED', bg: '#EDE9FE', icon: HardDrive },
   subscription: { label: 'Souscription', color: '#059669', bg: '#D1FAE5', icon: Crown },
+  removebg:     { label: 'Studio Photo', color: '#EC4899', bg: '#FCE7F3', icon: Zap },
 };
 
 function fmtUSD(usd: number) { return `$${usd.toFixed(4)}`; }
@@ -283,7 +287,7 @@ function StripePaymentsTab({ shops }: { shops: any[] }) {
 
       {/* Paiements auto-confirmés */}
       <div>
-        <p className="text-emerald-400 font-bold text-sm mb-3">Actives automatiquement ({confirmed.length})</p>
+        <p className="text-emerald-400 font-bold text-sm mb-3">✅ Activés — boutiques créditées ({confirmed.length})</p>
         {confirmed.length === 0 ? (
           <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 text-center">
             <p className="text-gray-500 text-sm">Aucun paiement automatique encore</p>
@@ -294,16 +298,25 @@ function StripePaymentsTab({ shops }: { shops: any[] }) {
             {confirmed.map((c: any) => {
               const shop = shops.find((s: any) => s.id === c.shopId);
               return (
-                <div key={c.id} className="bg-gray-900 border border-gray-800 rounded-xl p-3 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-bold text-white">{shop?.name || c.shopId}</p>
-                    <p className="text-xs text-gray-400">
-                      {c.processedAt ? new Date(c.processedAt).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }) : '—'}
-                    </p>
+                <div key={c.id} className="bg-gray-900 border border-gray-800 rounded-xl p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-emerald-400 text-base">✅</span>
+                      <div>
+                        <p className="text-sm font-bold text-white">{shop?.name || c.shopId || '—'}</p>
+                        <p className="text-[10px] text-gray-500 font-mono">{c.shopId}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-extrabold text-violet-400">+{c.credits} crédits</p>
+                      <p className="text-[10px] text-emerald-400 font-bold">auto-activé</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-extrabold text-violet-400">+{c.credits} credits</p>
-                    <p className="text-[10px] text-gray-500">auto-active</p>
+                  <div className="flex items-center justify-between pt-1 border-t border-gray-800">
+                    <p className="text-xs text-gray-400">{c.email || '—'}</p>
+                    <p className="text-xs text-gray-500">
+                      {c.processedAt ? new Date(c.processedAt).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—'}
+                    </p>
                   </div>
                 </div>
               );

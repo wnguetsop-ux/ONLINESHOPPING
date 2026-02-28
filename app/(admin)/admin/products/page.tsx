@@ -778,6 +778,19 @@ export default function ProductsPage() {
                     <div className="relative w-full overflow-hidden rounded-2xl bg-gray-50" style={{aspectRatio:'1'}}>
                       <img src={photoPreview} alt="Apercu" className="w-full h-full object-cover"/>
                       {isAnalyzing&&<div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-2xl backdrop-blur-sm"><div className="text-center text-white"><Sparkles className="w-10 h-10 mx-auto mb-2 text-purple-300 animate-pulse"/><p className="font-bold text-sm">IA analyse...</p><p className="text-xs text-white/70 mt-1">Gemini  GPT-4o </p></div></div>}
+                      {/* Bannière Studio Photo IA */}
+                      {photoMode==='done'&&!isAnalyzing&&(
+                        <div className="mx-4 mb-2 rounded-xl px-3 py-2 flex items-center gap-2 cursor-pointer hover:opacity-90 transition-opacity" 
+                          style={{background:'linear-gradient(135deg,#7c3aed,#6d28d9)'}}
+                          onClick={()=>setShowStudio(true)}>
+                          <span className="text-lg">✨</span>
+                          <div className="flex-1">
+                            <p className="text-white text-xs font-extrabold">Studio Photo IA disponible !</p>
+                            <p className="text-purple-200 text-[10px]">Fond blanc pro automatique — photo prête pour votre boutique</p>
+                          </div>
+                          <span className="text-white text-xs font-bold">→</span>
+                        </div>
+                      )}
                       {!isAnalyzing&&(studio.brightness!==0||studio.contrast!==0||studio.saturation!==0||studio.sharpness!==0||studio.bgWhite)&&(
                         <div className="absolute top-2 left-2 bg-violet-600 text-white text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1"><Wand2 className="w-3 h-3"/>Studio applique</div>
                       )}

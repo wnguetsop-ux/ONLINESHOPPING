@@ -9,7 +9,7 @@ import MetaPixelEvents, { trackLeadClick } from '@/components/MetaPixel';
 const APP_URL  = 'https://mastershoppro.com/register';
 const DEMO_URL = '/demo';
 const WA_NUM   = '393299639430';
-const YT_ID    = 'YDzR6rBbxkM';
+const YT_ID    = 'gKLc2s5CcBU';
 
 function Counter({ to, suffix = '' }: { to: number; suffix?: string }) {
   const [val, setVal] = useState(0);
@@ -104,42 +104,58 @@ function HomePageContent() {
                 Votre telephone devient une vraie caisse enregistreuse.
                 Stock, commandes, recus &mdash; <strong className="text-gray-700">tout en 1 application.</strong>
               </p>
+              {/* CTA PRINCIPAL EN PREMIER — clignotant, très visible */}
+              <style>{`
+                @keyframes pulse-green {
+                  0%, 100% { box-shadow: 0 0 0 0 rgba(22,163,74,0.7), 0 8px 32px rgba(22,163,74,0.5); }
+                  50% { box-shadow: 0 0 0 14px rgba(22,163,74,0), 0 8px 32px rgba(22,163,74,0.5); }
+                }
+                @keyframes shine {
+                  0% { transform: translateX(-100%) skewX(-15deg); }
+                  100% { transform: translateX(300%) skewX(-15deg); }
+                }
+                .cta-pulse { animation: pulse-green 1.8s ease-in-out infinite; }
+                .cta-shine::after {
+                  content: '';
+                  position: absolute;
+                  top: 0; left: 0;
+                  width: 40%;
+                  height: 100%;
+                  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+                  animation: shine 2.5s ease-in-out infinite;
+                }
+              `}</style>
+              <a href={APP_URL} target="_blank" onClick={trackLeadClick}
+                className="cta-pulse cta-shine group relative w-full flex items-center gap-4 rounded-2xl overflow-hidden mb-3 max-w-md mx-auto lg:mx-0"
+                style={{ background: 'linear-gradient(135deg,#16a34a,#15803d)', padding: '20px 24px' }}>
+                <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center border-2 border-white/40 flex-shrink-0 text-3xl">
+                  🛍️
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="text-green-200 text-xs font-bold uppercase tracking-wider mb-0.5">✅ Gratuit · Aucune carte bancaire</p>
+                  <p className="text-white text-xl font-extrabold leading-tight">Commencer maintenant</p>
+                  <p className="text-green-200 text-xs mt-0.5">Inscription en 30 secondes →</p>
+                </div>
+                <ArrowRight className="w-6 h-6 text-white group-hover:translate-x-1 transition-transform flex-shrink-0" />
+              </a>
               <button onClick={() => setShowVideo(true)}
-                className="group relative w-full overflow-hidden rounded-2xl mb-3 max-w-md mx-auto lg:mx-0 block"
-                style={{ background: 'linear-gradient(135deg,#f97316,#dc2626)', boxShadow: '0 8px 32px rgba(249,115,22,0.55)' }}>
+                className="group relative w-full overflow-hidden rounded-2xl mb-5 max-w-md mx-auto lg:mx-0 block"
+                style={{ background: 'linear-gradient(135deg,#f97316,#dc2626)', boxShadow: '0 8px 32px rgba(249,115,22,0.4)' }}>
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
                   style={{ background: 'linear-gradient(105deg,transparent 35%,rgba(255,255,255,0.22) 50%,transparent 65%)' }} />
-                <div className="flex items-center gap-4 px-6 py-5">
+                <div className="flex items-center gap-4 px-6 py-4">
                   <div className="relative flex-shrink-0">
-                    <div className="absolute inset-0 rounded-xl bg-white/25 animate-ping" />
-                    <div className="relative w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow">
-                      <Play className="w-7 h-7 fill-orange-600 text-orange-600 ml-0.5" />
+                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow">
+                      <Play className="w-6 h-6 fill-orange-600 text-orange-600 ml-0.5" />
                     </div>
                   </div>
                   <div className="flex-1 text-left">
                     <p className="text-orange-100 text-xs font-bold uppercase tracking-wider">30 secondes pour comprendre</p>
-                    <p className="text-white font-extrabold text-xl leading-tight">Voir comment ca marche</p>
+                    <p className="text-white font-extrabold text-lg leading-tight">Voir comment ca marche</p>
                   </div>
                   <ArrowRight className="w-5 h-5 text-white/80 group-hover:translate-x-1 transition-transform" />
                 </div>
-                <div className="bg-black/25 px-6 py-2 flex justify-center gap-4 border-t border-white/10 text-xs text-white/70 font-semibold">
-                  <span>Video gratuite</span><span>|</span><span>Sans compte</span><span>|</span><span>Demarre maintenant</span>
-                </div>
               </button>
-              <a href={APP_URL} target="_blank" onClick={trackLeadClick}
-                className="group relative w-full flex items-center gap-4 rounded-2xl overflow-hidden mb-5 max-w-md mx-auto lg:mx-0"
-                style={{ background: 'linear-gradient(135deg,#16a34a,#15803d)', boxShadow: '0 6px 28px rgba(22,163,74,0.5)', padding: '18px 24px' }}>
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-                  style={{ background: 'linear-gradient(105deg,transparent 35%,rgba(255,255,255,0.18) 50%,transparent 65%)' }} />
-                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center border border-white/30 flex-shrink-0 text-2xl">
-                  🛍️
-                </div>
-                <div className="flex-1 text-left">
-                  <p className="text-green-200 text-xs font-bold uppercase tracking-wider">Gratuit · Aucune carte bancaire</p>
-                  <p className="text-white text-lg font-extrabold leading-tight">Commencer maintenant</p>
-                </div>
-                <ArrowRight className="w-5 h-5 text-white group-hover:translate-x-1 transition-transform flex-shrink-0" />
-              </a>
               <div className="flex flex-wrap justify-center lg:justify-start gap-2">
                 {['Sans internet', 'Leger sur telephone', '100% securise', 'Gratuit pour demarrer'].map((b, i) => (
                   <span key={i} className="text-xs font-semibold text-gray-500 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-full">
@@ -161,9 +177,10 @@ function HomePageContent() {
                   <div className="relative overflow-hidden bg-black" style={{ borderRadius: '2.3rem', aspectRatio: '9/16' }}>
                     <iframe
                       className="absolute inset-0 w-full h-full"
-                      src={`https://www.youtube.com/embed/${YT_ID}?autoplay=1&mute=1&rel=0&playsinline=1&loop=1&playlist=${YT_ID}&controls=0&modestbranding=1`}
+                      src={`https://www.youtube.com/embed/${YT_ID}?autoplay=1&mute=1&rel=0&playsinline=1&loop=1&playlist=${YT_ID}&controls=0&modestbranding=1&enablejsapi=1`}
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      style={{ pointerEvents: 'none' }}
+                      allowFullScreen
+                      style={{ pointerEvents: 'none', transform: 'scale(1.01)' }}
                     />
                     <button onClick={() => setShowVideo(true)}
                       className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 bg-white/95 rounded-full pl-2 pr-3 py-1.5 shadow-lg hover:scale-105 transition-transform whitespace-nowrap">
@@ -206,7 +223,7 @@ function HomePageContent() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
             {[
               { pain: 'Vous ne savez jamais combien vous avez vraiment gagne', fix: 'Benefice net calcule automatiquement en FCFA apres chaque vente' },
-              { pain: 'Vous perdez du temps a chercher les prix et le stock', fix: "Photographiez un produit — l'IA remplit tout en 3 secondes" },
+              { pain: 'Vos photos produits font amateur — fond de cuisine, mauvais eclairage', fix: "Studio Photo IA : photographiez n'importe ou, le fond devient blanc pro automatiquement. Nom, prix, categorie remplis en 3s." },
               { pain: 'Vos clients attendent trop longtemps a la caisse', fix: 'Scanner + Mobile Money = encaissement en 10 secondes' },
               { pain: 'Vous manquez de stock sans vous en rendre compte', fix: 'Alerte automatique quand le stock passe sous le minimum' },
               { pain: 'Pas de recu = clients qui contestent vos prix', fix: 'Recu thermique Bluetooth ou envoye par WhatsApp instantanement' },
@@ -265,7 +282,7 @@ function HomePageContent() {
           <p className="text-center text-gray-400 text-sm mb-8">Aucune formation. Operationnel en 5 minutes.</p>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             {[
-              { emoji: '🤖', bg: '#fef3c7', bd: '#fde68a', title: 'IA photo produit', desc: "L'IA remplit nom, prix, categorie en 3s" },
+              { emoji: '🤖', bg: '#fef3c7', bd: '#fde68a', title: 'Studio Photo IA', desc: "Fond blanc pro automatique — photo prete pour la boutique en 1 clic" },
               { emoji: '📱', bg: '#dbeafe', bd: '#bfdbfe', title: 'Scanner codes-barres', desc: 'Camera de votre telephone Android' },
               { emoji: '💸', bg: '#dcfce7', bd: '#bbf7d0', title: 'Mobile Money', desc: 'Orange, Wave, MTN, Airtel' },
               { emoji: '🧾', bg: '#ffe4e6', bd: '#fecdd3', title: 'Recus thermiques', desc: 'Bluetooth ou WhatsApp' },
