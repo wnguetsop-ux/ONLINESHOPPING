@@ -622,7 +622,7 @@ export default function ProductsPage() {
       if (form.sku.trim()) data.sku=form.sku.trim();
       if (form.barcode.trim()) data.barcode=form.barcode.trim();
       if (editing?.id) await updateProduct(editing.id,data);
-      else await createProduct(shop.id,data);
+      else await createProduct(shop.id, data as any);
       await loadData(); setShowModal(false); resetPhoto();
     } catch(err:any){ alert('Erreur : '+(err?.message||String(err))); }
     setSaving(false);

@@ -22,26 +22,26 @@ const WHATSAPP_SUPPORT = '393299639430';
 const EMAIL_SUPPORT    = 'wnguetsop@gmail.com';
 const WEBSITE_URL      = 'https://shopmaster.app';
 const CHANGELOG = [
-  { version: '2.0.0', date: 'Fév 2026', highlights: ['Accès PIN rapide', 'Scanner code-barres USB/caméra', 'Connexion Google', 'Analyse produit par IA (Gemini + GPT-4o)', 'Numéro de téléphone international', 'Commandes manuelles avec sélection produit', 'Mobile Money + Stripe', 'Archives commandes par date'] },
-  { version: '1.5.0', date: 'Jan 2026', highlights: ['Photo produit avec recadrage', 'Reçus imprimables thermiques', 'Logo boutique', 'Commandes manuelles', 'SuperAdmin panel'] },
-  { version: '1.0.0', date: 'Déc 2025', highlights: ['Lancement initial', 'Gestion produits & commandes', 'Boutique en ligne publique', '21 pays africains', 'Livraison & retrait'] },
+  { version: '2.0.0', date: 'Fev 2026', highlights: ['Acces PIN rapide', 'Scanner code-barres USB/camera', 'Connexion Google', 'Analyse produit par IA (Gemini + GPT-4o)', 'Numero de telephone international', 'Commandes manuelles avec selection produit', 'Mobile Money + Stripe', 'Archives commandes par date'] },
+  { version: '1.5.0', date: 'Jan 2026', highlights: ['Photo produit avec recadrage', 'Recus imprimables thermiques', 'Logo boutique', 'Commandes manuelles', 'SuperAdmin panel'] },
+  { version: '1.0.0', date: 'Dec 2025', highlights: ['Lancement initial', 'Gestion produits & commandes', 'Boutique en ligne publique', '21 pays africains', 'Livraison & retrait'] },
 ];
 
 const COLORS = ['#ec4899','#f43f5e','#f97316','#eab308','#22c55e','#14b8a6','#3b82f6','#8b5cf6','#a855f7','#64748b'];
 const CURRENCIES = [
-  { code: 'XAF', label: 'Franc CFA CEMAC (XAF) — Cameroun, Gabon, Congo...' },
-  { code: 'XOF', label: 'Franc CFA UEMOA (XOF) — Côte d\'Ivoire, Sénégal, Mali...' },
-  { code: 'GNF', label: 'Franc Guinéen (GNF) — Guinée' },
-  { code: 'CDF', label: 'Franc Congolais (CDF) — RDC' },
-  { code: 'BIF', label: 'Franc Burundais (BIF) — Burundi' },
-  { code: 'RWF', label: 'Franc Rwandais (RWF) — Rwanda' },
-  { code: 'MGA', label: 'Ariary (MGA) — Madagascar' },
-  { code: 'MRO', label: 'Ouguiya (MRO) — Mauritanie' },
-  { code: 'EUR', label: 'Euro (€) — Comores, diaspora' },
-  { code: 'USD', label: 'Dollar US ($) — Djibouti, international' },
+  { code: 'XAF', label: 'Franc CFA CEMAC (XAF) - Cameroun, Gabon, Congo...' },
+  { code: 'XOF', label: 'Franc CFA UEMOA (XOF) - Cote d\'Ivoire, Senegal, Mali...' },
+  { code: 'GNF', label: 'Franc Guineen (GNF) - Guinee' },
+  { code: 'CDF', label: 'Franc Congolais (CDF) - RDC' },
+  { code: 'BIF', label: 'Franc Burundais (BIF) - Burundi' },
+  { code: 'RWF', label: 'Franc Rwandais (RWF) - Rwanda' },
+  { code: 'MGA', label: 'Ariary (MGA) - Madagascar' },
+  { code: 'MRO', label: 'Ouguiya (MRO) - Mauritanie' },
+  { code: 'EUR', label: 'Euro () - Comores, diaspora' },
+  { code: 'USD', label: 'Dollar US ($) - Djibouti, international' },
 ];
 
-// ── Section component ─────────────────────────────────────────────────────
+// -- Section component -----------------------------------------------------
 function Section({ icon: Icon, title, color, children }: {
   icon: any; title: string; color: string; children: React.ReactNode;
 }) {
@@ -58,7 +58,7 @@ function Section({ icon: Icon, title, color, children }: {
   );
 }
 
-// ── Action row ───────────────────────────────────────────────────────────
+// -- Action row -----------------------------------------------------------
 function ActionRow({ icon: Icon, label, sub, onClick, href, color = '#6b7280', danger = false, external = false }: {
   icon: any; label: string; sub?: string; onClick?: () => void; href?: string;
   color?: string; danger?: boolean; external?: boolean;
@@ -170,7 +170,7 @@ export default function SettingsPage() {
     try {
       let logo = form.logo;
       if (logoFile) logo = await uploadLogo();
-      await updateShop(shop.id, { ...form, logo });
+      await updateShop(shop.id, { ...form, logo } as any);
       await refreshShop();
       setSaved(true); setTimeout(() => setSaved(false), 3000);
     } catch { alert('Erreur lors de la sauvegarde'); }
@@ -184,7 +184,7 @@ export default function SettingsPage() {
 
   async function shareApp() {
     const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/${shop?.slug}`;
-    const msg = `🛍️ Découvrez ma boutique *${shop?.name}* sur ShopMaster !\n\nCommandez en ligne ici : ${url}`;
+    const msg = ` Decouvrez ma boutique *${shop?.name}* sur ShopMaster !\n\nCommandez en ligne ici : ${url}`;
     if (typeof navigator !== 'undefined' && navigator.share) {
       try { await navigator.share({ title: shop?.name, text: msg, url }); } catch {}
     } else {
@@ -215,10 +215,10 @@ export default function SettingsPage() {
   return (
     <div className="max-w-2xl space-y-5">
 
-      {/* ══════════════════════════════════════════════
+      {/* ==============================================
           BOUTIQUE IDENTITY
-      ══════════════════════════════════════════════ */}
-      <Section icon={Store} title="Identité de la boutique" color={primaryColor}>
+      ============================================== */}
+      <Section icon={Store} title="Identite de la boutique" color={primaryColor}>
         <form onSubmit={handleSave} id="main-form" className="space-y-4">
           {/* Logo */}
           <div>
@@ -244,7 +244,7 @@ export default function SettingsPage() {
                   className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50">
                   <Upload className="w-4 h-4" />{uploadingLogo ? 'Upload...' : 'Choisir un logo'}
                 </button>
-                <p className="text-xs text-gray-400 mt-1.5">Carré recommandé · JPG ou PNG · max 2MB</p>
+                <p className="text-xs text-gray-400 mt-1.5">Carre recommande  JPG ou PNG  max 2MB</p>
               </div>
               <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoSelect} />
             </div>
@@ -256,7 +256,7 @@ export default function SettingsPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Slogan</label>
-            <input type="text" value={form.slogan} onChange={e => setForm({ ...form, slogan: e.target.value })} className="input" placeholder="La qualité à petit prix" />
+            <input type="text" value={form.slogan} onChange={e => setForm({ ...form, slogan: e.target.value })} className="input" placeholder="La qualite a petit prix" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
@@ -265,9 +265,9 @@ export default function SettingsPage() {
         </form>
       </Section>
 
-      {/* ══════════════════════════════════════════════
+      {/* ==============================================
           APPARENCE
-      ══════════════════════════════════════════════ */}
+      ============================================== */}
       <Section icon={Palette} title="Apparence" color={primaryColor}>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-3">Couleur principale</label>
@@ -285,24 +285,24 @@ export default function SettingsPage() {
         </div>
       </Section>
 
-      {/* ══════════════════════════════════════════════
+      {/* ==============================================
           CONTACT & LOCALISATION
-      ══════════════════════════════════════════════ */}
+      ============================================== */}
       <Section icon={MapPin} title="Contact & Localisation" color={primaryColor}>
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Pays *</label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xl">{currentCountry?.flag || '🌍'}</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xl">{currentCountry?.flag || ''}</span>
               <select value={form.country} onChange={e => handleCountryChange(e.target.value)} className="select pl-10">
                 {AFRICAN_COUNTRIES.map(c => <option key={c.code} value={c.name}>{c.flag} {c.name}</option>)}
               </select>
             </div>
-            {currentCountry && <p className="text-xs text-gray-400 mt-1">Indicatif: {currentCountry.phone} · Devise: {currentCountry.currency}</p>}
+            {currentCountry && <p className="text-xs text-gray-400 mt-1">Indicatif: {currentCountry.phone}  Devise: {currentCountry.currency}</p>}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <PhoneInput label="WhatsApp *" required value={form.whatsapp} onChange={v => setForm({ ...form, whatsapp: v })} defaultCountry={currentCountry?.code || 'CM'} />
-            <PhoneInput label="Téléphone" value={form.phone} onChange={v => setForm({ ...form, phone: v })} defaultCountry={currentCountry?.code || 'CM'} />
+            <PhoneInput label="Telephone" value={form.phone} onChange={v => setForm({ ...form, phone: v })} defaultCountry={currentCountry?.code || 'CM'} />
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
               <input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="input" />
@@ -319,15 +319,15 @@ export default function SettingsPage() {
         </div>
       </Section>
 
-      {/* ══════════════════════════════════════════════
+      {/* ==============================================
           LIVRAISON
-      ══════════════════════════════════════════════ */}
+      ============================================== */}
       <Section icon={Truck} title="Livraison" color={primaryColor}>
         <div className="space-y-4">
           <div className="flex gap-6 flex-wrap">
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={form.deliveryEnabled} onChange={e => setForm({ ...form, deliveryEnabled: e.target.checked })} className="w-5 h-5 rounded" />
-              <span className="text-sm">Livraison à domicile</span>
+              <span className="text-sm">Livraison a domicile</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={form.pickupEnabled} onChange={e => setForm({ ...form, pickupEnabled: e.target.checked })} className="w-5 h-5 rounded" />
@@ -340,22 +340,22 @@ export default function SettingsPage() {
               <input type="number" min="0" value={form.deliveryFee} onChange={e => setForm({ ...form, deliveryFee: parseInt(e.target.value)||0 })} className="input" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Livraison gratuite à partir de</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Livraison gratuite a partir de</label>
               <input type="number" min="0" value={form.freeDeliveryAbove} onChange={e => setForm({ ...form, freeDeliveryAbove: parseInt(e.target.value)||0 })} className="input" />
             </div>
           </div>
           {form.pickupEnabled && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Adresse de retrait</label>
-              <input type="text" value={form.pickupAddress} onChange={e => setForm({ ...form, pickupAddress: e.target.value })} className="input" placeholder="Marché Central, stand 42" />
+              <input type="text" value={form.pickupAddress} onChange={e => setForm({ ...form, pickupAddress: e.target.value })} className="input" placeholder="Marche Central, stand 42" />
             </div>
           )}
         </div>
       </Section>
 
-      {/* ══════════════════════════════════════════════
+      {/* ==============================================
           PAIEMENT
-      ══════════════════════════════════════════════ */}
+      ============================================== */}
       <Section icon={CreditCard} title="Paiement & Devise" color={primaryColor}>
         <div className="space-y-4">
           <div>
@@ -365,18 +365,18 @@ export default function SettingsPage() {
             </select>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <PhoneInput label="Numéro Mobile Money" value={form.mobileMoneyNumber} onChange={v => setForm({ ...form, mobileMoneyNumber: v })} defaultCountry={currentCountry?.code || 'CM'} />
+            <PhoneInput label="Numero Mobile Money" value={form.mobileMoneyNumber} onChange={v => setForm({ ...form, mobileMoneyNumber: v })} defaultCountry={currentCountry?.code || 'CM'} />
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Nom du compte</label>
-              <input type="text" value={form.mobileMoneyName} onChange={e => setForm({ ...form, mobileMoneyName: e.target.value })} className="input" placeholder="Nom affiché" />
+              <input type="text" value={form.mobileMoneyName} onChange={e => setForm({ ...form, mobileMoneyName: e.target.value })} className="input" placeholder="Nom affiche" />
             </div>
           </div>
         </div>
       </Section>
 
-      {/* ── Save button ── */}
+      {/* -- Save button -- */}
       <div className="flex justify-end gap-4">
-        {saved && <span className="flex items-center gap-2 text-emerald-600 font-medium text-sm"><Check className="w-5 h-5" />Sauvegardé !</span>}
+        {saved && <span className="flex items-center gap-2 text-emerald-600 font-medium text-sm"><Check className="w-5 h-5" />Sauvegarde !</span>}
         <button type="submit" form="main-form" onClick={handleSave} disabled={saving || uploadingLogo}
           className="btn-primary flex items-center gap-2 px-8" style={{ backgroundColor: primaryColor }}>
           {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
@@ -384,9 +384,9 @@ export default function SettingsPage() {
         </button>
       </div>
 
-      {/* ══════════════════════════════════════════════
+      {/* ==============================================
           PARTAGER L'APPLICATION
-      ══════════════════════════════════════════════ */}
+      ============================================== */}
       <Section icon={Share2} title="Partager ma boutique" color="#f97316">
         <div className="space-y-2">
           {/* URL display */}
@@ -396,20 +396,20 @@ export default function SettingsPage() {
             <button onClick={() => copyToClipboard(shopUrl, 'url')}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
               style={{ backgroundColor: copied === 'url' ? '#22c55e' : '#f97316', color: 'white' }}>
-              {copied === 'url' ? <><Check className="w-3.5 h-3.5" />Copié</> : <><Copy className="w-3.5 h-3.5" />Copier</>}
+              {copied === 'url' ? <><Check className="w-3.5 h-3.5" />Copie</> : <><Copy className="w-3.5 h-3.5" />Copier</>}
             </button>
           </div>
 
           {/* Share actions */}
           <div className="grid grid-cols-2 gap-2 mt-3">
-            <ActionRow icon={Share2} label="Partager le lien" sub="Via les apps installées" color="#f97316" onClick={shareApp} />
+            <ActionRow icon={Share2} label="Partager le lien" sub="Via les apps installees" color="#f97316" onClick={shareApp} />
             <ActionRow icon={MessageCircle} label="Partager sur WhatsApp" color="#25D366"
-              href={`https://wa.me/?text=${encodeURIComponent(`🛍️ Découvrez *${shop?.name}* sur ShopMaster !\n${shopUrl}`)}`}
+              href={`https://wa.me/?text=${encodeURIComponent(` Decouvrez *${shop?.name}* sur ShopMaster !\n${shopUrl}`)}`}
               external />
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <ActionRow icon={Smartphone} label="Installer l'app" sub="Ajouter à l'écran d'accueil" color="#3b82f6"
-              onClick={() => alert('Ouvrez ce site dans Chrome/Safari → Menu ⋮ → "Ajouter à l\'écran d\'accueil"')} />
+            <ActionRow icon={Smartphone} label="Installer l'app" sub="Ajouter a l'ecran d'accueil" color="#3b82f6"
+              onClick={() => alert('Ouvrez ce site dans Chrome/Safari  Menu   "Ajouter a l\'ecran d\'accueil"')} />
             <ActionRow icon={ExternalLink} label="Voir ma boutique" sub={`/${shop?.slug}`} color={primaryColor}
               href={shopUrl} external />
           </div>
@@ -418,17 +418,17 @@ export default function SettingsPage() {
           <div className="mt-3 bg-orange-50 rounded-xl p-3 flex items-start gap-2.5 border border-orange-100">
             <QrCode className="w-4 h-4 text-orange-400 mt-0.5 flex-shrink-0" />
             <div className="text-xs text-orange-700">
-              <p className="font-semibold mb-0.5">Générer un QR Code</p>
-              <p>Visitez <span className="font-mono">qr-code-generator.com</span> et collez votre lien boutique pour créer un QR Code à imprimer.</p>
+              <p className="font-semibold mb-0.5">Generer un QR Code</p>
+              <p>Visitez <span className="font-mono">qr-code-generator.com</span> et collez votre lien boutique pour creer un QR Code a imprimer.</p>
             </div>
           </div>
         </div>
       </Section>
 
-      {/* ══════════════════════════════════════════════
-          MES DONNÉES
-      ══════════════════════════════════════════════ */}
-      <Section icon={Database} title="Mes données" color="#8b5cf6">
+      {/* ==============================================
+          MES DONNEES
+      ============================================== */}
+      <Section icon={Database} title="Mes donnees" color="#8b5cf6">
         {/* Account info */}
         <div className="bg-gray-50 rounded-xl p-4 mb-3 border border-gray-100">
           <div className="flex items-center gap-3">
@@ -443,7 +443,7 @@ export default function SettingsPage() {
                   Plan {currentPlan.name}
                 </span>
                 {shop?.planExpiry && (
-                  <span className="text-xs text-gray-400">· expire {new Date(shop.planExpiry).toLocaleDateString('fr')}</span>
+                  <span className="text-xs text-gray-400"> expire {new Date(shop.planExpiry).toLocaleDateString('fr')}</span>
                 )}
               </div>
             </div>
@@ -453,9 +453,9 @@ export default function SettingsPage() {
         {/* Stats summary */}
         <div className="grid grid-cols-3 gap-2 mb-3">
           {[
-            { label: 'Boutique', value: shop?.name?.slice(0,12) || '—', icon: Store, color: primaryColor },
-            { label: 'Pays', value: shop?.country || '—', icon: Globe, color: '#3b82f6' },
-            { label: 'Devise', value: shop?.currency || '—', icon: CreditCard, color: '#22c55e' },
+            { label: 'Boutique', value: shop?.name?.slice(0,12) || '-', icon: Store, color: primaryColor },
+            { label: 'Pays', value: shop?.country || '-', icon: Globe, color: '#3b82f6' },
+            { label: 'Devise', value: shop?.currency || '-', icon: CreditCard, color: '#22c55e' },
           ].map(s => (
             <div key={s.label} className="bg-gray-50 rounded-xl p-3 text-center border border-gray-100">
               <s.icon className="w-4 h-4 mx-auto mb-1" style={{ color: s.color }} />
@@ -466,7 +466,7 @@ export default function SettingsPage() {
         </div>
 
         <div className="space-y-1">
-          <ActionRow icon={Download} label="Exporter mes données" sub="Télécharger un fichier JSON de votre boutique" color="#8b5cf6"
+          <ActionRow icon={Download} label="Exporter mes donnees" sub="Telecharger un fichier JSON de votre boutique" color="#8b5cf6"
             onClick={downloadData} />
           <ActionRow icon={Mail} label="Demander la suppression du compte" sub="Envoi d'une demande par email" color="#ef4444"
             href={`mailto:${EMAIL_SUPPORT}?subject=Suppression compte ShopMaster&body=Bonjour, je souhaite supprimer mon compte ShopMaster.%0A%0ABoutique: ${shop?.name}%0ASlug: ${shop?.slug}%0AEmail: ${admin?.email}`}
@@ -474,15 +474,15 @@ export default function SettingsPage() {
         </div>
       </Section>
 
-      {/* ══════════════════════════════════════════════
+      {/* ==============================================
           SITE WEB
-      ══════════════════════════════════════════════ */}
+      ============================================== */}
       <Section icon={Globe} title="Site web & Application" color="#3b82f6">
         <div className="space-y-1">
           <ActionRow icon={Globe} label="Site officiel ShopMaster" sub={WEBSITE_URL} color="#3b82f6" href={WEBSITE_URL} external />
           <ActionRow icon={BookOpen} label="Documentation & Guides" sub="Tutoriels pour bien utiliser ShopMaster" color="#14b8a6"
             href={`${WEBSITE_URL}/docs`} external />
-          <ActionRow icon={Star} label="Laisser un avis" sub="Aidez-nous à améliorer ShopMaster" color="#eab308"
+          <ActionRow icon={Star} label="Laisser un avis" sub="Aidez-nous a ameliorer ShopMaster" color="#eab308"
             href={`https://wa.me/${WHATSAPP_SUPPORT}?text=${encodeURIComponent('Bonjour! Voici mon avis sur ShopMaster:\n\n')}`} external />
 
           {/* App install banner */}
@@ -494,34 +494,34 @@ export default function SettingsPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-blue-900 text-sm">Installer ShopMaster</p>
-                <p className="text-xs text-blue-600 mt-0.5">Accédez à votre boutique comme une vraie app mobile</p>
-                <p className="text-[10px] text-blue-400 mt-1">Chrome → ⋮ → "Ajouter à l'écran d'accueil" · Safari → ↑ → "Sur l'écran d'accueil"</p>
+                <p className="text-xs text-blue-600 mt-0.5">Accedez a votre boutique comme une vraie app mobile</p>
+                <p className="text-[10px] text-blue-400 mt-1">Chrome    "Ajouter a l'ecran d'accueil"  Safari    "Sur l'ecran d'accueil"</p>
               </div>
             </div>
           </div>
         </div>
       </Section>
 
-      {/* ══════════════════════════════════════════════
+      {/* ==============================================
           AIDE & SUPPORT
-      ══════════════════════════════════════════════ */}
+      ============================================== */}
       <Section icon={HelpCircle} title="Aide & Support" color="#22c55e">
         <div className="space-y-1">
-          <ActionRow icon={MessageCircle} label="Contacter le support" sub="Réponse en moins de 24h" color="#25D366"
-            href={`https://wa.me/${WHATSAPP_SUPPORT}?text=${encodeURIComponent(`Bonjour ShopMaster Support!\n\nBoutique: ${shop?.name}\nSlug: ${shop?.slug}\n\nMon problème: `)}`} external />
+          <ActionRow icon={MessageCircle} label="Contacter le support" sub="Reponse en moins de 24h" color="#25D366"
+            href={`https://wa.me/${WHATSAPP_SUPPORT}?text=${encodeURIComponent(`Bonjour ShopMaster Support!\n\nBoutique: ${shop?.name}\nSlug: ${shop?.slug}\n\nMon probleme: `)}`} external />
           <ActionRow icon={Mail} label="Envoyer un email" sub={EMAIL_SUPPORT} color="#3b82f6"
             href={`mailto:${EMAIL_SUPPORT}?subject=Support ShopMaster - ${shop?.name}`} external />
-          <ActionRow icon={BookOpen} label="Guide d'utilisation" sub="Apprendre toutes les fonctionnalités" color="#22c55e"
+          <ActionRow icon={BookOpen} label="Guide d'utilisation" sub="Apprendre toutes les fonctionnalites" color="#22c55e"
             href={`https://wa.me/${WHATSAPP_SUPPORT}?text=${encodeURIComponent('Bonjour, j\'aimerais recevoir le guide complet ShopMaster.')}`} external />
 
           {/* FAQ */}
           <div className="mt-3 border border-gray-100 rounded-2xl overflow-hidden">
-            <p className="text-xs font-bold text-gray-500 px-4 pt-3 pb-2 bg-gray-50 uppercase tracking-wider">Questions fréquentes</p>
+            <p className="text-xs font-bold text-gray-500 px-4 pt-3 pb-2 bg-gray-50 uppercase tracking-wider">Questions frequentes</p>
             {[
-              { q: 'Comment ajouter un produit ?', r: 'Menu Produits → bouton "+" → remplir le formulaire → Sauvegarder. L\'IA peut analyser vos photos automatiquement.' },
+              { q: 'Comment ajouter un produit ?', r: 'Menu Produits  bouton "+"  remplir le formulaire  Sauvegarder. L\'IA peut analyser vos photos automatiquement.' },
               { q: 'Comment recevoir des commandes ?', r: 'Partagez le lien de votre boutique (section "Partager"). Les clients commandent directement en ligne.' },
-              { q: 'Comment imprimer un reçu ?', r: 'Dans Commandes → cliquer sur une commande → bouton "Imprimer". Compatible imprimante thermique 80mm.' },
-              { q: 'Comment scanner un code-barres ?', r: 'Dans Nouvelle commande → icône Scanner USB ou Caméra. Votre scanner USB est automatiquement détecté.' },
+              { q: 'Comment imprimer un recu ?', r: 'Dans Commandes  cliquer sur une commande  bouton "Imprimer". Compatible imprimante thermique 80mm.' },
+              { q: 'Comment scanner un code-barres ?', r: 'Dans Nouvelle commande  icone Scanner USB ou Camera. Votre scanner USB est automatiquement detecte.' },
             ].map((faq, i) => (
               <div key={i} className="border-t border-gray-100 px-4 py-3">
                 <p className="text-sm font-semibold text-gray-700 mb-1">{faq.q}</p>
@@ -532,10 +532,10 @@ export default function SettingsPage() {
         </div>
       </Section>
 
-      {/* ══════════════════════════════════════════════
-          MISES À JOUR
-      ══════════════════════════════════════════════ */}
-      <Section icon={RefreshCw} title="Mises à jour" color="#14b8a6">
+      {/* ==============================================
+          MISES A JOUR
+      ============================================== */}
+      <Section icon={RefreshCw} title="Mises a jour" color="#14b8a6">
         {/* Current version */}
         <div className="bg-teal-50 rounded-xl p-4 border border-teal-100 mb-3">
           <div className="flex items-center justify-between">
@@ -548,11 +548,11 @@ export default function SettingsPage() {
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all"
               style={{ backgroundColor: updateStatus === 'latest' ? '#22c55e' : '#14b8a6', color: 'white' }}>
               {updateStatus === 'checking' ? (
-                <><Loader2 className="w-4 h-4 animate-spin" />Vérification...</>
+                <><Loader2 className="w-4 h-4 animate-spin" />Verification...</>
               ) : updateStatus === 'latest' ? (
-                <><CheckCircle className="w-4 h-4" />À jour !</>
+                <><CheckCircle className="w-4 h-4" />A jour !</>
               ) : (
-                <><RefreshCw className="w-4 h-4" />Vérifier</>
+                <><RefreshCw className="w-4 h-4" />Verifier</>
               )}
             </button>
           </div>
@@ -593,9 +593,9 @@ export default function SettingsPage() {
         )}
       </Section>
 
-      {/* ══════════════════════════════════════════════
+      {/* ==============================================
           LICENCE
-      ══════════════════════════════════════════════ */}
+      ============================================== */}
       <Section icon={FileText} title="Licence" color="#f59e0b">
         <div className="space-y-3">
           {/* License badge */}
@@ -606,10 +606,10 @@ export default function SettingsPage() {
               </div>
               <div>
                 <p className="font-bold text-amber-800">ShopMaster Licence Commerciale</p>
-                <p className="text-xs text-amber-600 mt-0.5">Plan: <strong>{currentPlan.name}</strong> · Boutique: <strong>{shop?.slug}</strong></p>
+                <p className="text-xs text-amber-600 mt-0.5">Plan: <strong>{currentPlan.name}</strong>  Boutique: <strong>{shop?.slug}</strong></p>
                 {shop?.planExpiry && (
                   <p className="text-xs text-amber-500 mt-0.5">
-                    {new Date(shop.planExpiry) < new Date() ? '⚠️ Expirée le' : '✓ Valide jusqu\'au'} {new Date(shop.planExpiry).toLocaleDateString('fr-FR')}
+                    {new Date(shop.planExpiry) < new Date() ? ' Expiree le' : ' Valide jusqu\'au'} {new Date(shop.planExpiry).toLocaleDateString('fr-FR')}
                   </p>
                 )}
               </div>
@@ -619,14 +619,14 @@ export default function SettingsPage() {
           <div className="space-y-1">
             <div className="px-4 py-3 bg-gray-50 rounded-xl text-xs text-gray-600 leading-relaxed">
               <p className="font-semibold text-gray-700 mb-1">Conditions d'utilisation</p>
-              Cette licence vous permet d'utiliser ShopMaster pour gérer votre boutique commerciale. Vous ne pouvez pas redistribuer, revendre ou sous-licencier le logiciel.
+              Cette licence vous permet d'utiliser ShopMaster pour gerer votre boutique commerciale. Vous ne pouvez pas redistribuer, revendre ou sous-licencier le logiciel.
               La licence est valable pour une boutique et un administrateur principal.
             </div>
           </div>
 
           <div className="space-y-1">
-            <ActionRow icon={ExternalLink} label="Voir les CGU complètes" color="#f59e0b"
-              href={`https://wa.me/${WHATSAPP_SUPPORT}?text=${encodeURIComponent('Bonjour, je souhaite recevoir les CGU complètes de ShopMaster.')}`} external />
+            <ActionRow icon={ExternalLink} label="Voir les CGU completes" color="#f59e0b"
+              href={`https://wa.me/${WHATSAPP_SUPPORT}?text=${encodeURIComponent('Bonjour, je souhaite recevoir les CGU completes de ShopMaster.')}`} external />
             <ActionRow icon={Mail} label="Licence & facturation" sub="Pour toute question sur votre abonnement" color="#f97316"
               href={`mailto:${EMAIL_SUPPORT}?subject=Licence ShopMaster - ${shop?.slug}`} external />
           </div>
@@ -638,18 +638,18 @@ export default function SettingsPage() {
         </div>
       </Section>
 
-      {/* ══════════════════════════════════════════════
-          CONFIDENTIALITÉ
-      ══════════════════════════════════════════════ */}
-      <Section icon={Shield} title="Confidentialité & Sécurité" color="#6366f1">
+      {/* ==============================================
+          CONFIDENTIALITE
+      ============================================== */}
+      <Section icon={Shield} title="Confidentialite & Securite" color="#6366f1">
         <div className="space-y-3">
           {/* Security status */}
           <div className="grid grid-cols-2 gap-2">
             {[
-              { label: 'Données chiffrées', status: true, desc: 'Firebase SSL/TLS' },
-              { label: 'Auth sécurisée', status: true, desc: 'Firebase Auth' },
-              { label: 'Accès PIN', status: false, desc: 'Configurable dans sidebar' },
-              { label: 'Sauvegarde auto', status: true, desc: 'Firestore en temps réel' },
+              { label: 'Donnees chiffrees', status: true, desc: 'Firebase SSL/TLS' },
+              { label: 'Auth securisee', status: true, desc: 'Firebase Auth' },
+              { label: 'Acces PIN', status: false, desc: 'Configurable dans sidebar' },
+              { label: 'Sauvegarde auto', status: true, desc: 'Firestore en temps reel' },
             ].map(item => (
               <div key={item.label} className={`rounded-xl p-3 border ${item.status ? 'border-emerald-100 bg-emerald-50' : 'border-amber-100 bg-amber-50'}`}>
                 <div className="flex items-center gap-1.5 mb-0.5">
@@ -665,19 +665,19 @@ export default function SettingsPage() {
 
           <div className="space-y-1">
             <div className="px-4 py-3 bg-gray-50 rounded-xl text-xs text-gray-600 leading-relaxed">
-              <p className="font-semibold text-gray-700 mb-1">Collecte de données</p>
-              Nous collectons uniquement les données nécessaires au fonctionnement de votre boutique : nom, email, informations de boutique, produits et commandes.
-              Ces données sont stockées sur les serveurs sécurisés de Google Firebase en Europe.
-              Nous ne vendons jamais vos données à des tiers.
+              <p className="font-semibold text-gray-700 mb-1">Collecte de donnees</p>
+              Nous collectons uniquement les donnees necessaires au fonctionnement de votre boutique : nom, email, informations de boutique, produits et commandes.
+              Ces donnees sont stockees sur les serveurs securises de Google Firebase en Europe.
+              Nous ne vendons jamais vos donnees a des tiers.
             </div>
           </div>
 
           <div className="space-y-1">
-            <ActionRow icon={Shield} label="Politique de confidentialité" color="#6366f1"
-              href={`https://wa.me/${WHATSAPP_SUPPORT}?text=${encodeURIComponent('Bonjour, je souhaite consulter la politique de confidentialité de ShopMaster.')}`} external />
-            <ActionRow icon={Lock} label="Modifier mon mot de passe" sub="Réinitialisation par email" color="#8b5cf6"
-              href={`mailto:${EMAIL_SUPPORT}?subject=Réinitialisation mot de passe&body=Email: ${admin?.email}`} external />
-            <ActionRow icon={Database} label="Mes droits RGPD" sub="Accès, correction, suppression de données" color="#ec4899"
+            <ActionRow icon={Shield} label="Politique de confidentialite" color="#6366f1"
+              href={`https://wa.me/${WHATSAPP_SUPPORT}?text=${encodeURIComponent('Bonjour, je souhaite consulter la politique de confidentialite de ShopMaster.')}`} external />
+            <ActionRow icon={Lock} label="Modifier mon mot de passe" sub="Reinitialisation par email" color="#8b5cf6"
+              href={`mailto:${EMAIL_SUPPORT}?subject=Reinitialisation mot de passe&body=Email: ${admin?.email}`} external />
+            <ActionRow icon={Database} label="Mes droits RGPD" sub="Acces, correction, suppression de donnees" color="#ec4899"
               href={`mailto:${EMAIL_SUPPORT}?subject=Droits RGPD - ${admin?.email}`} external />
           </div>
 
@@ -685,18 +685,18 @@ export default function SettingsPage() {
           <div className="flex items-start gap-2.5 bg-indigo-50 rounded-xl p-3 border border-indigo-100">
             <Info className="w-4 h-4 text-indigo-400 mt-0.5 flex-shrink-0" />
             <p className="text-xs text-indigo-700">
-              Vos données sont hébergées sur <strong>Google Firebase</strong> (serveurs européens).
-              L'accès est protégé par les règles de sécurité Firestore et Firebase Auth.
+              Vos donnees sont hebergees sur <strong>Google Firebase</strong> (serveurs europeens).
+              L'acces est protege par les regles de securite Firestore et Firebase Auth.
             </p>
           </div>
         </div>
       </Section>
 
-      {/* ── App footer ── */}
+      {/* -- App footer -- */}
       <div className="text-center py-4 space-y-1">
-        <p className="text-xs text-gray-400 font-medium">ShopMaster v{APP_VERSION} · Build {APP_BUILD}</p>
-        <p className="text-xs text-gray-300">© 2025-2026 ShopMaster. Tous droits réservés.</p>
-        <p className="text-xs text-gray-300">Fait avec ❤️ pour les commerçants africains</p>
+        <p className="text-xs text-gray-400 font-medium">ShopMaster v{APP_VERSION}  Build {APP_BUILD}</p>
+        <p className="text-xs text-gray-300"> 2025-2026 ShopMaster. Tous droits reserves.</p>
+        <p className="text-xs text-gray-300">Fait avec  pour les commercants africains</p>
       </div>
     </div>
   );

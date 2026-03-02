@@ -1,13 +1,18 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Rimuoviamo output: 'export' perché usiamo server.url nel capacitor config
-  trailingSlash: true, 
-  images: {
-    unoptimized: true,
-    domains: ['firebasestorage.googleapis.com'],
-  },
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
+  images: { 
+    domains: ['firebasestorage.googleapis.com'], 
+    unoptimized: true 
+  },
+  async rewrites() {
+    return {
+      beforeFiles: [
+        { source: '/superadmin', destination: '/superadmin' },
+        { source: '/superadmin/:path*', destination: '/superadmin/:path*' },
+      ]
+    };
+  },
 };
-
 module.exports = nextConfig;

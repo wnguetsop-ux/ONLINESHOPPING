@@ -13,10 +13,10 @@ import PhoneInput from '@/components/PhoneInput';
 
 const STATUS_CONFIG = {
   PENDING:    { label: 'En attente',     color: 'bg-amber-100 text-amber-700',    dot: 'bg-amber-400',   icon: Clock },
-  CONFIRMED:  { label: 'Confirmée',      color: 'bg-blue-100 text-blue-700',      dot: 'bg-blue-400',    icon: CheckCircle },
-  PROCESSING: { label: 'En préparation', color: 'bg-purple-100 text-purple-700',  dot: 'bg-purple-400',  icon: Package },
-  DELIVERED:  { label: 'Livrée',         color: 'bg-emerald-100 text-emerald-700',dot: 'bg-emerald-400', icon: Truck },
-  CANCELLED:  { label: 'Annulée',        color: 'bg-red-100 text-red-700',        dot: 'bg-red-400',     icon: X },
+  CONFIRMED:  { label: 'Confirmee',      color: 'bg-blue-100 text-blue-700',      dot: 'bg-blue-400',    icon: CheckCircle },
+  PROCESSING: { label: 'En preparation', color: 'bg-purple-100 text-purple-700',  dot: 'bg-purple-400',  icon: Package },
+  DELIVERED:  { label: 'Livree',         color: 'bg-emerald-100 text-emerald-700',dot: 'bg-emerald-400', icon: Truck },
+  CANCELLED:  { label: 'Annulee',        color: 'bg-red-100 text-red-700',        dot: 'bg-red-400',     icon: X },
 };
 
 interface ManualItem { productId: string; productName: string; quantity: number; unitPrice: number; costPrice: number; imageUrl?: string; }
@@ -100,7 +100,7 @@ export default function OrdersPage() {
     if (selected?.id === orderId) setSelected(prev => prev ? { ...prev, status } : null);
   }
 
-  // ── BARCODE ───────────────────────────────────────────────────────────────
+  // -- BARCODE ---------------------------------------------------------------
   function handleBarcodeKey(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter') { e.preventDefault(); processBarcodeString(barcodeInput.trim()); setBarcodeInput(''); return; }
     if (barcodeTimer.current) clearTimeout(barcodeTimer.current);
@@ -114,7 +114,7 @@ export default function OrdersPage() {
     if (!code) return;
     const product = products.find(p => p.barcode === code || p.sku === code);
     if (product) { addProductToManual(product); setScanError(''); }
-    else { setScanError(`Code "${code}" non trouvé.`); setTimeout(() => setScanError(''), 3000); }
+    else { setScanError(`Code "${code}" non trouve.`); setTimeout(() => setScanError(''), 3000); }
   }
   async function startCameraScanner() {
     setScanError('');
@@ -122,14 +122,14 @@ export default function OrdersPage() {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
       setScanStream(stream); setScanMode('camera');
       setTimeout(() => { if (scanVideoRef.current) scanVideoRef.current.srcObject = stream; }, 80);
-    } catch { setScanError('Impossible d\'accéder à la caméra.'); }
+    } catch { setScanError('Impossible d\'acceder a la camera.'); }
   }
   function stopCameraScanner() {
     if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); setScanStream(null); }
     setScanMode(null);
   }
 
-  // ── PRODUCT ADD with flying animation ─────────────────────────────────────
+  // -- PRODUCT ADD with flying animation -------------------------------------
   function addProductToManual(product: Product, evt?: React.MouseEvent) {
     setManualItems(prev => {
       const existing = prev.find(i => i.productId === product.id);
@@ -160,7 +160,7 @@ export default function OrdersPage() {
       const deliveryFee = manualForm.deliveryMethod === 'DELIVERY' ? (shop.deliveryFee || 0) : 0;
       const subtotal = manualItems.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
 
-      // 1. Create the order — get real ID back
+      // 1. Create the order - get real ID back
       const orderId = await createOrder(shop.id, {
         customerName: manualForm.customerName,
         customerPhone: manualForm.customerPhone.replace(/[^0-9+]/g, ''),
@@ -175,7 +175,7 @@ export default function OrdersPage() {
         deliveryFee,
       });
 
-      // 2. Immediately confirm + set to PROCESSING (commande manuelle = déjà sur place)
+      // 2. Immediately confirm + set to PROCESSING (commande manuelle = deja sur place)
       await updateOrderStatus(orderId, 'CONFIRMED');
       await updateOrderStatus(orderId, 'PROCESSING');
 
@@ -216,18 +216,18 @@ export default function OrdersPage() {
     const content = receiptRef.current; if (!content) return;
     const win = window.open('', '_blank', 'width=380,height=600');
     if (!win) return;
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Reçu</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Courier New',monospace;font-size:12px;width:80mm;margin:0 auto;padding:4mm}.center{text-align:center}.bold{font-weight:bold}.divider{border-top:1px dashed #000;margin:6px 0}.row{display:flex;justify-content:space-between;margin:2px 0}</style></head><body>${content.innerHTML}<script>window.onload=function(){window.print();window.close()}<\/script></body></html>`);
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Recu</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Courier New',monospace;font-size:12px;width:80mm;margin:0 auto;padding:4mm}.center{text-align:center}.bold{font-weight:bold}.divider{border-top:1px dashed #000;margin:6px 0}.row{display:flex;justify-content:space-between;margin:2px 0}</style></head><body>${content.innerHTML}<script>window.onload=function(){window.print();window.close()}<\/script></body></html>`);
     win.document.close();
   }
 
-  // ── DATA ──────────────────────────────────────────────────────────────────
+  // -- DATA ------------------------------------------------------------------
   const primaryColor = shop?.primaryColor || '#ec4899';
   const manualSubtotal = manualItems.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
   const manualDelivery = manualForm.deliveryMethod === 'DELIVERY' ? (shop?.deliveryFee || 0) : 0;
   const manualTotal = manualSubtotal + manualDelivery;
 
   const availableProducts = products.filter(p => p.isActive && p.stock > 0);
-  const productCategories = [...new Set(availableProducts.map(p => p.category))];
+  const productCategories = Array.from(new Set(availableProducts.map(p => p.category)));
   const displayedProducts = availableProducts.filter(p =>
     (!productCatFilter || p.category === productCatFilter) &&
     (!productSearch || p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
@@ -272,7 +272,7 @@ export default function OrdersPage() {
             animation: 'flyToCart 0.8s cubic-bezier(0.2,0.8,0.8,1.2) forwards',
           }}>
           <div className="w-8 h-8 rounded-full bg-white shadow-xl border-2 flex items-center justify-center text-sm"
-            style={{ borderColor: primaryColor }}>⭐</div>
+            style={{ borderColor: primaryColor }}></div>
         </div>
       ))}
       <style>{`
@@ -311,7 +311,7 @@ export default function OrdersPage() {
           );
         })}
         <div className="stat-card col-span-2 lg:col-span-1">
-          <p className="text-xs text-gray-500 font-medium mb-1">💰 Revenu aujourd'hui</p>
+          <p className="text-xs text-gray-500 font-medium mb-1"> Revenu aujourd'hui</p>
           <p className="text-lg font-bold text-emerald-600">{formatPrice(todayRevenue, shop?.currency)}</p>
         </div>
       </div>
@@ -321,7 +321,7 @@ export default function OrdersPage() {
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input type="text" placeholder="Nom, téléphone, numéro de commande..."
+            <input type="text" placeholder="Nom, telephone, numero de commande..."
               value={search} onChange={e => setSearch(e.target.value)} className="input pl-9 text-sm" />
           </div>
           <button onClick={() => setShowFilters(!showFilters)}
@@ -333,11 +333,11 @@ export default function OrdersPage() {
         </div>
         {showFilters && (
           <div className="grid grid-cols-2 gap-3 pt-2 border-t">
-            <div><label className="text-xs font-medium text-gray-500 mb-1 block">📅 Du</label><input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="input text-sm" /></div>
-            <div><label className="text-xs font-medium text-gray-500 mb-1 block">📅 Au</label><input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="input text-sm" /></div>
+            <div><label className="text-xs font-medium text-gray-500 mb-1 block"> Du</label><input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="input text-sm" /></div>
+            <div><label className="text-xs font-medium text-gray-500 mb-1 block"> Au</label><input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="input text-sm" /></div>
           </div>
         )}
-        {hasFilters && <p className="text-xs text-gray-500">{filtered.length} résultat{filtered.length !== 1 ? 's' : ''}</p>}
+        {hasFilters && <p className="text-xs text-gray-500">{filtered.length} resultat{filtered.length !== 1 ? 's' : ''}</p>}
       </div>
 
       {/* Status pills */}
@@ -361,7 +361,7 @@ export default function OrdersPage() {
           <ShoppingCart className="w-16 h-16 mx-auto text-gray-200 mb-3" />
           <p className="text-gray-500 font-medium mb-4">Aucune commande</p>
           <button onClick={() => setShowManual(true)} className="btn-primary inline-flex items-center gap-2" style={{ backgroundColor: primaryColor }}>
-            <Plus className="w-4 h-4" />Créer une commande
+            <Plus className="w-4 h-4" />Creer une commande
           </button>
         </div>
       ) : (
@@ -380,7 +380,7 @@ export default function OrdersPage() {
                     </div>
                     <div className="text-left">
                       <p className="font-semibold text-gray-800 capitalize text-sm">{dateKey}</p>
-                      <p className="text-xs text-gray-400">{dayOrders.length} commande{dayOrders.length !== 1 ? 's' : ''}{dayTotal > 0 ? ` • ${formatPrice(dayTotal, shop?.currency)}` : ''}</p>
+                      <p className="text-xs text-gray-400">{dayOrders.length} commande{dayOrders.length !== 1 ? 's' : ''}{dayTotal > 0 ? `  ${formatPrice(dayTotal, shop?.currency)}` : ''}</p>
                     </div>
                   </div>
                   <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
@@ -401,14 +401,14 @@ export default function OrdersPage() {
                                 <p className="font-semibold text-gray-800 text-sm">{order.customerName}</p>
                                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${cfg.color}`}>{cfg.label}</span>
                               </div>
-                              <p className="text-xs text-gray-400">{order.orderNumber} • {new Date(order.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
+                              <p className="text-xs text-gray-400">{order.orderNumber}  {new Date(order.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
                             </div>
                           </div>
                           <div className="text-right flex flex-col items-end gap-1">
                             <p className="font-bold text-gray-800 text-sm">{formatPrice(order.total, shop?.currency)}</p>
                             <button onClick={e => { e.stopPropagation(); setShowReceipt(order); }}
                               className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-gray-600">
-                              <Printer className="w-3 h-3" />Reçu
+                              <Printer className="w-3 h-3" />Recu
                             </button>
                           </div>
                         </div>
@@ -422,7 +422,7 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {/* ══ ORDER DETAIL ══════════════════════════════════════════════════ */}
+      {/* == ORDER DETAIL ================================================== */}
       {selected && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
@@ -438,22 +438,22 @@ export default function OrdersPage() {
                 <p className={`font-medium text-sm ${STATUS_CONFIG[selected.status].color.split(' ')[1]}`}>Statut: {STATUS_CONFIG[selected.status].label}</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                {selected.status === 'PENDING' && (<><button onClick={() => changeStatus(selected.id!, 'CONFIRMED')} className="btn-primary text-sm" style={{ backgroundColor: primaryColor }}>✓ Confirmer</button><button onClick={() => changeStatus(selected.id!, 'CANCELLED')} className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm">✕ Annuler</button></>)}
-                {selected.status === 'CONFIRMED' && <button onClick={() => changeStatus(selected.id!, 'PROCESSING')} className="btn-primary text-sm" style={{ backgroundColor: primaryColor }}>📦 En préparation</button>}
-                {selected.status === 'PROCESSING' && <button onClick={() => changeStatus(selected.id!, 'DELIVERED')} className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-sm">🚚 Marquer livrée</button>}
+                {selected.status === 'PENDING' && (<><button onClick={() => changeStatus(selected.id!, 'CONFIRMED')} className="btn-primary text-sm" style={{ backgroundColor: primaryColor }}> Confirmer</button><button onClick={() => changeStatus(selected.id!, 'CANCELLED')} className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm"> Annuler</button></>)}
+                {selected.status === 'CONFIRMED' && <button onClick={() => changeStatus(selected.id!, 'PROCESSING')} className="btn-primary text-sm" style={{ backgroundColor: primaryColor }}> En preparation</button>}
+                {selected.status === 'PROCESSING' && <button onClick={() => changeStatus(selected.id!, 'DELIVERED')} className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-sm"> Marquer livree</button>}
               </div>
               <div className="bg-gray-50 rounded-xl p-4">
-                <h3 className="font-semibold text-sm mb-2">👤 Client</h3>
+                <h3 className="font-semibold text-sm mb-2"> Client</h3>
                 <p className="font-medium">{selected.customerName}</p>
-                {selected.customerPhone && <p className="text-sm text-gray-600 mt-1">📞 {selected.customerPhone}</p>}
-                {selected.customerAddress && <p className="text-sm text-gray-600 mt-1">📍 {selected.customerQuartier ? selected.customerQuartier + ' — ' : ''}{selected.customerAddress}</p>}
-                {selected.notes && <p className="text-sm text-gray-500 mt-2 italic">📝 {selected.notes}</p>}
+                {selected.customerPhone && <p className="text-sm text-gray-600 mt-1"> {selected.customerPhone}</p>}
+                {selected.customerAddress && <p className="text-sm text-gray-600 mt-1"> {selected.customerQuartier ? selected.customerQuartier + ' - ' : ''}{selected.customerAddress}</p>}
+                {selected.notes && <p className="text-sm text-gray-500 mt-2 italic"> {selected.notes}</p>}
                 {selected.customerPhone && <a href={getWhatsAppLink(selected.customerPhone, `Bonjour ${selected.customerName}, concernant votre commande ${selected.orderNumber}...`)} target="_blank" className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-green-500 text-white rounded-xl text-sm"><MessageCircle className="w-4 h-4" />Contacter</a>}
               </div>
               <div className="space-y-2">
                 {selected.items.map((item, i) => (
                   <div key={i} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
-                    <div><p className="font-medium text-sm">{item.productName}</p><p className="text-xs text-gray-500">x{item.quantity} × {formatPrice(item.unitPrice, shop?.currency)}</p></div>
+                    <div><p className="font-medium text-sm">{item.productName}</p><p className="text-xs text-gray-500">x{item.quantity}  {formatPrice(item.unitPrice, shop?.currency)}</p></div>
                     <p className="font-semibold text-sm">{formatPrice(item.total, shop?.currency)}</p>
                   </div>
                 ))}
@@ -462,25 +462,25 @@ export default function OrdersPage() {
                 <div className="flex justify-between text-sm text-gray-600"><span>Sous-total</span><span>{formatPrice(selected.subtotal, shop?.currency)}</span></div>
                 <div className="flex justify-between text-sm text-gray-600"><span>Livraison</span><span>{formatPrice(selected.deliveryFee, shop?.currency)}</span></div>
                 <div className="flex justify-between font-bold pt-2 border-t" style={{ color: primaryColor }}><span>Total</span><span>{formatPrice(selected.total, shop?.currency)}</span></div>
-                <div className="flex justify-between text-sm text-emerald-600 font-medium"><span>Bénéfice</span><span>+{formatPrice(selected.profit, shop?.currency)}</span></div>
+                <div className="flex justify-between text-sm text-emerald-600 font-medium"><span>Benefice</span><span>+{formatPrice(selected.profit, shop?.currency)}</span></div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* ══ MANUAL ORDER MODAL ════════════════════════════════════════════ */}
+      {/* == MANUAL ORDER MODAL ============================================ */}
       {showManual && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[95vh] flex flex-col">
             <div className="flex items-center justify-between p-4 border-b flex-shrink-0">
-              <h2 className="text-lg font-bold">📦 Nouvelle commande</h2>
+              <h2 className="text-lg font-bold"> Nouvelle commande</h2>
               <button onClick={() => { setShowManual(false); stopCameraScanner(); setManualItems([]); setProductSearch(''); setProductCatFilter(''); }} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
             </div>
 
             <div className="flex-1 overflow-hidden flex flex-col md:flex-row gap-0 min-h-0">
 
-              {/* ── LEFT: Product catalog ── */}
+              {/* -- LEFT: Product catalog -- */}
               <div className="flex flex-col md:w-[55%] border-b md:border-b-0 md:border-r" style={{ minHeight: '200px', maxHeight: '50vh' }}>
                 <div className="p-3 border-b bg-gray-50 flex-shrink-0">
                   <div className="flex items-center justify-between mb-2">
@@ -514,7 +514,7 @@ export default function OrdersPage() {
                       <button type="button" onClick={stopCameraScanner} className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full text-white flex items-center justify-center"><X className="w-3 h-3" /></button>
                     </div>
                   )}
-                  {scanError && <p className="text-xs text-red-500 mb-2 bg-red-50 px-2 py-1 rounded-lg">⚠️ {scanError}</p>}
+                  {scanError && <p className="text-xs text-red-500 mb-2 bg-red-50 px-2 py-1 rounded-lg"> {scanError}</p>}
                   {/* Search */}
                   <div className="relative">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
@@ -535,7 +535,7 @@ export default function OrdersPage() {
                   )}
                 </div>
 
-                {/* Product list — style Loyverse */}
+                {/* Product list - style Loyverse */}
                 <div className="flex-1 overflow-y-auto">
                   {displayedProducts.length === 0 ? (
                     <div className="text-center py-8 text-gray-400 text-sm">
@@ -553,12 +553,12 @@ export default function OrdersPage() {
                             <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-100">
                               {p.imageUrl
                                 ? <img src={p.imageUrl} alt="" className="w-full h-full object-cover" />
-                                : <div className="w-full h-full flex items-center justify-center text-xl">📦</div>}
+                                : <div className="w-full h-full flex items-center justify-center text-xl"></div>}
                             </div>
                             {/* Name + category */}
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-semibold text-gray-800 truncate">{p.name}</p>
-                              <p className="text-xs text-gray-400 truncate">{p.category}{p.sku ? ` · ${p.sku}` : ''}</p>
+                              <p className="text-xs text-gray-400 truncate">{p.category}{p.sku ? `  ${p.sku}` : ''}</p>
                             </div>
                             {/* Price */}
                             <div className="flex-shrink-0 text-right">
@@ -585,7 +585,7 @@ export default function OrdersPage() {
                 </div>
               </div>
 
-              {/* ── RIGHT: Cart + Customer info ── */}
+              {/* -- RIGHT: Cart + Customer info -- */}
               <div className="flex flex-col md:w-[45%] min-h-0">
                 <form onSubmit={saveManualOrder} className="flex flex-col flex-1 min-h-0">
                   <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -603,10 +603,10 @@ export default function OrdersPage() {
                       />
                       <div className="grid grid-cols-2 gap-2">
                         <select className="select text-sm" value={manualForm.deliveryMethod} onChange={e => setManualForm({ ...manualForm, deliveryMethod: e.target.value as any })}>
-                          <option value="PICKUP">🏪 Retrait</option><option value="DELIVERY">🚚 Livraison</option>
+                          <option value="PICKUP"> Retrait</option><option value="DELIVERY"> Livraison</option>
                         </select>
                         <select className="select text-sm" value={manualForm.paymentMethod} onChange={e => setManualForm({ ...manualForm, paymentMethod: e.target.value as any })}>
-                          <option value="CASH_ON_DELIVERY">💵 Espèces</option><option value="MOBILE_MONEY">📱 Mobile Money</option>
+                          <option value="CASH_ON_DELIVERY"> Especes</option><option value="MOBILE_MONEY"> Mobile Money</option>
                         </select>
                       </div>
                       <input className="input text-sm" placeholder="Notes (optionnel)"
@@ -617,7 +617,7 @@ export default function OrdersPage() {
                     <div ref={cartRef}>
                       <div className="flex items-center justify-between mb-2">
                         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                          🛒 Panier {manualItems.length > 0 && <span className="text-orange-500">({manualItems.reduce((s, i) => s + i.quantity, 0)} articles)</span>}
+                           Panier {manualItems.length > 0 && <span className="text-orange-500">({manualItems.reduce((s, i) => s + i.quantity, 0)} articles)</span>}
                         </h3>
                         {manualItems.length > 0 && <button type="button" onClick={() => setManualItems([])} className="text-xs text-red-400 hover:text-red-600">Vider</button>}
                       </div>
@@ -631,13 +631,13 @@ export default function OrdersPage() {
                         <div className="space-y-2">
                           {manualItems.map(item => (
                             <div key={item.productId} className="flex items-center gap-2 bg-gray-50 rounded-xl p-2">
-                              {item.imageUrl ? <img src={item.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" /> : <div className="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0 text-lg">📦</div>}
+                              {item.imageUrl ? <img src={item.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" /> : <div className="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0 text-lg"></div>}
                               <div className="flex-1 min-w-0">
                                 <p className="text-xs font-semibold text-gray-800 truncate">{item.productName}</p>
                                 <p className="text-xs text-gray-500">{formatPrice(item.unitPrice, shop?.currency)}/u</p>
                               </div>
                               <div className="flex items-center gap-1 flex-shrink-0">
-                                <button type="button" onClick={() => updateManualQty(item.productId, item.quantity - 1)} className="w-6 h-6 rounded-lg bg-white border text-gray-600 flex items-center justify-center font-bold text-sm">−</button>
+                                <button type="button" onClick={() => updateManualQty(item.productId, item.quantity - 1)} className="w-6 h-6 rounded-lg bg-white border text-gray-600 flex items-center justify-center font-bold text-sm"></button>
                                 <span className="w-5 text-center font-bold text-sm">{item.quantity}</span>
                                 <button type="button" onClick={() => updateManualQty(item.productId, item.quantity + 1)} className="w-6 h-6 rounded-lg bg-white border text-gray-600 flex items-center justify-center font-bold text-sm">+</button>
                                 <button type="button" onClick={() => removeManualItem(item.productId)} className="w-6 h-6 text-red-400 hover:bg-red-50 rounded-lg flex items-center justify-center ml-0.5"><Trash2 className="w-3 h-3" /></button>
@@ -663,7 +663,7 @@ export default function OrdersPage() {
                       <button type="button" onClick={() => { setShowManual(false); stopCameraScanner(); setManualItems([]); }} className="btn-secondary flex-1 text-sm">Annuler</button>
                       <button type="submit" disabled={savingManual || manualItems.length === 0}
                         className="btn-primary flex-1 text-sm flex items-center justify-center gap-2 disabled:opacity-50" style={{ backgroundColor: primaryColor }}>
-                        {savingManual && <Loader2 className="w-4 h-4 animate-spin" />}Créer commande
+                        {savingManual && <Loader2 className="w-4 h-4 animate-spin" />}Creer commande
                       </button>
                     </div>
                   </div>
@@ -674,12 +674,12 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {/* ══ RECEIPT MODAL ════════════════════════════════════════════════ */}
+      {/* == RECEIPT MODAL ================================================ */}
       {showReceipt && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl w-full max-w-sm">
             <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-base font-bold">Reçu de commande</h2>
+              <h2 className="text-base font-bold">Recu de commande</h2>
               <div className="flex items-center gap-2">
                 <button onClick={printReceipt} className="btn-primary flex items-center gap-1.5 text-sm py-2" style={{ backgroundColor: primaryColor }}><Printer className="w-4 h-4" />Imprimer</button>
                 <button onClick={() => setShowReceipt(null)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
@@ -689,21 +689,21 @@ export default function OrdersPage() {
               <div className="text-center mb-3">
                 <p className="font-bold text-base">{shop?.name?.toUpperCase()}</p>
                 {shop?.slogan && <p>{shop.slogan}</p>}
-                {shop?.phone && <p>Tél: {shop.phone}</p>}
+                {shop?.phone && <p>Tel: {shop.phone}</p>}
               </div>
               <div className="border-t border-dashed my-2" />
               <div className="space-y-0.5 mb-2">
-                <div className="flex justify-between"><span className="font-bold">N°:</span><span>{showReceipt.orderNumber}</span></div>
+                <div className="flex justify-between"><span className="font-bold">N:</span><span>{showReceipt.orderNumber}</span></div>
                 <div className="flex justify-between"><span className="font-bold">Date:</span><span>{new Date(showReceipt.createdAt).toLocaleString('fr-FR')}</span></div>
                 <div className="flex justify-between"><span className="font-bold">Client:</span><span>{showReceipt.customerName}</span></div>
-                {showReceipt.customerPhone && <div className="flex justify-between"><span className="font-bold">Tél:</span><span>{showReceipt.customerPhone}</span></div>}
-                <div className="flex justify-between"><span className="font-bold">Paiement:</span><span>{showReceipt.paymentMethod === 'MOBILE_MONEY' ? 'Mobile Money' : 'Espèces'}</span></div>
+                {showReceipt.customerPhone && <div className="flex justify-between"><span className="font-bold">Tel:</span><span>{showReceipt.customerPhone}</span></div>}
+                <div className="flex justify-between"><span className="font-bold">Paiement:</span><span>{showReceipt.paymentMethod === 'MOBILE_MONEY' ? 'Mobile Money' : 'Especes'}</span></div>
               </div>
               <div className="border-t border-dashed my-2" />
               {showReceipt.items.map((item, i) => (
                 <div key={i} className="mb-1">
                   <p className="font-bold truncate">{item.productName}</p>
-                  <div className="flex justify-between"><span>{item.quantity} × {formatPrice(item.unitPrice, shop?.currency)}</span><span>{formatPrice(item.total, shop?.currency)}</span></div>
+                  <div className="flex justify-between"><span>{item.quantity}  {formatPrice(item.unitPrice, shop?.currency)}</span><span>{formatPrice(item.total, shop?.currency)}</span></div>
                 </div>
               ))}
               <div className="border-t border-dashed my-2" />
@@ -711,27 +711,27 @@ export default function OrdersPage() {
               {showReceipt.deliveryFee > 0 && <div className="flex justify-between"><span>Livraison</span><span>{formatPrice(showReceipt.deliveryFee, shop?.currency)}</span></div>}
               <div className="flex justify-between font-bold text-sm mt-1"><span>TOTAL</span><span>{formatPrice(showReceipt.total, shop?.currency)}</span></div>
               <div className="border-t border-dashed my-2" />
-              <div className="text-center"><p>Merci pour votre achat !</p><p>Propulsé par ShopMaster</p></div>
+              <div className="text-center"><p>Merci pour votre achat !</p><p>Propulse par ShopMaster</p></div>
             </div>
           </div>
         </div>
       )}
-      {/* ══ FINALIZATION WINDOW ══════════════════════════════════════════ */}
+      {/* == FINALIZATION WINDOW ========================================== */}
       {createdOrder && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4 backdrop-blur-sm">
           <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
 
-            {/* Header — EN PRÉPARATION */}
+            {/* Header - EN PREPARATION */}
             <div className="p-6 text-center relative" style={{ background: `linear-gradient(135deg, ${primaryColor}18, ${primaryColor}06)` }}>
               {/* Status badge */}
               <div className="inline-flex items-center gap-2 bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1.5 rounded-full mb-4">
                 <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
-                EN PRÉPARATION
+                EN PREPARATION
               </div>
               <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center mx-auto mb-3 shadow-md border border-gray-100">
-                <span className="text-3xl">📦</span>
+                <span className="text-3xl"></span>
               </div>
-              <h2 className="text-xl font-bold text-gray-800">Commande lancée !</h2>
+              <h2 className="text-xl font-bold text-gray-800">Commande lancee !</h2>
               <p className="text-gray-500 mt-1 text-sm font-medium">{createdOrder.orderNumber}</p>
               <p className="text-gray-400 text-xs">{new Date(createdOrder.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
             </div>
@@ -746,8 +746,8 @@ export default function OrdersPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-gray-800">{createdOrder.customerName}</p>
-                    {createdOrder.customerPhone && <p className="text-sm text-gray-500">📞 {createdOrder.customerPhone}</p>}
-                    {createdOrder.customerAddress && <p className="text-xs text-gray-400">📍 {createdOrder.customerAddress}</p>}
+                    {createdOrder.customerPhone && <p className="text-sm text-gray-500"> {createdOrder.customerPhone}</p>}
+                    {createdOrder.customerAddress && <p className="text-xs text-gray-400"> {createdOrder.customerAddress}</p>}
                   </div>
                 </div>
                 <div className="flex gap-2 mt-3 flex-wrap">
@@ -756,17 +756,17 @@ export default function OrdersPage() {
                       ? 'bg-blue-100 text-blue-700'
                       : 'bg-emerald-100 text-emerald-700'
                   }`}>
-                    {createdOrder.deliveryMethod === 'DELIVERY' ? '🚚 Livraison' : '🏪 Retrait sur place'}
+                    {createdOrder.deliveryMethod === 'DELIVERY' ? ' Livraison' : ' Retrait sur place'}
                   </span>
                   <span className="text-xs px-2.5 py-1 rounded-full font-semibold bg-gray-100 text-gray-600">
-                    {createdOrder.paymentMethod === 'MOBILE_MONEY' ? '📱 Mobile Money' : '💵 Espèces'}
+                    {createdOrder.paymentMethod === 'MOBILE_MONEY' ? ' Mobile Money' : ' Especes'}
                   </span>
                 </div>
               </div>
 
               {/* Articles */}
               <div className="space-y-1">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Articles à préparer</p>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Articles a preparer</p>
                 {createdOrder.items.map((item: any, i: number) => (
                   <div key={i} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
                     <div className="flex items-center gap-2">
@@ -793,7 +793,7 @@ export default function OrdersPage() {
                   </div>
                 )}
                 <div className="flex justify-between font-bold text-lg" style={{ color: primaryColor }}>
-                  <span>Total à encaisser</span>
+                  <span>Total a encaisser</span>
                   <span>{formatPrice(createdOrder.total, shop?.currency)}</span>
                 </div>
               </div>
@@ -801,14 +801,14 @@ export default function OrdersPage() {
               {/* Notes */}
               {createdOrder.notes && (
                 <div className="bg-yellow-50 rounded-xl p-3 border border-yellow-100 text-sm text-yellow-800">
-                  📝 {createdOrder.notes}
+                   {createdOrder.notes}
                 </div>
               )}
             </div>
 
             {/* Action buttons */}
             <div className="p-5 pt-0 space-y-2">
-              {/* Marquer livrée */}
+              {/* Marquer livree */}
               <button
                 onClick={async () => {
                   if (createdOrder.id) {
@@ -819,7 +819,7 @@ export default function OrdersPage() {
                 }}
                 className="w-full py-3.5 rounded-2xl text-white font-bold text-base flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all shadow-sm"
                 style={{ backgroundColor: '#22c55e' }}>
-                ✅ Marquer comme livrée
+                 Marquer comme livree
               </button>
 
               <div className="grid grid-cols-2 gap-2">
@@ -832,7 +832,7 @@ export default function OrdersPage() {
                 {createdOrder.customerPhone ? (
                   <a href={getWhatsAppLink(
                     createdOrder.customerPhone,
-                    `📦 *Commande ${createdOrder.orderNumber} en préparation!*\n\n👤 ${createdOrder.customerName}\n\n${createdOrder.items.map((i: any) => `• ${i.productName} ×${i.quantity}`).join('\n')}\n\n💰 *Total: ${formatPrice(createdOrder.total, shop?.currency)}*\n\n${createdOrder.deliveryMethod === 'DELIVERY' ? '🚚 Livraison en cours de préparation.' : '🏪 Commande prête pour le retrait.'}\n\nMerci !`
+                    ` *Commande ${createdOrder.orderNumber} en preparation!*\n\n ${createdOrder.customerName}\n\n${createdOrder.items.map((i: any) => ` ${i.productName} ${i.quantity}`).join('\n')}\n\n *Total: ${formatPrice(createdOrder.total, shop?.currency)}*\n\n${createdOrder.deliveryMethod === 'DELIVERY' ? ' Livraison en cours de preparation.' : ' Commande prete pour le retrait.'}\n\nMerci !`
                   )} target="_blank"
                     className="flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-white text-sm bg-green-500 hover:bg-green-600 transition-colors">
                     <MessageCircle className="w-4 h-4" />WhatsApp
@@ -848,7 +848,7 @@ export default function OrdersPage() {
               {/* Keep in processing (not yet delivered) */}
               <button onClick={() => setCreatedOrder(null)}
                 className="w-full py-2.5 text-sm text-gray-400 hover:text-gray-600 transition-colors">
-                Garder en préparation et continuer →
+                Garder en preparation et continuer 
               </button>
             </div>
           </div>
