@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 
-const PLAY_URL  = 'https://play.google.com/store/apps/details?id=com.mastershoppro.app';
+const PLAY_URL  = 'https://www.mastershoppro.com/register'; // → Play Store quand dispo
 const DEMO_URL  = '/demo';
 const WA_NUM    = '393299639430';
 const YT_ID     = 'gKLc2s5CcBU';
@@ -69,7 +69,7 @@ export default function LandingAds() {
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <a href={DEMO_URL} style={{ padding: '7px 14px', borderRadius: 20, border: '1px solid #e5e7eb', fontSize: 12, fontWeight: 700, color: '#374151', textDecoration: 'none' }}>Demo</a>
-          <a href={PLAY_URL} target="_blank" style={{ padding: '7px 14px', borderRadius: 20, background: 'linear-gradient(135deg,#16a34a,#15803d)', fontSize: 12, fontWeight: 700, color: '#fff', textDecoration: 'none' }}>▶ Play Store</a>
+          <a href={PLAY_URL} target="_blank" style={{ padding: '7px 14px', borderRadius: 20, background: 'linear-gradient(135deg,#16a34a,#15803d)', fontSize: 12, fontWeight: 700, color: '#fff', textDecoration: 'none' }}>S'inscrire</a>
         </div>
       </header>
 
@@ -92,10 +92,10 @@ export default function LandingAds() {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, width: '100%', maxWidth: 380, marginBottom: 48 }}>
           <a href={PLAY_URL} target="_blank" className="pulse-cta shine-btn"
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, background: 'linear-gradient(135deg,#16a34a,#15803d)', color: '#fff', textDecoration: 'none', padding: '20px 28px', borderRadius: 18, fontWeight: 800, fontSize: 18, width: '100%' }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M3 20.5v-17l17.5 8.5L3 20.5z"/></svg>
-            Télécharger sur Play Store
+            <span style={{fontSize:22}}>🛍️</span>
+            S'inscrire gratuitement — C'est gratuit !
           </a>
-          <p style={{ fontSize: 11, color: '#9ca3af', margin: 0 }}>✅ Gratuit · Sans carte bancaire · Android</p>
+          <p style={{ fontSize: 11, color: '#9ca3af', margin: 0 }}>✅ Gratuit · Sans carte bancaire · Fonctionne sur tous les téléphones</p>
           <button onClick={() => setShowVideo(true)}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'linear-gradient(135deg,#f97316,#dc2626)', color: '#fff', border: 'none', cursor: 'pointer', padding: '14px 24px', borderRadius: 14, fontWeight: 700, fontSize: 14, width: '100%' }}>
             <div style={{ width: 26, height: 26, background: 'rgba(255,255,255,0.25)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>▶</div>
@@ -125,8 +125,8 @@ export default function LandingAds() {
       <div style={{ background: '#16a34a', padding: '10px 0' }}>
         <div className="ticker-wrap">
           <div className="ticker" style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>
-            {['✓ Caisse pro sur téléphone','✓ Sans internet','✓ Studio Photo IA','✓ Mobile Money','✓ Reçus WhatsApp','✓ 21 pays africains','✓ Scanner codes-barres','✓ Gratuit pour démarrer',
-              '✓ Caisse pro sur téléphone','✓ Sans internet','✓ Studio Photo IA','✓ Mobile Money','✓ Reçus WhatsApp','✓ 21 pays africains','✓ Scanner codes-barres','✓ Gratuit pour démarrer']
+            {['✓ Caisse pro sur téléphone','✓ Sans internet','✓ Studio Photo IA','✓ Mobile Money','✓ Reçus WhatsApp','✓ 21 pays africains','✓ Scanner codes-barres','✓ Inscription gratuite',
+              '✓ Caisse pro sur téléphone','✓ Sans internet','✓ Studio Photo IA','✓ Mobile Money','✓ Reçus WhatsApp','✓ 21 pays africains','✓ Scanner codes-barres','✓ Inscription gratuite']
               .map((t, i) => <span key={i} style={{ marginRight: 48 }}>{t}</span>)}
           </div>
         </div>
@@ -207,8 +207,8 @@ export default function LandingAds() {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, maxWidth: 380, margin: '0 auto' }}>
           <a href={PLAY_URL} target="_blank" className="pulse-cta shine-btn"
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, background: 'linear-gradient(135deg,#16a34a,#15803d)', color: '#fff', textDecoration: 'none', padding: '20px 28px', borderRadius: 18, fontWeight: 800, fontSize: 18, width: '100%' }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M3 20.5v-17l17.5 8.5L3 20.5z"/></svg>
-            Télécharger sur Play Store
+            <span style={{fontSize:22}}>🛍️</span>
+            S'inscrire gratuitement — C'est gratuit !
           </a>
           <a href={`https://wa.me/${WA_NUM}?text=Bonjour, je veux essayer Mastershop`} target="_blank"
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'rgba(37,211,102,0.15)', border: '1px solid rgba(37,211,102,0.4)', color: '#4ade80', textDecoration: 'none', padding: '14px 24px', borderRadius: 14, fontWeight: 700, fontSize: 15, width: '100%' }}>
