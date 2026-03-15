@@ -1,47 +1,31 @@
 // ============== SHOP (Boutique) ==============
 export interface Shop {
   id?: string;
-  slug: string;              // URL unique: "boutique-marie"
-  ownerId: string;           // UID Firebase de l'admin
-  
-  // Informations boutique
+  slug: string;
+  ownerId: string;
   name: string;
   description?: string;
   slogan?: string;
   logo?: string;
-  
-  // Apparence
   primaryColor: string;
-  
-  // Contact
   whatsapp: string;
   phone?: string;
   email?: string;
-  
-  // Localisation
   address?: string;
   city?: string;
   country: string;
   pickupAddress?: string;
-  
-  // Configuration
   currency: 'XAF' | 'XOF' | 'GNF' | 'MGA' | 'MRO' | 'EUR' | 'USD' | 'CDF' | 'BIF' | 'RWF';
   deliveryFee: number;
   freeDeliveryAbove?: number;
   pickupEnabled: boolean;
   deliveryEnabled: boolean;
-  
-  // Paiement
   mobileMoneyNumber?: string;
   mobileMoneyName?: string;
-  
-  // Abonnement
   planId: 'FREE' | 'STARTER' | 'PRO';
   planExpiry?: string;
   ordersThisMonth: number;
   lastOrderReset: string;
-  
-  // Statut
   isActive: boolean;
   createdAt: string;
   updatedAt?: string;
@@ -53,22 +37,22 @@ export interface Admin {
   email: string;
   name: string;
   phone?: string;
-  shopId: string;            // ID de sa boutique
-  shopSlug: string;          // Slug de sa boutique
+  shopId: string;
+  shopSlug: string;
   createdAt: string;
 }
 
 // ============== PRODUCT ==============
 export interface Product {
   id?: string;
-  shopId: string;            // ID de la boutique
+  shopId: string;
   name: string;
   description?: string;
   specifications?: string;
   category: string;
   brand?: string;
-  sku?: string;              // Code article (SKU)
-  barcode?: string;          // Code-barres EAN/UPC
+  sku?: string;
+  barcode?: string;
   costPrice: number;
   sellingPrice: number;
   stock: number;
@@ -85,7 +69,7 @@ export interface Product {
 // ============== CATEGORY ==============
 export interface Category {
   id?: string;
-  shopId: string;            // ID de la boutique
+  shopId: string;
   name: string;
   description?: string;
   color: string;
@@ -103,31 +87,24 @@ export interface OrderItem {
 
 export interface Order {
   id?: string;
-  shopId: string;            // ID de la boutique
+  shopId: string;
   orderNumber: string;
-  
-  // Client
   customerName: string;
   customerPhone: string;
   customerEmail?: string;
   customerAddress?: string;
   customerQuartier?: string;
-  
-  // Commande
+  customerWhatsapp?: string;
+  lastContactAt?: string;
   items: OrderItem[];
   subtotal: number;
   deliveryFee: number;
   total: number;
   profit: number;
-  
-  // Méthodes
   paymentMethod: 'MOBILE_MONEY' | 'CASH_ON_DELIVERY';
   deliveryMethod: 'DELIVERY' | 'PICKUP';
-  
-  // Statut
   status: 'PENDING' | 'CONFIRMED' | 'PROCESSING' | 'DELIVERED' | 'CANCELLED';
   notes?: string;
-  
   createdAt: string;
   updatedAt?: string;
 }
@@ -164,3 +141,24 @@ export const PLANS = {
 };
 
 export type PlanId = keyof typeof PLANS;
+
+// ─── WHATSAPP / COMMUNICATION ─────────────────────────────────────────────────
+
+export type CommLogType =
+  | 'contact'
+  | 'confirm_order'
+  | 'payment_reminder'
+  | 'order_ready'
+  | 'send_receipt';
+
+export interface CommLog {
+  id?:           string;
+  shopId:        string;
+  orderId:       string | null;
+  customerName:  string;
+  customerPhone: string;
+  type:          CommLogType;
+  message:       string;
+  status:        'opened' | 'delivered' | 'failed';
+  createdAt:     string;
+}

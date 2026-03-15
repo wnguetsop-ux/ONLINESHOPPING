@@ -6,7 +6,7 @@ import {
   FileText, Shield, RefreshCw, ChevronRight, Copy, QrCode, Download,
   ExternalLink, Smartphone, Star, MessageCircle, Mail, Phone,
   Info, CheckCircle, AlertCircle, Zap, Lock, Eye, EyeOff, LogOut,
-  BookOpen, ChevronDown, Package, ShoppingCart, BarChart3
+  BookOpen, ChevronDown, Package, ShoppingCart, BarChart3, Edit3
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { updateShop } from '@/lib/firestore';
@@ -41,10 +41,26 @@ const CURRENCIES = [
   { code: 'USD', label: 'Dollar US ($) - Djibouti, international' },
 ];
 
-// -- Section component -----------------------------------------------------
-function Section({ icon: Icon, title, color, children }: {
-  icon: any; title: string; color: string; children: React.ReactNode;
-}) {
+// Templates par défaut
+const DEFAULT_TEMPLATES = {
+  contact:          'Bonjour {{nom}}, je vous contacte depuis {{boutique}}. Comment puis-je vous aider ?',
+  confirm_order:    'Bonjour {{nom}} 👋\n\nVotre commande *#{{reference}}* a bien été confirmée ✅\n\n💰 Total : *{{total}}*\n\nMerci pour votre confiance ! 🙏\n— {{boutique}}',
+  payment_reminder: 'Bonjour {{nom}} 👋\n\nNous vous rappelons qu\'il reste *{{reste}}* à régler pour votre commande *#{{reference}}*.\n\nMerci de procéder au paiement dès que possible 🙏\n— {{boutique}}',
+  order_ready:      'Bonjour {{nom}} 👋\n\nVotre commande *#{{reference}}* est prête ! 🎉\n\nVous pouvez venir la récupérer.\n\n— {{boutique}}',
+  send_receipt:     'Bonjour {{nom}} 👋\n\nVoici le résumé de votre commande *#{{reference}}* :\n\n💰 Total payé : *{{total}}*\n✅ Statut : Payée\n\nMerci pour votre confiance ! 🛍️\n— {{boutique}}',
+};
+
+const TEMPLATE_META: Record<string, { label: string; emoji: string; vars: string[] }> = {
+  contact:          { label: 'Contact simple',     emoji: '💬', vars: ['{{nom}}', '{{boutique}}'] },
+  confirm_order:    { label: 'Confirmation commande', emoji: '✅', vars: ['{{nom}}', '{{reference}}', '{{total}}', '{{boutique}}'] },
+  payment_reminder: { label: 'Rappel paiement',    emoji: '💰', vars: ['{{nom}}', '{{reference}}', '{{reste}}', '{{boutique}}'] },
+  order_ready:      { label: 'Commande prête',      emoji: '📦', vars: ['{{nom}}', '{{reference}}', '{{boutique}}'] },
+  send_receipt:     { label: 'Envoi reçu',          emoji: '🧾', vars: ['{{nom}}', '{{reference}}', '{{total}}', '{{boutique}}'] },
+};
+
+const STORAGE_KEY = 'sm_wa_templates';
+
+function Section({ icon: Icon, title, color, children }: { icon: any; title: string; color: string; children: React.ReactNode }) {
   return (
     <div className="card">
       <div className="flex items-center gap-3 mb-5">
@@ -58,14 +74,11 @@ function Section({ icon: Icon, title, color, children }: {
   );
 }
 
-// -- Action row -----------------------------------------------------------
 function ActionRow({ icon: Icon, label, sub, onClick, href, color = '#6b7280', danger = false, external = false }: {
   icon: any; label: string; sub?: string; onClick?: () => void; href?: string;
   color?: string; danger?: boolean; external?: boolean;
 }) {
-  const cls = `w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-left ${
-    danger ? 'hover:bg-red-50' : 'hover:bg-gray-50'
-  }`;
+  const cls = `w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-left ${danger ? 'hover:bg-red-50' : 'hover:bg-gray-50'}`;
   const inner = (
     <>
       <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${color}15` }}>
@@ -91,9 +104,46 @@ export default function SettingsPage() {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [copied, setCopied] = useState('');
-  const [activeSection, setActiveSection] = useState<string | null>(null);
   const [showChangelog, setShowChangelog] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<'idle'|'checking'|'latest'|'available'>('idle');
+
+  // ── TEMPLATES STATE ──────────────────────────────────────────────────────
+  const [templates, setTemplates] = useState<Record<string, string>>(DEFAULT_TEMPLATES);
+  const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
+  const [templateDraft, setTemplateDraft] = useState('');
+  const [templatesSaved, setTemplatesSaved] = useState(false);
+
+  // Charger les templates depuis localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) setTemplates({ ...DEFAULT_TEMPLATES, ...JSON.parse(saved) });
+    } catch {}
+  }, []);
+
+  function saveTemplates(updated: Record<string, string>) {
+    setTemplates(updated);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    setTemplatesSaved(true);
+    setTimeout(() => setTemplatesSaved(false), 2500);
+  }
+
+  function startEdit(key: string) {
+    setEditingTemplate(key);
+    setTemplateDraft(templates[key]);
+  }
+
+  function saveTemplate(key: string) {
+    const updated = { ...templates, [key]: templateDraft };
+    saveTemplates(updated);
+    setEditingTemplate(null);
+  }
+
+  function resetTemplate(key: string) {
+    const updated = { ...templates, [key]: DEFAULT_TEMPLATES[key as keyof typeof DEFAULT_TEMPLATES] };
+    saveTemplates(updated);
+    setEditingTemplate(null);
+  }
 
   const [form, setForm] = useState({
     name: '', description: '', slogan: '', primaryColor: '#ec4899',
@@ -125,11 +175,7 @@ export default function SettingsPage() {
 
   function handleCountryChange(countryName: string) {
     const country = AFRICAN_COUNTRIES.find(c => c.name === countryName);
-    setForm(prev => ({
-      ...prev, country: countryName,
-      currency: country?.currency || 'XAF',
-      whatsapp: prev.whatsapp || country?.phone || '',
-    }));
+    setForm(prev => ({ ...prev, country: countryName, currency: country?.currency || 'XAF', whatsapp: prev.whatsapp || country?.phone || '' }));
   }
 
   function handleLogoSelect(e: React.ChangeEvent<HTMLInputElement>) {
@@ -187,14 +233,12 @@ export default function SettingsPage() {
     const msg = ` Decouvrez ma boutique *${shop?.name}* sur ShopMaster !\n\nCommandez en ligne ici : ${url}`;
     if (typeof navigator !== 'undefined' && navigator.share) {
       try { await navigator.share({ title: shop?.name, text: msg, url }); } catch {}
-    } else {
-      copyToClipboard(url, 'share');
-    }
+    } else { copyToClipboard(url, 'share'); }
   }
 
   function checkUpdate() {
     setUpdateStatus('checking');
-    setTimeout(() => setUpdateStatus('latest'), 2000); // In real app: fetch version API
+    setTimeout(() => setUpdateStatus('latest'), 2000);
   }
 
   function downloadData() {
@@ -215,12 +259,9 @@ export default function SettingsPage() {
   return (
     <div className="max-w-2xl space-y-5">
 
-      {/* ==============================================
-          BOUTIQUE IDENTITY
-      ============================================== */}
+      {/* BOUTIQUE IDENTITY */}
       <Section icon={Store} title="Identite de la boutique" color={primaryColor}>
         <form onSubmit={handleSave} id="main-form" className="space-y-4">
-          {/* Logo */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Logo de la boutique</label>
             <div className="flex items-center gap-4">
@@ -249,7 +290,6 @@ export default function SettingsPage() {
               <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoSelect} />
             </div>
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Nom de la boutique *</label>
             <input type="text" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="input" />
@@ -265,9 +305,7 @@ export default function SettingsPage() {
         </form>
       </Section>
 
-      {/* ==============================================
-          APPARENCE
-      ============================================== */}
+      {/* APPARENCE */}
       <Section icon={Palette} title="Apparence" color={primaryColor}>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-3">Couleur principale</label>
@@ -285,9 +323,7 @@ export default function SettingsPage() {
         </div>
       </Section>
 
-      {/* ==============================================
-          CONTACT & LOCALISATION
-      ============================================== */}
+      {/* CONTACT & LOCALISATION */}
       <Section icon={MapPin} title="Contact & Localisation" color={primaryColor}>
         <div className="space-y-4">
           <div>
@@ -319,9 +355,7 @@ export default function SettingsPage() {
         </div>
       </Section>
 
-      {/* ==============================================
-          LIVRAISON
-      ============================================== */}
+      {/* LIVRAISON */}
       <Section icon={Truck} title="Livraison" color={primaryColor}>
         <div className="space-y-4">
           <div className="flex gap-6 flex-wrap">
@@ -353,9 +387,7 @@ export default function SettingsPage() {
         </div>
       </Section>
 
-      {/* ==============================================
-          PAIEMENT
-      ============================================== */}
+      {/* PAIEMENT */}
       <Section icon={CreditCard} title="Paiement & Devise" color={primaryColor}>
         <div className="space-y-4">
           <div>
@@ -374,7 +406,7 @@ export default function SettingsPage() {
         </div>
       </Section>
 
-      {/* -- Save button -- */}
+      {/* Save button */}
       <div className="flex justify-end gap-4">
         {saved && <span className="flex items-center gap-2 text-emerald-600 font-medium text-sm"><Check className="w-5 h-5" />Sauvegarde !</span>}
         <button type="submit" form="main-form" onClick={handleSave} disabled={saving || uploadingLogo}
@@ -384,12 +416,86 @@ export default function SettingsPage() {
         </button>
       </div>
 
-      {/* ==============================================
-          PARTAGER L'APPLICATION
-      ============================================== */}
+      {/* ── TEMPLATES WHATSAPP ────────────────────────────────────────── */}
+      <Section icon={MessageCircle} title="Templates WhatsApp" color="#25D366">
+        <div className="space-y-3">
+          <div className="bg-green-50 border border-green-100 rounded-xl p-3 text-xs text-green-700 leading-relaxed">
+            <p className="font-bold mb-1">Variables disponibles :</p>
+            <div className="flex flex-wrap gap-1.5">
+              {['{{nom}}', '{{reference}}', '{{total}}', '{{reste}}', '{{boutique}}'].map(v => (
+                <span key={v} className="bg-white border border-green-200 rounded px-2 py-0.5 font-mono text-green-800">{v}</span>
+              ))}
+            </div>
+            <p className="mt-1.5 text-green-600">Ces variables sont remplacées automatiquement par les vraies valeurs lors de l'envoi.</p>
+          </div>
+
+          {Object.entries(TEMPLATE_META).map(([key, meta]) => (
+            <div key={key} className="border border-gray-100 rounded-xl overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 bg-gray-50">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{meta.emoji}</span>
+                  <p className="text-sm font-semibold text-gray-700">{meta.label}</p>
+                </div>
+                <div className="flex gap-2">
+                  {editingTemplate !== key && (
+                    <>
+                      <button onClick={() => startEdit(key)}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-100 transition-colors">
+                        <Edit3 className="w-3 h-3" />Modifier
+                      </button>
+                      <button onClick={() => resetTemplate(key)}
+                        className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-400 hover:bg-gray-100 transition-colors">
+                        Reset
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {editingTemplate === key ? (
+                <div className="p-3 space-y-2">
+                  <textarea
+                    value={templateDraft}
+                    onChange={e => setTemplateDraft(e.target.value)}
+                    rows={5}
+                    className="w-full border border-gray-200 rounded-xl p-3 text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-green-300"
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <button onClick={() => setEditingTemplate(null)}
+                      className="px-4 py-2 border border-gray-200 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-50">
+                      Annuler
+                    </button>
+                    <button onClick={() => saveTemplate(key)}
+                      className="px-4 py-2 rounded-xl text-xs font-semibold text-white hover:opacity-90"
+                      style={{ backgroundColor: '#25D366' }}>
+                      <Check className="w-3.5 h-3.5 inline mr-1" />Sauvegarder
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="px-4 py-3">
+                  <p className="text-xs text-gray-500 whitespace-pre-wrap leading-relaxed font-mono">{templates[key]}</p>
+                </div>
+              )}
+            </div>
+          ))}
+
+          {templatesSaved && (
+            <div className="flex items-center gap-2 text-emerald-600 text-sm font-medium">
+              <CheckCircle className="w-4 h-4" />Template sauvegardé !
+            </div>
+          )}
+
+          <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700">
+            <p className="font-bold mb-1">💡 Note</p>
+            <p>Les templates sont sauvegardés sur cet appareil. Ils seront utilisés automatiquement dans les pages Commandes et Clients.</p>
+          </div>
+        </div>
+      </Section>
+
+      {/* PARTAGER */}
       <Section icon={Share2} title="Partager ma boutique" color="#f97316">
         <div className="space-y-2">
-          {/* URL display */}
           <div className="bg-gray-50 rounded-xl p-3 flex items-center gap-3 border border-gray-100">
             <Globe className="w-4 h-4 text-gray-400 flex-shrink-0" />
             <p className="text-sm text-gray-700 flex-1 truncate font-mono">{shopUrl}</p>
@@ -399,37 +505,28 @@ export default function SettingsPage() {
               {copied === 'url' ? <><Check className="w-3.5 h-3.5" />Copie</> : <><Copy className="w-3.5 h-3.5" />Copier</>}
             </button>
           </div>
-
-          {/* Share actions */}
           <div className="grid grid-cols-2 gap-2 mt-3">
             <ActionRow icon={Share2} label="Partager le lien" sub="Via les apps installees" color="#f97316" onClick={shareApp} />
             <ActionRow icon={MessageCircle} label="Partager sur WhatsApp" color="#25D366"
-              href={`https://wa.me/?text=${encodeURIComponent(` Decouvrez *${shop?.name}* sur ShopMaster !\n${shopUrl}`)}`}
-              external />
+              href={`https://wa.me/?text=${encodeURIComponent(` Decouvrez *${shop?.name}* sur ShopMaster !\n${shopUrl}`)}`} external />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <ActionRow icon={Smartphone} label="Installer l'app" sub="Ajouter a l'ecran d'accueil" color="#3b82f6"
               onClick={() => alert('Ouvrez ce site dans Chrome/Safari  Menu   "Ajouter a l\'ecran d\'accueil"')} />
-            <ActionRow icon={ExternalLink} label="Voir ma boutique" sub={`/${shop?.slug}`} color={primaryColor}
-              href={shopUrl} external />
+            <ActionRow icon={ExternalLink} label="Voir ma boutique" sub={`/${shop?.slug}`} color={primaryColor} href={shopUrl} external />
           </div>
-
-          {/* QR Code hint */}
           <div className="mt-3 bg-orange-50 rounded-xl p-3 flex items-start gap-2.5 border border-orange-100">
             <QrCode className="w-4 h-4 text-orange-400 mt-0.5 flex-shrink-0" />
             <div className="text-xs text-orange-700">
               <p className="font-semibold mb-0.5">Generer un QR Code</p>
-              <p>Visitez <span className="font-mono">qr-code-generator.com</span> et collez votre lien boutique pour creer un QR Code a imprimer.</p>
+              <p>Visitez <span className="font-mono">qr-code-generator.com</span> et collez votre lien boutique.</p>
             </div>
           </div>
         </div>
       </Section>
 
-      {/* ==============================================
-          MES DONNEES
-      ============================================== */}
+      {/* MES DONNEES */}
       <Section icon={Database} title="Mes donnees" color="#8b5cf6">
-        {/* Account info */}
         <div className="bg-gray-50 rounded-xl p-4 mb-3 border border-gray-100">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-lg">
@@ -442,15 +539,11 @@ export default function SettingsPage() {
                 <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${currentPlan.color}20`, color: currentPlan.color }}>
                   Plan {currentPlan.name}
                 </span>
-                {shop?.planExpiry && (
-                  <span className="text-xs text-gray-400"> expire {new Date(shop.planExpiry).toLocaleDateString('fr')}</span>
-                )}
+                {shop?.planExpiry && <span className="text-xs text-gray-400"> expire {new Date(shop.planExpiry).toLocaleDateString('fr')}</span>}
               </div>
             </div>
           </div>
         </div>
-
-        {/* Stats summary */}
         <div className="grid grid-cols-3 gap-2 mb-3">
           {[
             { label: 'Boutique', value: shop?.name?.slice(0,12) || '-', icon: Store, color: primaryColor },
@@ -464,64 +557,27 @@ export default function SettingsPage() {
             </div>
           ))}
         </div>
-
         <div className="space-y-1">
-          <ActionRow icon={Download} label="Exporter mes donnees" sub="Telecharger un fichier JSON de votre boutique" color="#8b5cf6"
-            onClick={downloadData} />
+          <ActionRow icon={Download} label="Exporter mes donnees" sub="Telecharger un fichier JSON" color="#8b5cf6" onClick={downloadData} />
           <ActionRow icon={Mail} label="Demander la suppression du compte" sub="Envoi d'une demande par email" color="#ef4444"
-            href={`mailto:${EMAIL_SUPPORT}?subject=Suppression compte ShopMaster&body=Bonjour, je souhaite supprimer mon compte ShopMaster.%0A%0ABoutique: ${shop?.name}%0ASlug: ${shop?.slug}%0AEmail: ${admin?.email}`}
-            external danger />
+            href={`mailto:${EMAIL_SUPPORT}?subject=Suppression compte ShopMaster&body=Boutique: ${shop?.name}%0AEmail: ${admin?.email}`} external danger />
         </div>
       </Section>
 
-      {/* ==============================================
-          SITE WEB
-      ============================================== */}
-      <Section icon={Globe} title="Site web & Application" color="#3b82f6">
-        <div className="space-y-1">
-          <ActionRow icon={Globe} label="Site officiel ShopMaster" sub={WEBSITE_URL} color="#3b82f6" href={WEBSITE_URL} external />
-          <ActionRow icon={BookOpen} label="Documentation & Guides" sub="Tutoriels pour bien utiliser ShopMaster" color="#14b8a6"
-            href={`${WEBSITE_URL}/docs`} external />
-          <ActionRow icon={Star} label="Laisser un avis" sub="Aidez-nous a ameliorer ShopMaster" color="#eab308"
-            href={`https://wa.me/${WHATSAPP_SUPPORT}?text=${encodeURIComponent('Bonjour! Voici mon avis sur ShopMaster:\n\n')}`} external />
-
-          {/* App install banner */}
-          <div className="mt-3 rounded-2xl overflow-hidden border border-blue-100"
-            style={{ background: 'linear-gradient(135deg, #eff6ff, #dbeafe)' }}>
-            <div className="p-4 flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-blue-500 flex items-center justify-center flex-shrink-0 shadow-sm">
-                <Smartphone className="w-7 h-7 text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-blue-900 text-sm">Installer ShopMaster</p>
-                <p className="text-xs text-blue-600 mt-0.5">Accedez a votre boutique comme une vraie app mobile</p>
-                <p className="text-[10px] text-blue-400 mt-1">Chrome    "Ajouter a l'ecran d'accueil"  Safari    "Sur l'ecran d'accueil"</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Section>
-
-      {/* ==============================================
-          AIDE & SUPPORT
-      ============================================== */}
+      {/* AIDE & SUPPORT */}
       <Section icon={HelpCircle} title="Aide & Support" color="#22c55e">
         <div className="space-y-1">
           <ActionRow icon={MessageCircle} label="Contacter le support" sub="Reponse en moins de 24h" color="#25D366"
             href={`https://wa.me/${WHATSAPP_SUPPORT}?text=${encodeURIComponent(`Bonjour ShopMaster Support!\n\nBoutique: ${shop?.name}\nSlug: ${shop?.slug}\n\nMon probleme: `)}`} external />
           <ActionRow icon={Mail} label="Envoyer un email" sub={EMAIL_SUPPORT} color="#3b82f6"
             href={`mailto:${EMAIL_SUPPORT}?subject=Support ShopMaster - ${shop?.name}`} external />
-          <ActionRow icon={BookOpen} label="Guide d'utilisation" sub="Apprendre toutes les fonctionnalites" color="#22c55e"
-            href={`https://wa.me/${WHATSAPP_SUPPORT}?text=${encodeURIComponent('Bonjour, j\'aimerais recevoir le guide complet ShopMaster.')}`} external />
-
-          {/* FAQ */}
           <div className="mt-3 border border-gray-100 rounded-2xl overflow-hidden">
             <p className="text-xs font-bold text-gray-500 px-4 pt-3 pb-2 bg-gray-50 uppercase tracking-wider">Questions frequentes</p>
             {[
-              { q: 'Comment ajouter un produit ?', r: 'Menu Produits  bouton "+"  remplir le formulaire  Sauvegarder. L\'IA peut analyser vos photos automatiquement.' },
-              { q: 'Comment recevoir des commandes ?', r: 'Partagez le lien de votre boutique (section "Partager"). Les clients commandent directement en ligne.' },
-              { q: 'Comment imprimer un recu ?', r: 'Dans Commandes  cliquer sur une commande  bouton "Imprimer". Compatible imprimante thermique 80mm.' },
-              { q: 'Comment scanner un code-barres ?', r: 'Dans Nouvelle commande  icone Scanner USB ou Camera. Votre scanner USB est automatiquement detecte.' },
+              { q: 'Comment ajouter un produit ?', r: 'Menu Produits → bouton "+" → remplir le formulaire → Sauvegarder.' },
+              { q: 'Comment recevoir des commandes ?', r: 'Partagez le lien de votre boutique. Les clients commandent directement en ligne.' },
+              { q: 'Comment utiliser les templates WhatsApp ?', r: 'Dans Commandes, ouvrez une commande → section verte "Actions WhatsApp" → cliquez sur le bouton voulu. Le message est envoyé avec les infos de la commande.' },
+              { q: 'Comment voir mes clients ?', r: 'Menu Clients → liste de tous vos clients avec historique et boutons WhatsApp.' },
             ].map((faq, i) => (
               <div key={i} className="border-t border-gray-100 px-4 py-3">
                 <p className="text-sm font-semibold text-gray-700 mb-1">{faq.q}</p>
@@ -532,11 +588,8 @@ export default function SettingsPage() {
         </div>
       </Section>
 
-      {/* ==============================================
-          MISES A JOUR
-      ============================================== */}
+      {/* MISES A JOUR */}
       <Section icon={RefreshCw} title="Mises a jour" color="#14b8a6">
-        {/* Current version */}
         <div className="bg-teal-50 rounded-xl p-4 border border-teal-100 mb-3">
           <div className="flex items-center justify-between">
             <div>
@@ -545,20 +598,14 @@ export default function SettingsPage() {
               <p className="text-xs text-teal-500">Build {APP_BUILD}</p>
             </div>
             <button onClick={checkUpdate}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
               style={{ backgroundColor: updateStatus === 'latest' ? '#22c55e' : '#14b8a6', color: 'white' }}>
-              {updateStatus === 'checking' ? (
-                <><Loader2 className="w-4 h-4 animate-spin" />Verification...</>
-              ) : updateStatus === 'latest' ? (
-                <><CheckCircle className="w-4 h-4" />A jour !</>
-              ) : (
-                <><RefreshCw className="w-4 h-4" />Verifier</>
-              )}
+              {updateStatus === 'checking' ? <><Loader2 className="w-4 h-4 animate-spin" />Verification...</>
+                : updateStatus === 'latest' ? <><CheckCircle className="w-4 h-4" />A jour !</>
+                : <><RefreshCw className="w-4 h-4" />Verifier</>}
             </button>
           </div>
         </div>
-
-        {/* Changelog */}
         <button onClick={() => setShowChangelog(!showChangelog)}
           className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors mb-2">
           <div className="flex items-center gap-2">
@@ -567,7 +614,6 @@ export default function SettingsPage() {
           </div>
           <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showChangelog ? 'rotate-180' : ''}`} />
         </button>
-
         {showChangelog && (
           <div className="space-y-3">
             {CHANGELOG.map((v, i) => (
@@ -582,8 +628,7 @@ export default function SettingsPage() {
                 <ul className="space-y-1">
                   {v.highlights.map((h, j) => (
                     <li key={j} className="flex items-start gap-2 text-xs text-gray-600">
-                      <Check className="w-3 h-3 text-teal-400 mt-0.5 flex-shrink-0" />
-                      {h}
+                      <Check className="w-3 h-3 text-teal-400 mt-0.5 flex-shrink-0" />{h}
                     </li>
                   ))}
                 </ul>
@@ -593,12 +638,9 @@ export default function SettingsPage() {
         )}
       </Section>
 
-      {/* ==============================================
-          LICENCE
-      ============================================== */}
+      {/* LICENCE */}
       <Section icon={FileText} title="Licence" color="#f59e0b">
         <div className="space-y-3">
-          {/* License badge */}
           <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
@@ -615,35 +657,21 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
-
-          <div className="space-y-1">
-            <div className="px-4 py-3 bg-gray-50 rounded-xl text-xs text-gray-600 leading-relaxed">
-              <p className="font-semibold text-gray-700 mb-1">Conditions d'utilisation</p>
-              Cette licence vous permet d'utiliser ShopMaster pour gerer votre boutique commerciale. Vous ne pouvez pas redistribuer, revendre ou sous-licencier le logiciel.
-              La licence est valable pour une boutique et un administrateur principal.
-            </div>
-          </div>
-
           <div className="space-y-1">
             <ActionRow icon={ExternalLink} label="Voir les CGU completes" color="#f59e0b"
               href={`https://wa.me/${WHATSAPP_SUPPORT}?text=${encodeURIComponent('Bonjour, je souhaite recevoir les CGU completes de ShopMaster.')}`} external />
             <ActionRow icon={Mail} label="Licence & facturation" sub="Pour toute question sur votre abonnement" color="#f97316"
               href={`mailto:${EMAIL_SUPPORT}?subject=Licence ShopMaster - ${shop?.slug}`} external />
           </div>
-
-          {/* Open source */}
           <div className="text-xs text-gray-400 px-2 leading-relaxed">
             ShopMaster utilise des librairies open-source : React, Next.js, Firebase, Tailwind CSS, Lucide Icons.
           </div>
         </div>
       </Section>
 
-      {/* ==============================================
-          CONFIDENTIALITE
-      ============================================== */}
+      {/* CONFIDENTIALITE */}
       <Section icon={Shield} title="Confidentialite & Securite" color="#6366f1">
         <div className="space-y-3">
-          {/* Security status */}
           <div className="grid grid-cols-2 gap-2">
             {[
               { label: 'Donnees chiffrees', status: true, desc: 'Firebase SSL/TLS' },
@@ -653,46 +681,26 @@ export default function SettingsPage() {
             ].map(item => (
               <div key={item.label} className={`rounded-xl p-3 border ${item.status ? 'border-emerald-100 bg-emerald-50' : 'border-amber-100 bg-amber-50'}`}>
                 <div className="flex items-center gap-1.5 mb-0.5">
-                  {item.status
-                    ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
-                    : <AlertCircle className="w-3.5 h-3.5 text-amber-500" />}
+                  {item.status ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> : <AlertCircle className="w-3.5 h-3.5 text-amber-500" />}
                   <p className={`text-xs font-semibold ${item.status ? 'text-emerald-700' : 'text-amber-700'}`}>{item.label}</p>
                 </div>
                 <p className="text-[10px] text-gray-500">{item.desc}</p>
               </div>
             ))}
           </div>
-
-          <div className="space-y-1">
-            <div className="px-4 py-3 bg-gray-50 rounded-xl text-xs text-gray-600 leading-relaxed">
-              <p className="font-semibold text-gray-700 mb-1">Collecte de donnees</p>
-              Nous collectons uniquement les donnees necessaires au fonctionnement de votre boutique : nom, email, informations de boutique, produits et commandes.
-              Ces donnees sont stockees sur les serveurs securises de Google Firebase en Europe.
-              Nous ne vendons jamais vos donnees a des tiers.
-            </div>
-          </div>
-
           <div className="space-y-1">
             <ActionRow icon={Shield} label="Politique de confidentialite" color="#6366f1"
               href={`https://wa.me/${WHATSAPP_SUPPORT}?text=${encodeURIComponent('Bonjour, je souhaite consulter la politique de confidentialite de ShopMaster.')}`} external />
             <ActionRow icon={Lock} label="Modifier mon mot de passe" sub="Reinitialisation par email" color="#8b5cf6"
               href={`mailto:${EMAIL_SUPPORT}?subject=Reinitialisation mot de passe&body=Email: ${admin?.email}`} external />
-            <ActionRow icon={Database} label="Mes droits RGPD" sub="Acces, correction, suppression de donnees" color="#ec4899"
-              href={`mailto:${EMAIL_SUPPORT}?subject=Droits RGPD - ${admin?.email}`} external />
           </div>
-
-          {/* Data hosted info */}
           <div className="flex items-start gap-2.5 bg-indigo-50 rounded-xl p-3 border border-indigo-100">
             <Info className="w-4 h-4 text-indigo-400 mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-indigo-700">
-              Vos donnees sont hebergees sur <strong>Google Firebase</strong> (serveurs europeens).
-              L'acces est protege par les regles de securite Firestore et Firebase Auth.
-            </p>
+            <p className="text-xs text-indigo-700">Vos donnees sont hebergees sur <strong>Google Firebase</strong> (serveurs europeens).</p>
           </div>
         </div>
       </Section>
 
-      {/* -- App footer -- */}
       <div className="text-center py-4 space-y-1">
         <p className="text-xs text-gray-400 font-medium">ShopMaster v{APP_VERSION}  Build {APP_BUILD}</p>
         <p className="text-xs text-gray-300"> 2025-2026 ShopMaster. Tous droits reserves.</p>

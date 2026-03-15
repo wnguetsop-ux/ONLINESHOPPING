@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Package, ShoppingCart, Settings, LogOut, Menu, X, Store, Crown, ExternalLink, Shield } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Settings, LogOut, Menu, X, Store, Crown, ExternalLink, Shield, Users, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useI18n } from '@/hooks/useI18n';
 import { PINManager } from '@/lib/pin';
@@ -19,11 +19,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [pinChecked, setPinChecked] = useState(false);
 
   const navItems = [
-    { label: t('nav.dashboard'),    href: '/admin/dashboard', icon: LayoutDashboard },
-    { label: t('nav.products'),     href: '/admin/products',  icon: Package },
-    { label: t('nav.orders'),       href: '/admin/orders',    icon: ShoppingCart },
+    { label: t('nav.dashboard'),    href: '/admin/dashboard',    icon: LayoutDashboard },
+    { label: t('nav.products'),     href: '/admin/products',     icon: Package },
+    { label: t('nav.orders'),       href: '/admin/orders',       icon: ShoppingCart },
+    { label: 'Clients',             href: '/admin/clients',      icon: Users },
+    { label: 'WhatsApp',            href: '/admin/whatsapp',     icon: MessageCircle },
     { label: t('nav.subscription'), href: '/admin/subscription', icon: Crown },
-    { label: t('nav.settings'),     href: '/admin/settings',  icon: Settings },
+    { label: t('nav.settings'),     href: '/admin/settings',     icon: Settings },
   ];
 
   useEffect(() => {
@@ -100,13 +102,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </div>
 
-        <nav className="p-4 space-y-1">
+        <nav className="p-4 space-y-1 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 320px)' }}>
           {navItems.map(item => {
             const isActive = pathname === item.href;
             return (
               <Link key={item.href} href={item.href} onClick={() => setSidebarOpen(false)}
                 className={isActive ? 'sidebar-link-active' : 'sidebar-link'}>
                 <item.icon className="w-5 h-5" />{item.label}
+                {item.href === '/admin/whatsapp' && (
+                  <span className="ml-auto text-[9px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">NEW</span>
+                )}
+                {item.href === '/admin/clients' && (
+                  <span className="ml-auto text-[9px] font-bold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">NEW</span>
+                )}
               </Link>
             );
           })}
