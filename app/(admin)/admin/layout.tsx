@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Home, Package, ShoppingCart, Settings, LogOut, Menu, X,
-  Store, Crown, ExternalLink, Shield, Users, MessageCircle, Wrench
+  Store, Crown, ExternalLink, Shield, Users, MessageCircle, Wrench, BarChart3
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useI18n } from '@/hooks/useI18n';
@@ -34,6 +34,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   // Outils secondaires dans un sous-menu
   const toolItems = [
+    { label: 'Statistiques', href: '/admin/stats',        icon: BarChart3 },
     { label: 'Abonnement',   href: '/admin/subscription', icon: Crown },
   ];
 
