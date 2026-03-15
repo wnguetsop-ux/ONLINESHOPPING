@@ -49,6 +49,7 @@ export default function OrdersPage() {
   const [dateTo, setDateTo] = useState('');
   const [selected, setSelected] = useState<Order | null>(null);
   const [showManual, setShowManual] = useState(false);
+  const [orderMode, setOrderMode] = useState<'pick' | 'manual' | null>(null); // ← NOUVEAU
   const [showReceipt, setShowReceipt] = useState<Order | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [savingManual, setSavingManual] = useState(false);
@@ -95,23 +96,16 @@ export default function OrdersPage() {
     if (selected?.id === orderId) setSelected(prev => prev ? { ...prev, status } : null);
   }
 
-  // ── WHATSAPP ACTIONS ──────────────────────────────────────────────────────
   async function waAction(type: 'confirm_order' | 'payment_reminder' | 'order_ready' | 'send_receipt' | 'contact', order: Order) {
     if (!order.customerPhone || !shop?.id) return;
     await sendWhatsApp(type, {
-      shopId:        shop.id,
-      shopName:      shop.name,
-      customerPhone: order.customerPhone,
-      customerName:  order.customerName,
-      orderId:       order.id,
-      orderRef:      order.orderNumber,
-      total:         order.total,
-      reste:         order.total, // à adapter si paiement partiel géré plus tard
-      currency:      shop.currency,
+      shopId: shop.id, shopName: shop.name,
+      customerPhone: order.customerPhone, customerName: order.customerName,
+      orderId: order.id, orderRef: order.orderNumber,
+      total: order.total, reste: order.total, currency: shop.currency,
     });
   }
 
-  // ── BARCODE ───────────────────────────────────────────────────────────────
   function handleBarcodeKey(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter') { e.preventDefault(); processBarcodeString(barcodeInput.trim()); setBarcodeInput(''); return; }
     if (barcodeTimer.current) clearTimeout(barcodeTimer.current);
@@ -261,7 +255,8 @@ export default function OrdersPage() {
           <h1 className="text-2xl font-bold text-gray-800">Commandes</h1>
           <p className="text-gray-500 text-sm">{orders.length} commande{orders.length !== 1 ? 's' : ''} au total</p>
         </div>
-        <button onClick={() => setShowManual(true)} className="btn-primary flex items-center gap-2" style={{ backgroundColor: primaryColor }}>
+        {/* ← MODIFIÉ : ouvre le choix de type */}
+        <button onClick={() => setOrderMode('pick')} className="btn-primary flex items-center gap-2" style={{ backgroundColor: primaryColor }}>
           <Plus className="w-5 h-5" />Nouvelle commande
         </button>
       </div>
@@ -280,7 +275,7 @@ export default function OrdersPage() {
           );
         })}
         <div className="stat-card col-span-2 lg:col-span-1">
-          <p className="text-xs text-gray-500 font-medium mb-1"> Revenu aujourd'hui</p>
+          <p className="text-xs text-gray-500 font-medium mb-1">Revenu aujourd'hui</p>
           <p className="text-lg font-bold text-emerald-600">{formatPrice(todayRevenue, shop?.currency)}</p>
         </div>
       </div>
@@ -301,8 +296,8 @@ export default function OrdersPage() {
         </div>
         {showFilters && (
           <div className="grid grid-cols-2 gap-3 pt-2 border-t">
-            <div><label className="text-xs font-medium text-gray-500 mb-1 block"> Du</label><input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="input text-sm" /></div>
-            <div><label className="text-xs font-medium text-gray-500 mb-1 block"> Au</label><input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="input text-sm" /></div>
+            <div><label className="text-xs font-medium text-gray-500 mb-1 block">Du</label><input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="input text-sm" /></div>
+            <div><label className="text-xs font-medium text-gray-500 mb-1 block">Au</label><input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="input text-sm" /></div>
           </div>
         )}
         {hasFilters && <p className="text-xs text-gray-500">{filtered.length} resultat{filtered.length !== 1 ? 's' : ''}</p>}
@@ -325,8 +320,11 @@ export default function OrdersPage() {
       {dateKeys.length === 0 ? (
         <div className="card text-center py-12">
           <ShoppingCart className="w-16 h-16 mx-auto text-gray-200 mb-3" />
-          <p className="text-gray-500 font-medium mb-4">Aucune commande</p>
-          <button onClick={() => setShowManual(true)} className="btn-primary inline-flex items-center gap-2" style={{ backgroundColor: primaryColor }}><Plus className="w-4 h-4" />Creer une commande</button>
+          <p className="text-gray-500 font-medium mb-1">Aucune commande</p>
+          <p className="text-xs text-gray-400 mb-4">Les commandes de votre boutique en ligne apparaîtront ici automatiquement</p>
+          <button onClick={() => setOrderMode('pick')} className="btn-primary inline-flex items-center gap-2" style={{ backgroundColor: primaryColor }}>
+            <Plus className="w-4 h-4" />Enregistrer une commande
+          </button>
         </div>
       ) : (
         <div className="space-y-3">
@@ -382,6 +380,63 @@ export default function OrdersPage() {
         </div>
       )}
 
+      {/* == CHOIX TYPE DE COMMANDE ======================================= */}
+      {orderMode === 'pick' && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden">
+            <div className="p-6 text-center border-b border-gray-100">
+              <h2 className="text-lg font-black text-gray-800">Quelle commande voulez-vous enregistrer ?</h2>
+              <p className="text-sm text-gray-400 mt-1">Choisissez le type pour mieux organiser</p>
+            </div>
+            <div className="p-4 space-y-3">
+
+              {/* Option 1 — Commande en ligne déjà reçue */}
+              <button
+                onClick={() => setOrderMode(null)}
+                className="w-full flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-100 hover:border-blue-200 hover:bg-blue-50 transition-all text-left group">
+                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0 text-2xl group-hover:scale-110 transition-transform">
+                  🛒
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-gray-800 text-sm">Commande reçue en ligne</p>
+                  <p className="text-xs text-gray-400 leading-relaxed mt-0.5">
+                    Un client a commandé depuis votre boutique en ligne. Elle apparaît déjà dans la liste — cliquez dessus pour la confirmer.
+                  </p>
+                </div>
+              </button>
+
+              <div className="flex items-center gap-2 px-2">
+                <div className="flex-1 h-px bg-gray-100" />
+                <span className="text-xs text-gray-400 font-medium">ou</span>
+                <div className="flex-1 h-px bg-gray-100" />
+              </div>
+
+              {/* Option 2 — Commande WhatsApp / en personne */}
+              <button
+                onClick={() => { setOrderMode(null); setShowManual(true); }}
+                className="w-full flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-100 hover:border-green-200 hover:bg-green-50 transition-all text-left group">
+                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0 text-2xl group-hover:scale-110 transition-transform">
+                  💬
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-gray-800 text-sm">Commande WhatsApp ou en personne</p>
+                  <p className="text-xs text-gray-400 leading-relaxed mt-0.5">
+                    Un client vous a commandé sur WhatsApp, par appel ou directement en boutique. Enregistrez-la maintenant.
+                  </p>
+                </div>
+              </button>
+
+            </div>
+            <div className="px-4 pb-5">
+              <button onClick={() => setOrderMode(null)}
+                className="w-full py-2.5 text-sm text-gray-400 hover:text-gray-600 transition-colors font-medium">
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* == ORDER DETAIL ================================================== */}
       {selected && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
@@ -395,60 +450,63 @@ export default function OrdersPage() {
             </div>
             <div className="p-4 space-y-4">
               <div className={`p-3 rounded-xl ${STATUS_CONFIG[selected.status].color.split(' ')[0]}`}>
-                <p className={`font-medium text-sm ${STATUS_CONFIG[selected.status].color.split(' ')[1]}`}>Statut: {STATUS_CONFIG[selected.status].label}</p>
+                <p className={`font-medium text-sm ${STATUS_CONFIG[selected.status].color.split(' ')[1]}`}>Statut : {STATUS_CONFIG[selected.status].label}</p>
               </div>
 
-              {/* Boutons statut existants */}
+              {/* Boutons statut */}
               <div className="flex flex-wrap gap-2">
-                {selected.status === 'PENDING' && (<><button onClick={() => changeStatus(selected.id!, 'CONFIRMED')} className="btn-primary text-sm" style={{ backgroundColor: primaryColor }}> Confirmer</button><button onClick={() => changeStatus(selected.id!, 'CANCELLED')} className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm"> Annuler</button></>)}
-                {selected.status === 'CONFIRMED' && <button onClick={() => changeStatus(selected.id!, 'PROCESSING')} className="btn-primary text-sm" style={{ backgroundColor: primaryColor }}> En preparation</button>}
-                {selected.status === 'PROCESSING' && <button onClick={() => changeStatus(selected.id!, 'DELIVERED')} className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-sm"> Marquer livree</button>}
+                {selected.status === 'PENDING' && (
+                  <>
+                    <button onClick={() => changeStatus(selected.id!, 'CONFIRMED')} className="btn-primary text-sm flex items-center gap-1.5" style={{ backgroundColor: primaryColor }}>
+                      ✅ Confirmer la commande
+                    </button>
+                    <button onClick={() => changeStatus(selected.id!, 'CANCELLED')} className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm">
+                      ✕ Annuler
+                    </button>
+                  </>
+                )}
+                {selected.status === 'CONFIRMED' && (
+                  <button onClick={() => changeStatus(selected.id!, 'PROCESSING')} className="btn-primary text-sm" style={{ backgroundColor: primaryColor }}>
+                    📦 Mettre en préparation
+                  </button>
+                )}
+                {selected.status === 'PROCESSING' && (
+                  <button onClick={() => changeStatus(selected.id!, 'DELIVERED')} className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-sm">
+                    ✅ Marquer comme livrée
+                  </button>
+                )}
               </div>
 
-              {/* ── BOUTONS WHATSAPP ── */}
+              {/* Boutons WhatsApp */}
               {selected.customerPhone && (
                 <div className="bg-green-50 border border-green-100 rounded-xl p-3">
                   <p className="text-xs font-bold text-green-700 mb-2 flex items-center gap-1.5">
-                    <MessageCircle className="w-3.5 h-3.5" />
-                    Actions WhatsApp
+                    <MessageCircle className="w-3.5 h-3.5" />Actions WhatsApp
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => waAction('contact', selected)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-green-200 rounded-lg text-xs font-semibold text-green-700 hover:bg-green-100 transition-colors">
-                      💬 Contacter
-                    </button>
-                    <button
-                      onClick={() => waAction('confirm_order', selected)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-green-200 rounded-lg text-xs font-semibold text-green-700 hover:bg-green-100 transition-colors">
-                      ✅ Confirmer commande
-                    </button>
-                    <button
-                      onClick={() => waAction('order_ready', selected)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-green-200 rounded-lg text-xs font-semibold text-green-700 hover:bg-green-100 transition-colors">
-                      📦 Commande prête
-                    </button>
-                    <button
-                      onClick={() => waAction('payment_reminder', selected)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-green-200 rounded-lg text-xs font-semibold text-green-700 hover:bg-green-100 transition-colors">
-                      💰 Rappel paiement
-                    </button>
-                    <button
-                      onClick={() => waAction('send_receipt', selected)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-green-200 rounded-lg text-xs font-semibold text-green-700 hover:bg-green-100 transition-colors">
-                      🧾 Envoyer reçu
-                    </button>
+                    {[
+                      { type: 'contact' as const,          label: '💬 Contacter' },
+                      { type: 'confirm_order' as const,    label: '✅ Confirmer commande' },
+                      { type: 'order_ready' as const,      label: '📦 Commande prête' },
+                      { type: 'payment_reminder' as const, label: '💰 Rappel paiement' },
+                      { type: 'send_receipt' as const,     label: '🧾 Envoyer reçu' },
+                    ].map(({ type, label }) => (
+                      <button key={type} onClick={() => waAction(type, selected)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-green-200 rounded-lg text-xs font-semibold text-green-700 hover:bg-green-100 transition-colors">
+                        {label}
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}
 
               {/* Infos client */}
               <div className="bg-gray-50 rounded-xl p-4">
-                <h3 className="font-semibold text-sm mb-2"> Client</h3>
+                <h3 className="font-semibold text-sm mb-2">Client</h3>
                 <p className="font-medium">{selected.customerName}</p>
-                {selected.customerPhone && <p className="text-sm text-gray-600 mt-1"> {selected.customerPhone}</p>}
-                {selected.customerAddress && <p className="text-sm text-gray-600 mt-1"> {selected.customerQuartier ? selected.customerQuartier + ' - ' : ''}{selected.customerAddress}</p>}
-                {selected.notes && <p className="text-sm text-gray-500 mt-2 italic"> {selected.notes}</p>}
+                {selected.customerPhone && <p className="text-sm text-gray-600 mt-1">{selected.customerPhone}</p>}
+                {selected.customerAddress && <p className="text-sm text-gray-600 mt-1">{selected.customerQuartier ? selected.customerQuartier + ' - ' : ''}{selected.customerAddress}</p>}
+                {selected.notes && <p className="text-sm text-gray-500 mt-2 italic">{selected.notes}</p>}
               </div>
 
               {/* Articles */}
@@ -466,7 +524,7 @@ export default function OrdersPage() {
                 <div className="flex justify-between text-sm text-gray-600"><span>Sous-total</span><span>{formatPrice(selected.subtotal, shop?.currency)}</span></div>
                 <div className="flex justify-between text-sm text-gray-600"><span>Livraison</span><span>{formatPrice(selected.deliveryFee, shop?.currency)}</span></div>
                 <div className="flex justify-between font-bold pt-2 border-t" style={{ color: primaryColor }}><span>Total</span><span>{formatPrice(selected.total, shop?.currency)}</span></div>
-                <div className="flex justify-between text-sm text-emerald-600 font-medium"><span>Benefice</span><span>+{formatPrice(selected.profit, shop?.currency)}</span></div>
+                <div className="flex justify-between text-sm text-emerald-600 font-medium"><span>Bénéfice</span><span>+{formatPrice(selected.profit, shop?.currency)}</span></div>
               </div>
             </div>
           </div>
@@ -478,7 +536,11 @@ export default function OrdersPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[95vh] flex flex-col">
             <div className="flex items-center justify-between p-4 border-b flex-shrink-0">
-              <h2 className="text-lg font-bold"> Nouvelle commande</h2>
+              <div>
+                {/* ← MODIFIÉ : titre contextualisé */}
+                <p className="text-xs font-bold text-green-600 uppercase tracking-wider mb-0.5">💬 WhatsApp / En personne</p>
+                <h2 className="text-lg font-bold text-gray-800">Enregistrer une commande</h2>
+              </div>
               <button onClick={() => { setShowManual(false); stopCameraScanner(); setManualItems([]); setProductSearch(''); setProductCatFilter(''); }} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
             </div>
             <div className="flex-1 overflow-hidden flex flex-col md:flex-row gap-0 min-h-0">
@@ -503,7 +565,7 @@ export default function OrdersPage() {
                   {scanMode === 'keyboard' && (
                     <div className="relative mb-2">
                       <ScanLine className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                      <input ref={barcodeRef} type="text" className="input pl-8 text-sm font-mono" placeholder="Code-barres (scanner ou clavier)..."
+                      <input ref={barcodeRef} type="text" className="input pl-8 text-sm font-mono" placeholder="Code-barres..."
                         value={barcodeInput} onChange={e => setBarcodeInput(e.target.value)} onKeyDown={handleBarcodeKey} autoComplete="off" />
                     </div>
                   )}
@@ -514,7 +576,7 @@ export default function OrdersPage() {
                       <button type="button" onClick={stopCameraScanner} className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full text-white flex items-center justify-center"><X className="w-3 h-3" /></button>
                     </div>
                   )}
-                  {scanError && <p className="text-xs text-red-500 mb-2 bg-red-50 px-2 py-1 rounded-lg"> {scanError}</p>}
+                  {scanError && <p className="text-xs text-red-500 mb-2 bg-red-50 px-2 py-1 rounded-lg">{scanError}</p>}
                   <div className="relative">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
                     <input type="text" className="input pl-8 text-sm" placeholder="Rechercher..." value={productSearch} onChange={e => setProductSearch(e.target.value)} />
@@ -570,7 +632,7 @@ export default function OrdersPage() {
                 </div>
               </div>
 
-              {/* RIGHT: Cart + Customer info */}
+              {/* RIGHT: Cart + Customer */}
               <div className="flex flex-col md:w-[45%] min-h-0">
                 <form onSubmit={saveManualOrder} className="flex flex-col flex-1 min-h-0">
                   <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -580,10 +642,10 @@ export default function OrdersPage() {
                       <PhoneInput value={manualForm.customerPhone} onChange={v => setManualForm({ ...manualForm, customerPhone: v })} placeholder="6XX XXX XXX" defaultCountry="CM" />
                       <div className="grid grid-cols-2 gap-2">
                         <select className="select text-sm" value={manualForm.deliveryMethod} onChange={e => setManualForm({ ...manualForm, deliveryMethod: e.target.value as any })}>
-                          <option value="PICKUP"> Retrait</option><option value="DELIVERY"> Livraison</option>
+                          <option value="PICKUP">Retrait</option><option value="DELIVERY">Livraison</option>
                         </select>
                         <select className="select text-sm" value={manualForm.paymentMethod} onChange={e => setManualForm({ ...manualForm, paymentMethod: e.target.value as any })}>
-                          <option value="CASH_ON_DELIVERY"> Especes</option><option value="MOBILE_MONEY"> Mobile Money</option>
+                          <option value="CASH_ON_DELIVERY">Espèces</option><option value="MOBILE_MONEY">Mobile Money</option>
                         </select>
                       </div>
                       <input className="input text-sm" placeholder="Notes (optionnel)" value={manualForm.notes} onChange={e => setManualForm({ ...manualForm, notes: e.target.value })} />
@@ -591,7 +653,7 @@ export default function OrdersPage() {
                     <div ref={cartRef}>
                       <div className="flex items-center justify-between mb-2">
                         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                           Panier {manualItems.length > 0 && <span className="text-orange-500">({manualItems.reduce((s, i) => s + i.quantity, 0)} articles)</span>}
+                          Panier {manualItems.length > 0 && <span className="text-orange-500">({manualItems.reduce((s, i) => s + i.quantity, 0)} articles)</span>}
                         </h3>
                         {manualItems.length > 0 && <button type="button" onClick={() => setManualItems([])} className="text-xs text-red-400 hover:text-red-600">Vider</button>}
                       </div>
@@ -609,7 +671,7 @@ export default function OrdersPage() {
                                 <p className="text-xs text-gray-500">{formatPrice(item.unitPrice, shop?.currency)}/u</p>
                               </div>
                               <div className="flex items-center gap-1 flex-shrink-0">
-                                <button type="button" onClick={() => updateManualQty(item.productId, item.quantity - 1)} className="w-6 h-6 rounded-lg bg-white border text-gray-600 flex items-center justify-center font-bold text-sm"></button>
+                                <button type="button" onClick={() => updateManualQty(item.productId, item.quantity - 1)} className="w-6 h-6 rounded-lg bg-white border text-gray-600 flex items-center justify-center font-bold text-sm">−</button>
                                 <span className="w-5 text-center font-bold text-sm">{item.quantity}</span>
                                 <button type="button" onClick={() => updateManualQty(item.productId, item.quantity + 1)} className="w-6 h-6 rounded-lg bg-white border text-gray-600 flex items-center justify-center font-bold text-sm">+</button>
                                 <button type="button" onClick={() => removeManualItem(item.productId)} className="w-6 h-6 text-red-400 hover:bg-red-50 rounded-lg flex items-center justify-center ml-0.5"><Trash2 className="w-3 h-3" /></button>
@@ -633,7 +695,7 @@ export default function OrdersPage() {
                       <button type="button" onClick={() => { setShowManual(false); stopCameraScanner(); setManualItems([]); }} className="btn-secondary flex-1 text-sm">Annuler</button>
                       <button type="submit" disabled={savingManual || manualItems.length === 0}
                         className="btn-primary flex-1 text-sm flex items-center justify-center gap-2 disabled:opacity-50" style={{ backgroundColor: primaryColor }}>
-                        {savingManual && <Loader2 className="w-4 h-4 animate-spin" />}Creer commande
+                        {savingManual && <Loader2 className="w-4 h-4 animate-spin" />}Enregistrer
                       </button>
                     </div>
                   </div>
@@ -649,7 +711,7 @@ export default function OrdersPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl w-full max-w-sm">
             <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-base font-bold">Recu de commande</h2>
+              <h2 className="text-base font-bold">Reçu de commande</h2>
               <div className="flex items-center gap-2">
                 <button onClick={printReceipt} className="btn-primary flex items-center gap-1.5 text-sm py-2" style={{ backgroundColor: primaryColor }}><Printer className="w-4 h-4" />Imprimer</button>
                 <button onClick={() => setShowReceipt(null)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
@@ -663,17 +725,17 @@ export default function OrdersPage() {
               </div>
               <div className="border-t border-dashed my-2" />
               <div className="space-y-0.5 mb-2">
-                <div className="flex justify-between"><span className="font-bold">N:</span><span>{showReceipt.orderNumber}</span></div>
+                <div className="flex justify-between"><span className="font-bold">N°:</span><span>{showReceipt.orderNumber}</span></div>
                 <div className="flex justify-between"><span className="font-bold">Date:</span><span>{new Date(showReceipt.createdAt).toLocaleString('fr-FR')}</span></div>
                 <div className="flex justify-between"><span className="font-bold">Client:</span><span>{showReceipt.customerName}</span></div>
-                {showReceipt.customerPhone && <div className="flex justify-between"><span className="font-bold">Tel:</span><span>{showReceipt.customerPhone}</span></div>}
-                <div className="flex justify-between"><span className="font-bold">Paiement:</span><span>{showReceipt.paymentMethod === 'MOBILE_MONEY' ? 'Mobile Money' : 'Especes'}</span></div>
+                {showReceipt.customerPhone && <div className="flex justify-between"><span className="font-bold">Tél:</span><span>{showReceipt.customerPhone}</span></div>}
+                <div className="flex justify-between"><span className="font-bold">Paiement:</span><span>{showReceipt.paymentMethod === 'MOBILE_MONEY' ? 'Mobile Money' : 'Espèces'}</span></div>
               </div>
               <div className="border-t border-dashed my-2" />
               {showReceipt.items.map((item, i) => (
                 <div key={i} className="mb-1">
                   <p className="font-bold truncate">{item.productName}</p>
-                  <div className="flex justify-between"><span>{item.quantity}  {formatPrice(item.unitPrice, shop?.currency)}</span><span>{formatPrice(item.total, shop?.currency)}</span></div>
+                  <div className="flex justify-between"><span>{item.quantity} × {formatPrice(item.unitPrice, shop?.currency)}</span><span>{formatPrice(item.total, shop?.currency)}</span></div>
                 </div>
               ))}
               <div className="border-t border-dashed my-2" />
@@ -681,7 +743,7 @@ export default function OrdersPage() {
               {showReceipt.deliveryFee > 0 && <div className="flex justify-between"><span>Livraison</span><span>{formatPrice(showReceipt.deliveryFee, shop?.currency)}</span></div>}
               <div className="flex justify-between font-bold text-sm mt-1"><span>TOTAL</span><span>{formatPrice(showReceipt.total, shop?.currency)}</span></div>
               <div className="border-t border-dashed my-2" />
-              <div className="text-center"><p>Merci pour votre achat !</p><p>Propulse par ShopMaster</p></div>
+              <div className="text-center"><p>Merci pour votre achat !</p><p>Propulsé par ShopMaster</p></div>
             </div>
           </div>
         </div>
@@ -693,10 +755,10 @@ export default function OrdersPage() {
           <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
             <div className="p-6 text-center relative" style={{ background: `linear-gradient(135deg, ${primaryColor}18, ${primaryColor}06)` }}>
               <div className="inline-flex items-center gap-2 bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1.5 rounded-full mb-4">
-                <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />EN PREPARATION
+                <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />EN PRÉPARATION
               </div>
-              <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center mx-auto mb-3 shadow-md border border-gray-100"><span className="text-3xl"></span></div>
-              <h2 className="text-xl font-bold text-gray-800">Commande lancee !</h2>
+              <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center mx-auto mb-3 shadow-md border border-gray-100"><span className="text-3xl">🛍️</span></div>
+              <h2 className="text-xl font-bold text-gray-800">Commande enregistrée !</h2>
               <p className="text-gray-500 mt-1 text-sm font-medium">{createdOrder.orderNumber}</p>
               <p className="text-gray-400 text-xs">{new Date(createdOrder.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
             </div>
@@ -708,21 +770,20 @@ export default function OrdersPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-gray-800">{createdOrder.customerName}</p>
-                    {createdOrder.customerPhone && <p className="text-sm text-gray-500"> {createdOrder.customerPhone}</p>}
-                    {createdOrder.customerAddress && <p className="text-xs text-gray-400"> {createdOrder.customerAddress}</p>}
+                    {createdOrder.customerPhone && <p className="text-sm text-gray-500">{createdOrder.customerPhone}</p>}
                   </div>
                 </div>
                 <div className="flex gap-2 mt-3 flex-wrap">
                   <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${createdOrder.deliveryMethod === 'DELIVERY' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                    {createdOrder.deliveryMethod === 'DELIVERY' ? ' Livraison' : ' Retrait sur place'}
+                    {createdOrder.deliveryMethod === 'DELIVERY' ? '🚚 Livraison' : '🏪 Retrait sur place'}
                   </span>
                   <span className="text-xs px-2.5 py-1 rounded-full font-semibold bg-gray-100 text-gray-600">
-                    {createdOrder.paymentMethod === 'MOBILE_MONEY' ? ' Mobile Money' : ' Especes'}
+                    {createdOrder.paymentMethod === 'MOBILE_MONEY' ? '📱 Mobile Money' : '💵 Espèces'}
                   </span>
                 </div>
               </div>
               <div className="space-y-1">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Articles a preparer</p>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Articles commandés</p>
                 {createdOrder.items.map((item: any, i: number) => (
                   <div key={i} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
                     <div className="flex items-center gap-2">
@@ -734,19 +795,12 @@ export default function OrdersPage() {
                 ))}
               </div>
               <div className="rounded-2xl p-4 border-2" style={{ borderColor: `${primaryColor}30`, backgroundColor: `${primaryColor}06` }}>
-                {createdOrder.deliveryFee > 0 && (
-                  <div className="flex justify-between text-sm text-gray-500 mb-1"><span>Sous-total</span><span>{formatPrice(createdOrder.subtotal, shop?.currency)}</span></div>
-                )}
-                {createdOrder.deliveryFee > 0 && (
-                  <div className="flex justify-between text-sm text-gray-500 mb-2"><span>Livraison</span><span>{formatPrice(createdOrder.deliveryFee, shop?.currency)}</span></div>
-                )}
+                {createdOrder.deliveryFee > 0 && <div className="flex justify-between text-sm text-gray-500 mb-2"><span>Livraison</span><span>{formatPrice(createdOrder.deliveryFee, shop?.currency)}</span></div>}
                 <div className="flex justify-between font-bold text-lg" style={{ color: primaryColor }}>
-                  <span>Total a encaisser</span><span>{formatPrice(createdOrder.total, shop?.currency)}</span>
+                  <span>Total à encaisser</span><span>{formatPrice(createdOrder.total, shop?.currency)}</span>
                 </div>
               </div>
-              {createdOrder.notes && (
-                <div className="bg-yellow-50 rounded-xl p-3 border border-yellow-100 text-sm text-yellow-800"> {createdOrder.notes}</div>
-              )}
+              {createdOrder.notes && <div className="bg-yellow-50 rounded-xl p-3 border border-yellow-100 text-sm text-yellow-800">{createdOrder.notes}</div>}
             </div>
             <div className="p-5 pt-0 space-y-2">
               <button
@@ -754,19 +808,17 @@ export default function OrdersPage() {
                   if (createdOrder.id) { await updateOrderStatus(createdOrder.id, 'DELIVERED'); await loadData(); }
                   setCreatedOrder(null);
                 }}
-                className="w-full py-3.5 rounded-2xl text-white font-bold text-base flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all shadow-sm"
+                className="w-full py-3.5 rounded-2xl text-white font-bold text-base flex items-center justify-center gap-2 hover:opacity-90 transition-all"
                 style={{ backgroundColor: '#22c55e' }}>
-                 Marquer comme livree
+                ✅ Marquer comme livrée
               </button>
               <div className="grid grid-cols-2 gap-2">
                 <button onClick={() => { setShowReceipt(createdOrder as any); setCreatedOrder(null); }}
                   className="flex items-center justify-center gap-2 py-3 rounded-xl bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 transition-colors text-sm">
                   <Printer className="w-4 h-4" />Imprimer
                 </button>
-                {/* WhatsApp — maintenant via sendWhatsApp avec log automatique */}
                 {createdOrder.customerPhone ? (
-                  <button
-                    onClick={() => waAction('confirm_order', createdOrder as any)}
+                  <button onClick={() => waAction('confirm_order', createdOrder as any)}
                     className="flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-white text-sm bg-green-500 hover:bg-green-600 transition-colors">
                     <MessageCircle className="w-4 h-4" />WhatsApp
                   </button>
@@ -775,7 +827,7 @@ export default function OrdersPage() {
                 )}
               </div>
               <button onClick={() => setCreatedOrder(null)} className="w-full py-2.5 text-sm text-gray-400 hover:text-gray-600 transition-colors">
-                Garder en preparation et continuer 
+                Garder en préparation et continuer →
               </button>
             </div>
           </div>
