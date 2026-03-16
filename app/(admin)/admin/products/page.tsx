@@ -393,8 +393,7 @@ export default function ProductsPage() {
           setPhotoMode('done');
         }
       } catch(studioErr) { console.error('[PhotoStudio] Exception:', studioErr); }
-    } catch {}
-    setIsAnalyzing(false);
+    } catch {} finally { setIsAnalyzing(false); }
   }
 
   async function applyStudio() {
