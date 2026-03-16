@@ -60,6 +60,7 @@ export interface Product {
   unit?: string;
   weight?: string;
   imageUrl?: string;
+  images?: string[];    // jusqu'à 3 photos supplémentaires (rétrocompatible)
   isActive: boolean;
   isFeatured?: boolean;
   createdAt: string;
