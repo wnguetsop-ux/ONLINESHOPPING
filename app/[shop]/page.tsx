@@ -282,7 +282,7 @@ export default function ShopPage() {
               <div key={p.id} className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer border-2"
                 style={{ borderColor: `${pc}25` }} onClick={() => setQuickView(p)}>
                 {p.imageUrl ? (
-                  <div className="relative"><img src={p.imageUrl} alt={p.name} className="w-full h-32 object-cover" />
+                  <div className="relative"><img src={p.imageUrl} alt={p.name} className="w-full h-36 object-contain bg-white p-1" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                     <div className="absolute bottom-2 left-2 right-2">
                       <p className="text-white text-xs font-bold truncate">{p.name}</p>
@@ -360,7 +360,7 @@ export default function ShopPage() {
               {filtered.map(p => (
                 <div key={p.id} className="bg-white rounded-2xl shadow-sm overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 group">
                   <div className="relative">
-                    {p.imageUrl ? <img src={p.imageUrl} alt={p.name} className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-500" />
+                    {p.imageUrl ? <img src={p.imageUrl} alt={p.name} className="w-full h-48 object-contain bg-white p-2 group-hover:scale-105 transition-transform duration-500" />
                       : <div className="w-full h-40 flex items-center justify-center text-4xl" style={{ background: `${pc}10` }}>📦</div>}
                     <div className="absolute top-2 left-2 flex flex-col gap-1">
                       {p.isFeatured && <span className="bg-amber-400 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">⭐ Vedette</span>}
@@ -404,7 +404,7 @@ export default function ShopPage() {
               {filtered.map(p => (
                 <div key={p.id} className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all flex items-center gap-3 p-3">
                   <div className="flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden cursor-pointer" onClick={() => setQuickView(p)}>
-                    {p.imageUrl ? <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-2xl" style={{ background: `${pc}10` }}>📦</div>}
+                    {p.imageUrl ? <img src={p.imageUrl} alt={p.name} className="w-full h-full object-contain bg-white p-2" /> : <div className="w-full h-full flex items-center justify-center text-2xl" style={{ background: `${pc}10` }}>📦</div>}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] text-gray-400 uppercase">{p.category}</p>
@@ -486,7 +486,7 @@ export default function ShopPage() {
               <h3 className="font-bold text-gray-800">Aperçu rapide</h3>
               <button onClick={() => setQuickView(null)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
             </div>
-            {quickView.imageUrl && <img src={quickView.imageUrl} alt={quickView.name} className="w-full h-56 object-cover" />}
+            {quickView.imageUrl && <img src={quickView.imageUrl} alt={quickView.name} className="w-full h-64 object-contain bg-white p-3" />}
             <div className="p-5">
               <p className="text-xs text-gray-400 uppercase mb-1">{quickView.category}{quickView.brand ? ` • ${quickView.brand}` : ''}</p>
               <h2 className="text-xl font-bold text-gray-800 mb-2">{quickView.name}</h2>
@@ -803,3 +803,4 @@ export default function ShopPage() {
     </div>
   );
 }
+
