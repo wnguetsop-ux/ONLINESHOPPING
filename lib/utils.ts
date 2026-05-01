@@ -71,3 +71,16 @@ export function calculateMargin(costPrice: number, sellingPrice: number): number
   if (costPrice === 0) return 100;
   return Math.round(((sellingPrice - costPrice) / costPrice) * 100);
 }
+
+// XAF / XOF sont peggés à l'EUR (1 EUR = 655.957 CFA fixe)
+export const CFA_TO_EUR = 1 / 655.957;
+
+export function approxEur(amount: number, fromCurrency: string = 'XAF'): number {
+  if (fromCurrency === 'EUR') return Math.round(amount * 100) / 100;
+  if (fromCurrency === 'XAF' || fromCurrency === 'XOF') return Math.round(amount * CFA_TO_EUR);
+  return Math.round(amount * CFA_TO_EUR); // fallback
+}
+
+export function formatEur(amount: number): string {
+  return `~${amount} €`;
+}

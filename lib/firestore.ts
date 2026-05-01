@@ -85,6 +85,32 @@ export async function deleteProduct(productId: string): Promise<void> {
   await deleteDoc(doc(db, 'products', productId));
 }
 
+// ============== DIASPORA — agrégation produits actifs toutes boutiques ==============
+
+export async function getActiveProductsForDiaspora(maxResults: number = 60): Promise<{ product: Product; shop: Shop }[]> {
+  const shopsSnap = await getDocs(query(collection(db, 'shops'), where('isActive', '==', true)));
+  const shopMap = new Map<string, Shop>();
+  shopsSnap.docs.forEach(d => shopMap.set(d.id, { id: d.id, ...d.data() } as Shop));
+
+  const prodSnap = await getDocs(query(collection(db, 'products'), where('isActive', '==', true)));
+  const out: { product: Product; shop: Shop }[] = [];
+  for (const d of prodSnap.docs) {
+    const product = { id: d.id, ...d.data() } as Product;
+    if (product.stock <= 0) continue;
+    const shop = shopMap.get(product.shopId);
+    if (!shop) continue;
+    out.push({ product, shop });
+  }
+
+  out.sort((a, b) => {
+    if (a.product.isFeatured && !b.product.isFeatured) return -1;
+    if (!a.product.isFeatured && b.product.isFeatured) return 1;
+    return new Date(b.product.createdAt).getTime() - new Date(a.product.createdAt).getTime();
+  });
+
+  return out.slice(0, maxResults);
+}
+
 // ============== CATEGORIES ==============
 
 export async function createCategory(shopId: string, data: Omit<Category, 'id' | 'shopId'>): Promise<string> {
