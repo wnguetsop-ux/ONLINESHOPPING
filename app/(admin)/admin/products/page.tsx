@@ -13,6 +13,7 @@ import { getProducts, getCategories, createProduct, updateProduct, deleteProduct
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
 import { Product, Category, PLANS } from '@/lib/types';
+import ShareSuccessModal from '@/components/ShareSuccessModal';
 import { formatPrice, calculateMargin } from '@/lib/utils';
 
 type PhotoMode = 'none' | 'camera' | 'crop' | 'done';
@@ -223,6 +224,7 @@ export default function ProductsPage() {
   const [showCreditsModal, setShowCreditsModal] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [saving, setSaving] = useState(false);
+  const [shareSuccess, setShareSuccess] = useState<{ id: string; name: string; price: number } | null>(null);
 
   const [photoMode, setPhotoMode] = useState<PhotoMode>('none');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -444,9 +446,11 @@ export default function ProductsPage() {
       if (form.brand.trim()) data.brand=form.brand.trim();
       if (form.sku.trim()) data.sku=form.sku.trim();
       if (form.barcode.trim()) data.barcode=form.barcode.trim();
+      let newId: string | null = null;
       if (editing?.id) await updateProduct(editing.id,data);
-      else await createProduct(shop.id, data as any);
+      else newId = await createProduct(shop.id, data as any);
       await loadData(); setShowModal(false); resetPhoto();
+      if (newId) setShareSuccess({ id: newId, name: data.name, price: data.sellingPrice });
     } catch(err:any){ alert('Erreur : '+(err?.message||String(err))); }
     setSaving(false);
   }
@@ -786,6 +790,18 @@ export default function ProductsPage() {
       )}
 
       {showCreditsModal && <CreditsModal credits={studioCredits} shopName={shop?.name||''} shopId={shop?.id||''} onClose={()=>setShowCreditsModal(false)}/>}
+
+      {shareSuccess && (
+        <ShareSuccessModal
+          productId={shareSuccess.id}
+          productName={shareSuccess.name}
+          priceText={formatPrice(shareSuccess.price, shop?.currency)}
+          shopName={shop?.name || ''}
+          primaryColor={pc}
+          onClose={() => setShareSuccess(null)}
+          onAddAnother={() => { setShareSuccess(null); openAdd(); }}
+        />
+      )}
 
       {showCatModal&&(
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
