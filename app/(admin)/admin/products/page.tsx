@@ -5,7 +5,7 @@ import {
   Plus, Search, Edit, Trash2, Package, Loader2, X, Star, Camera, Sparkles,
   AlertTriangle, Crown, Image as ImageIcon, StopCircle, ZoomIn, ZoomOut,
   RotateCw, Check, Wand2, Sun, Contrast, Zap, Move, SlidersHorizontal,
-  RefreshCw, Eye,
+  RefreshCw, Eye, Share2,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useI18n } from '@/hooks/useI18n';
@@ -451,6 +451,21 @@ export default function ProductsPage() {
     setSaving(false);
   }
   async function handleDelete(id: string) { if (!confirm('Supprimer ce produit ?')) return; await deleteProduct(id); await loadData(); }
+
+  async function shareProduct(product: Product) {
+    if (!product.id) return;
+    const url = `${window.location.origin}/p/${product.id}`;
+    const shareData = { title: product.name, text: `${product.name} — disponible chez ${shop?.name || ''}`, url };
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try { await navigator.share(shareData); return; } catch { /* user cancelled */ }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      alert('Lien copié ! Vous pouvez maintenant le coller sur WhatsApp, Instagram ou Facebook.');
+    } catch {
+      prompt('Copiez ce lien :', url);
+    }
+  }
   async function handleAddCat(e: React.FormEvent) { e.preventDefault(); if (!shop?.id||!newCat.name.trim()) return; await createCategory(shop.id,newCat); setNewCat({name:'',color:'#16a34a'}); await loadData(); setShowCatModal(false); }
 
   const margin=calculateMargin(parseFloat(form.costPrice)||0, parseFloat(form.sellingPrice)||0);
@@ -508,6 +523,7 @@ export default function ProductsPage() {
                   <p className="text-sm text-gray-500">{product.category}{product.brand&&` · ${product.brand}`}</p>
                 </div>
                 <div className="flex gap-1">
+                  <button onClick={()=>shareProduct(product)} title="Partager le lien viral" className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-emerald-500"><Share2 className="w-4 h-4"/></button>
                   <button onClick={()=>openEdit(product)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-blue-500"><Edit className="w-4 h-4"/></button>
                   <button onClick={()=>handleDelete(product.id!)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4"/></button>
                 </div>
