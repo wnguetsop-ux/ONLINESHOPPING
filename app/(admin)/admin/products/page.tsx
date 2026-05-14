@@ -5,7 +5,7 @@ import {
   Plus, Search, Edit, Trash2, Package, Loader2, X, Star, Camera, Sparkles,
   AlertTriangle, Crown, Image as ImageIcon, StopCircle, ZoomIn, ZoomOut,
   RotateCw, Check, Wand2, Sun, Contrast, Zap, Move, SlidersHorizontal,
-  RefreshCw, Eye,
+  RefreshCw, Eye, MessageCircle, FileText,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useI18n } from '@/hooks/useI18n';
@@ -13,7 +13,46 @@ import { getProducts, getCategories, createProduct, updateProduct, deleteProduct
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
 import { Product, Category, PLANS } from '@/lib/types';
-import { formatPrice, calculateMargin } from '@/lib/utils';
+import { formatPrice, calculateMargin, getWhatsAppLink } from '@/lib/utils';
+
+function formatPriceCompact(value: number): string {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace('.0','')}M`;
+  if (value >= 1_000)     return `${Math.round(value / 1_000)}k`;
+  return String(value);
+}
+
+function StatCell({ label, value, sub, accent }: { label: string; value: string; sub: string; accent: string }) {
+  return (
+    <div className="px-5 py-5 sm:px-6 sm:py-6 border-r border-white/10 last:border-r-0">
+      <div className="text-[10.5px] font-extrabold tracking-[0.22em] uppercase text-white/55">{label}</div>
+      <div className="display-serif text-3xl sm:text-4xl leading-none mt-1.5" style={{ color: accent }}>
+        {value}
+      </div>
+      <div className="text-[11.5px] font-semibold text-white/55 mt-1">{sub}</div>
+    </div>
+  );
+}
+
+function FlowMiniChip({ icon, label, sub, tone }: { icon: 'camera' | 'sparkles' | 'file'; label: string; sub: string; tone: 'white' | 'wa' | 'orange' }) {
+  const bg = tone === 'white' ? 'white' : tone === 'wa' ? '#1FB955' : '#FF6A2C';
+  const fg = tone === 'white' ? '#0B1220' : 'white';
+  const iconBg = tone === 'white' ? '#E6F8EE' : 'rgba(255,255,255,0.18)';
+  const iconFg = tone === 'white' ? '#0E5D32' : 'white';
+  const I = icon === 'camera' ? Camera : icon === 'sparkles' ? Sparkles : FileText;
+  return (
+    <div className="inline-flex items-center gap-2.5 rounded-2xl px-3 py-2 shadow-hi"
+         style={{ background: bg, color: fg, border: tone === 'white' ? '1px solid rgba(15,23,42,0.08)' : undefined }}>
+      <div className="w-7 h-7 rounded-lg flex items-center justify-center"
+           style={{ background: iconBg, color: iconFg }}>
+        <I className="w-3.5 h-3.5" />
+      </div>
+      <div>
+        <div className="text-[11px] font-extrabold leading-tight">{label}</div>
+        <div className="text-[9.5px] font-bold opacity-75">{sub}</div>
+      </div>
+    </div>
+  );
+}
 
 type PhotoMode = 'none' | 'camera' | 'crop' | 'done';
 
@@ -456,6 +495,9 @@ export default function ProductsPage() {
   const margin=calculateMargin(parseFloat(form.costPrice)||0, parseFloat(form.sellingPrice)||0);
   const filtered=products.filter(p=>(p.name.toLowerCase().includes(search.toLowerCase())||p.category.toLowerCase().includes(search.toLowerCase()))&&(!catFilter||p.category===catFilter));
   const pc=shop?.primaryColor||'#16a34a';
+  const activeProducts = products.filter(p => p.isActive).length;
+  const lowStockProducts = products.filter(p => p.stock > 0 && p.stock <= (p.minStock || 5)).length;
+  const sellableStockValue = products.reduce((s, p) => s + (p.sellingPrice || 0) * (p.stock || 0), 0);
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="w-12 h-12 border-4 border-t-transparent rounded-full animate-spin" style={{borderColor:pc}}/></div>;
 
@@ -474,11 +516,84 @@ export default function ProductsPage() {
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div><h1 className="text-2xl font-bold text-gray-800">Produits</h1><p className="text-gray-500 text-sm">{products.length} produit{products.length!==1?'s':''}{limits?.plan?.maxProducts!==-1&&` / ${limits?.plan?.maxProducts} max`}</p></div>
-        <div className="flex gap-2">
-          <button onClick={()=>setShowCatModal(true)} className="btn-outline text-sm">+ Categorie</button>
-          <button onClick={openAdd} className="btn-primary flex items-center gap-2" style={{backgroundColor:pc}}><Plus className="w-5 h-5"/>Nouveau</button>
+      {/* PREMIUM HERO — produits */}
+      <div className="relative overflow-hidden rounded-[2.25rem] border border-emerald-100/40 shadow-hi"
+           style={{ background: '#0B1220' }}>
+        <div className="pointer-events-none absolute inset-0"
+             style={{
+               background: `
+                 radial-gradient(circle at 88% 12%, rgba(31,185,85,0.32), transparent 50%),
+                 radial-gradient(circle at 8% 88%, rgba(255,106,44,0.18), transparent 55%)`,
+             }} />
+
+        <div className="relative grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-6 px-6 sm:px-8 py-8 sm:py-10 text-white">
+          <div>
+            <div className="inline-flex items-center gap-2 text-[11px] font-extrabold tracking-[0.22em] uppercase text-white/60">
+              <span className="pulse-dot" /> Tableau de bord · Produits
+            </div>
+            <h1 className="display-serif text-4xl sm:text-5xl lg:text-6xl mt-3 leading-[1.02]">
+              Ajoute un produit.<br />
+              <em className="italic" style={{ color: '#1FB955' }}>L'IA fait la fiche.</em><br />
+              Tu partages sur WhatsApp.
+            </h1>
+            <p className="mt-3 text-white/75 text-base sm:text-lg leading-relaxed max-w-xl">
+              Une photo suffit. MasterShopPro génère le nom, le prix, la description, la brochure — prête à coller dans une discussion.
+            </p>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button onClick={openAdd} className="btn-primary px-6 text-sm sm:text-base">
+                <Plus className="w-5 h-5" />
+                Nouveau produit
+              </button>
+              <button
+                onClick={() => { setShowModal(true); setTimeout(()=>startCam(), 100); }}
+                className="btn px-5 py-3 text-sm rounded-full"
+                style={{ background: 'rgba(255,255,255,0.10)', border: '1.5px solid rgba(255,255,255,0.18)', color: 'white' }}>
+                <Camera className="w-4 h-4" />
+                Scanner avec la caméra
+              </button>
+              <button
+                onClick={() => setShowCatModal(true)}
+                className="btn px-5 py-3 text-sm rounded-full"
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.14)', color: 'white' }}>
+                <Plus className="w-4 h-4" />
+                Catégorie
+              </button>
+              {shop?.slug && (
+                <Link href={`/${shop.slug}`} target="_blank"
+                      className="btn px-5 py-3 text-sm rounded-full"
+                      style={{ background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.14)', color: 'white' }}>
+                  <Eye className="w-4 h-4" />
+                  Voir la boutique
+                </Link>
+              )}
+            </div>
+          </div>
+
+          {/* Visuel droit — flow chips */}
+          <div className="hidden lg:flex items-center justify-center">
+            <div className="relative w-full max-w-xs">
+              <div className="float-soft absolute -top-3 left-3 z-20" style={{ transform: 'rotate(-6deg)' }}>
+                <FlowMiniChip icon="camera" label="Photo prise" sub="1 sec" tone="white" />
+              </div>
+              <div className="float-soft-slow absolute top-10 right-0 z-30" style={{ transform: 'rotate(4deg)' }}>
+                <FlowMiniChip icon="sparkles" label="Fiche générée" sub="IA · 8 sec" tone="wa" />
+              </div>
+              <div className="float-soft absolute -bottom-2 left-2 z-30" style={{ transform: 'rotate(-3deg)' }}>
+                <FlowMiniChip icon="file" label="Brochure prête" sub="WhatsApp" tone="orange" />
+              </div>
+              <div className="mx-auto w-44 h-44 rounded-full"
+                   style={{ background: 'radial-gradient(circle, rgba(31,185,85,0.32), transparent 70%)', filter: 'blur(16px)' }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Stats strip */}
+        <div className="relative grid grid-cols-2 sm:grid-cols-4 border-t border-white/10">
+          <StatCell label="Produits visibles" value={String(activeProducts)} sub={`/ ${products.length} au total`} accent="#1FB955" />
+          <StatCell label="Alertes stock"     value={String(lowStockProducts)} sub="< 5 unités" accent={lowStockProducts ? '#FF6A2C' : 'rgba(255,255,255,0.6)'} />
+          <StatCell label="Valeur stock"      value={formatPriceCompact(sellableStockValue)} sub={shop?.currency || 'FCFA'} accent="#FFFFFF" />
+          <StatCell label="Crédits IA"        value={String(studioCredits)} sub="photos restantes" accent="#3F7BDC" />
         </div>
       </div>
 
@@ -488,40 +603,141 @@ export default function ProductsPage() {
       </div>
 
       {filtered.length>0?(
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map(product=>(
-            <div key={product.id} className={`card hover:shadow-md transition-shadow ${!product.isActive?'opacity-60':''}`}>
-              <div className="mb-3 -mx-6 -mt-6 rounded-t-xl overflow-hidden bg-white" style={{aspectRatio:'1'}}>
-                {product.imageUrl
-                  ? <img src={product.imageUrl} alt={product.name} className="w-full h-full object-contain p-2"/>
-                  : <div className="w-full h-full flex items-center justify-center"><Package className="w-12 h-12 text-gray-300"/></div>}
-                {/* Indicateur multi-photos */}
-                {(product as any).images?.length > 0 && (
-                  <div className="absolute top-2 left-2 bg-black/50 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                    +{(product as any).images.length} photo{(product as any).images.length > 1 ? 's' : ''}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filtered.map(product => (
+            <div
+              key={product.id}
+              className={`premium-card premium-tilt overflow-hidden ${!product.isActive ? 'opacity-75' : ''}`}>
+              <div className="premium-tilt-inner">
+                {/* Image */}
+                <div className="relative overflow-hidden"
+                     style={{
+                       aspectRatio: '4 / 3.2',
+                       background: 'radial-gradient(circle at 30% 30%, rgba(31,185,85,0.06), #F6F2EA 70%)',
+                     }}>
+                  <div className="premium-zoom absolute inset-0 flex items-center justify-center p-4">
+                    {product.imageUrl ? (
+                      <img src={product.imageUrl} alt={product.name} className="w-full h-full object-contain" />
+                    ) : (
+                      <Package className="w-14 h-14 text-gray-300" />
+                    )}
                   </div>
-                )}
-              </div>
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2"><h3 className="font-semibold text-gray-800 truncate">{product.name}</h3>{product.isFeatured&&<Star className="w-4 h-4 text-amber-500 fill-amber-500 flex-shrink-0"/>}</div>
-                  <p className="text-sm text-gray-500">{product.category}{product.brand&&` · ${product.brand}`}</p>
+
+                  <div className="absolute top-3.5 left-3.5">
+                    <span className={`status-pill ${product.isActive ? 'status-pill-live' : 'status-pill-hidden'}`}>
+                      <span className="w-1.5 h-1.5 rounded-full"
+                            style={{
+                              background: product.isActive ? 'white' : '#94A3B8',
+                              boxShadow: product.isActive ? '0 0 0 3px rgba(255,255,255,0.35)' : 'none',
+                            }}/>
+                      {product.isActive ? 'En ligne' : 'Masqué'}
+                    </span>
+                  </div>
+
+                  {product.isFeatured && (
+                    <div className="absolute top-3.5 right-3.5 w-8 h-8 rounded-full bg-white shadow-soft flex items-center justify-center"
+                         style={{ color: '#F5A623' }}>
+                      <Star className="w-4 h-4 fill-amber-500" />
+                    </div>
+                  )}
+
+                  {(product as any).images?.length > 0 && (
+                    <div className="absolute bottom-3.5 left-3.5 bg-black/55 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full backdrop-blur-sm">
+                      +{(product as any).images.length} photo{(product as any).images.length > 1 ? 's' : ''}
+                    </div>
+                  )}
+
+                  <div className="product-quick-actions absolute bottom-3.5 right-3.5 flex gap-1.5 opacity-0 translate-y-2 transition-all duration-300">
+                    <button
+                      onClick={() => openEdit(product)}
+                      className="w-9 h-9 rounded-xl bg-white shadow-float flex items-center justify-center text-gray-700 hover:scale-110 transition"
+                      title="Modifier">
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(product.id!)}
+                      className="w-9 h-9 rounded-xl bg-white shadow-float flex items-center justify-center text-red-500 hover:scale-110 transition"
+                      title="Supprimer">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex gap-1">
-                  <button onClick={()=>openEdit(product)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-blue-500"><Edit className="w-4 h-4"/></button>
-                  <button onClick={()=>handleDelete(product.id!)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4"/></button>
+
+                {/* Body */}
+                <div className="p-5">
+                  <div className="flex items-center gap-2 text-[11.5px] font-bold text-gray-500">
+                    <span className="truncate">{product.category}</span>
+                    {product.brand && <><span>·</span><span className="truncate">{product.brand}</span></>}
+                  </div>
+
+                  <h3 className="mt-1.5 text-[17px] font-black text-gray-950 leading-snug tracking-[-0.01em] line-clamp-2">
+                    {product.name}
+                  </h3>
+
+                  <div className="mt-4 flex items-end justify-between gap-2">
+                    <div>
+                      <div className="text-[10px] font-extrabold tracking-[0.16em] uppercase text-gray-400">Prix</div>
+                      <div className="display-serif text-[28px] leading-none mt-0.5 text-gray-950">
+                        {product.sellingPrice.toLocaleString('fr-FR')}
+                        <span className="text-[13px] ml-1 font-bold text-gray-400" style={{ fontFamily: 'inherit' }}>
+                          {shop?.currency || 'FCFA'}
+                        </span>
+                      </div>
+                    </div>
+                    <div
+                      className="px-2.5 py-1 rounded-xl text-[11px] font-extrabold whitespace-nowrap"
+                      style={{
+                        background: product.stock === 0 ? '#FCE9E7' : product.stock <= (product.minStock || 5) ? '#FFF1E8' : '#E6F8EE',
+                        color:      product.stock === 0 ? '#E1483D' : product.stock <= (product.minStock || 5) ? '#B23E0A' : '#0E5D32',
+                      }}>
+                      {product.stock === 0 ? 'Rupture' : `${product.stock} en stock`}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => openEdit(product)}
+                    className="btn-primary w-full mt-4 text-sm">
+                    <Sparkles className="w-4 h-4" />
+                    Créer fiche + brochure
+                  </button>
+
+                  <div className="mt-2 flex gap-2">
+                    <a
+                      href={getWhatsAppLink(shop?.whatsapp || '', `Bonjour, voici ${product.name} — ${product.sellingPrice.toLocaleString('fr-FR')} ${shop?.currency || 'FCFA'}`)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 h-10 rounded-xl border-[1.5px] border-gray-200 bg-white text-[12px] font-bold text-gray-700 inline-flex items-center justify-center gap-1.5 hover:border-wa hover:text-wa-dark hover:bg-wa-soft transition-all">
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      Partager
+                    </a>
+                    <button
+                      onClick={() => openEdit(product)}
+                      className="flex-1 h-10 rounded-xl border-[1.5px] border-gray-200 bg-white text-[12px] font-bold text-gray-700 inline-flex items-center justify-center gap-1.5 hover:border-gray-400 transition-all">
+                      <ImageIcon className="w-3.5 h-3.5" />
+                      Photo pro
+                    </button>
+                  </div>
                 </div>
-              </div>
-              <div className="flex justify-between items-end">
-                <div><p className="text-lg font-bold" style={{color:pc}}>{formatPrice(product.sellingPrice,shop?.currency)}</p><p className="text-xs text-gray-400">Cout: {formatPrice(product.costPrice,shop?.currency)}</p></div>
-                <div className={`px-3 py-1 rounded-full text-sm font-medium ${product.stock<=(product.minStock||5)?'bg-red-100 text-red-700':'bg-emerald-100 text-emerald-700'}`}>Stock: {product.stock}</div>
               </div>
             </div>
           ))}
         </div>
       ):(
-        <div className="card text-center py-12"><Package className="w-16 h-16 mx-auto text-gray-300 mb-4"/><p className="text-gray-500">Aucun produit trouve</p><button onClick={openAdd} className="btn-primary mt-4" style={{backgroundColor:pc}}><Plus className="w-5 h-5 inline mr-2"/>Ajouter un produit</button></div>
+        <div className="premium-card text-center py-14 px-6">
+          <Package className="w-16 h-16 mx-auto text-gray-300 mb-4"/>
+          <p className="text-gray-500 font-medium">Aucun produit trouvé</p>
+          <button onClick={openAdd} className="btn-primary mt-5 px-6 text-sm">
+            <Plus className="w-4 h-4"/>Ajouter un produit
+          </button>
+        </div>
       )}
+
+      <style jsx global>{`
+        .premium-card:hover .product-quick-actions {
+          opacity: 1 !important;
+          transform: translateY(0) !important;
+        }
+      `}</style>
 
       {/* =========== PRODUCT MODAL =========== */}
       {showModal&&(

@@ -188,85 +188,158 @@ export default function ShopPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--app-bg)', paddingTop: 'env(safe-area-inset-top, 0px)' }}>
 
-      {/* ── HEADER ── */}
-      <header className="shop-header bg-white shadow-sm sticky top-0 z-40" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            {shop.logo ? (
-              <img src={shop.logo} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
-            ) : (
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0"
-                style={{ background: `linear-gradient(135deg, ${pc}, ${pc}bb)` }}>
-                {shop.name.charAt(0)}
+      {/* ── PREMIUM HERO ── */}
+      <header className="relative overflow-hidden shop-header"
+              style={{
+                background: `linear-gradient(135deg, #052e25 0%, #0E5D32 58%, ${shop.primaryColor || '#1FB955'} 100%)`,
+                color: 'white',
+              }}>
+        <div className="absolute inset-0 pointer-events-none"
+             style={{
+               background: `
+                 radial-gradient(circle at 88% 10%, rgba(255,255,255,0.18), transparent 50%),
+                 radial-gradient(circle at 8% 90%, rgba(255,106,44,0.16), transparent 55%)`,
+             }} />
+
+        <div className="relative px-5 lg:px-8 pt-6 pb-8 lg:pt-10 lg:pb-12 max-w-7xl mx-auto">
+          {/* Top nav */}
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl flex items-center justify-center backdrop-blur-md overflow-hidden"
+                   style={{ background: 'rgba(255,255,255,0.15)', border: '1.5px solid rgba(255,255,255,0.25)' }}>
+                {shop.logo ? (
+                  <img src={shop.logo} alt={shop.name} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="display-serif text-lg font-black">{shop.name?.[0] || 'S'}</span>
+                )}
               </div>
-            )}
-            <div className="min-w-0">
-              <h1 className="font-bold text-gray-800 truncate text-sm">{shop.name}</h1>
-              {shop.slogan && <p className="text-xs text-gray-400 truncate">{shop.slogan}</p>}
+              <div>
+                <div className="font-black text-base tracking-[-0.01em]">{shop.name}</div>
+                <div className="text-[11px] opacity-80 font-bold inline-flex items-center gap-1.5">
+                  <span className="pulse-dot" style={{ background: 'white' }} />
+                  Ouvert · répond en quelques minutes
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2 items-center">
+              {shop.whatsapp && (
+                <a href={getWhatsAppLink(shop.whatsapp, `Bonjour ${shop.name}!`)} target="_blank"
+                   className="hidden sm:flex w-11 h-11 rounded-full backdrop-blur-md items-center justify-center text-white"
+                   style={{ background: 'rgba(255,255,255,0.15)' }}>
+                  <MessageCircle className="w-4 h-4" />
+                </a>
+              )}
+              <button onClick={openCheckout}
+                      className="h-11 px-4 rounded-full bg-white font-extrabold text-sm inline-flex items-center gap-2"
+                      style={{ color: 'var(--ink)' }}>
+                <ShoppingCart className="w-4 h-4" />
+                Panier
+                {totalItems > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-[11px] text-white"
+                        style={{ background: '#1FB955' }}>
+                    {totalItems}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {shop.whatsapp && (
-              <a href={getWhatsAppLink(shop.whatsapp, `Bonjour ${shop.name}!`)} target="_blank"
-                className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-white bg-green-500 hover:bg-green-600 transition-colors">
-                <MessageCircle className="w-4 h-4" /><span className="hidden md:inline">WhatsApp</span>
-              </a>
-            )}
-            {/* Cart button — opens checkout modal */}
-            <button onClick={openCheckout}
-              className="relative p-2.5 rounded-xl transition-all hover:scale-105"
-              style={{ backgroundColor: `${pc}15`, color: pc }}>
-              <ShoppingCart className="w-5 h-5" />
-              {totalItems > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full text-[10px] text-white flex items-center justify-center font-bold"
-                  style={{ backgroundColor: pc }}>{totalItems}</span>
+
+          {/* Hero text */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-8 items-end mt-3">
+            <div>
+              {shop.city && (
+                <span className="inline-flex items-center gap-2 text-xs font-extrabold backdrop-blur-md px-3 py-1.5 rounded-full"
+                      style={{ background: 'rgba(255,255,255,0.15)', border: '1.5px solid rgba(255,255,255,0.25)' }}>
+                  📍 {shop.city}{shop.deliveryFee ? ` · Livraison ${shop.deliveryFee.toLocaleString('fr-FR')} ${shop.currency || 'FCFA'}` : ''}
+                </span>
               )}
-            </button>
+
+              <h1 className="display-serif text-4xl sm:text-5xl lg:text-6xl leading-[1.04] mt-3.5">
+                {shop.slogan ? shop.slogan : (
+                  <>
+                    {shop.name}.<br/>
+                    <em className="italic opacity-90">Commande directe</em><br/>
+                    sur WhatsApp.
+                  </>
+                )}
+              </h1>
+
+              {shop.description && (
+                <p className="mt-4 text-[15px] leading-relaxed max-w-md" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                  {shop.description}
+                </p>
+              )}
+
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-5 text-[12px] font-bold">
+                <div className="inline-flex items-center gap-1.5">
+                  <Truck className="w-3.5 h-3.5" />
+                  {shop.deliveryFee
+                    ? `Livraison ${shop.deliveryFee.toLocaleString('fr-FR')} ${shop.currency || 'FCFA'}`
+                    : 'Livraison disponible'}
+                </div>
+                {shop.pickupEnabled && (
+                  <div className="inline-flex items-center gap-1.5">
+                    <CheckCircle className="w-3.5 h-3.5" /> Retrait sur place
+                  </div>
+                )}
+                <div className="inline-flex items-center gap-1.5">
+                  <MessageCircle className="w-3.5 h-3.5" /> WhatsApp direct
+                </div>
+              </div>
+            </div>
+
+            {/* Featured preview */}
+            {featuredProducts[0] && (
+              <div className="hidden lg:flex justify-end float-soft-slow" style={{ transform: 'rotate(-3deg)' }}>
+                <div className="w-52 aspect-square rounded-[28px] overflow-hidden border-4 border-white shadow-hi"
+                     style={{ background: '#F6F2EA' }}>
+                  {featuredProducts[0].imageUrl ? (
+                    <img src={featuredProducts[0].imageUrl} alt={featuredProducts[0].name}
+                         className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-5xl">⭐</div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </header>
 
-      {/* ── HERO ── */}
-      <section className="relative overflow-hidden py-10 text-white"
-        style={{ background: `linear-gradient(135deg, ${pc} 0%, ${pc}88 100%)` }}>
-        <div className="absolute inset-0 opacity-10 pointer-events-none">
-          <div className="absolute top-4 right-12 w-32 h-32 rounded-full border-4 border-white" />
-          <div className="absolute bottom-2 left-8 w-20 h-20 rounded-full border-2 border-white" />
-        </div>
-        <div className="relative max-w-6xl mx-auto px-4 text-center">
-          <h2 className="text-2xl md:text-3xl font-extrabold mb-2">Bienvenue chez {shop.name} 🛍️</h2>
-          <p className="text-white/85 max-w-md mx-auto text-sm">{shop.description || 'Découvrez nos produits sélectionnés avec soin pour vous.'}</p>
-          <div className="flex flex-wrap justify-center gap-2 mt-5">
-            {[{ icon: Truck, t: 'Livraison rapide' }, { icon: Shield, t: 'Paiement sécurisé' }, { icon: RotateCcw, t: 'Retours faciles' }].map(({ icon: I, t }) => (
-              <div key={t} className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-medium">
-                <I className="w-3.5 h-3.5" />{t}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── CATEGORY PILLS ── */}
-      {categories.length > 0 && (
-        <div className="bg-white border-b overflow-x-auto">
-          <div className="flex items-center gap-2 px-4 py-2.5 max-w-6xl mx-auto min-w-max">
-            <button onClick={() => setCatFilter('')}
-              className="flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold transition-all"
-              style={!catFilter ? { backgroundColor: pc, color: 'white' } : { backgroundColor: '#f3f4f6', color: '#4b5563' }}>
-              Tout ({products.length})
+      {/* ── FILTER STRIP — sticky catégories ── */}
+      <div className="sticky top-0 z-30 backdrop-blur-md border-b border-slate-100"
+           style={{ background: 'rgba(251, 247, 239, 0.92)' }}>
+        <div className="max-w-7xl mx-auto px-5 lg:px-8 py-3 flex gap-2 overflow-x-auto no-scrollbar">
+          <button
+            onClick={() => setCatFilter('')}
+            className={`px-4 py-2 rounded-full text-xs font-extrabold whitespace-nowrap transition-all ${
+              !catFilter ? 'bg-ink text-white' : 'bg-white text-ink border-[1.5px] border-slate-200'
+            }`}>
+            Tout ({products.length})
+          </button>
+          {categories.map(c => (
+            <button
+              key={c.id}
+              onClick={() => setCatFilter(catFilter === c.name ? '' : c.name)}
+              className={`px-4 py-2 rounded-full text-xs font-extrabold whitespace-nowrap transition-all ${
+                catFilter === c.name ? 'bg-ink text-white' : 'bg-white text-ink border-[1.5px] border-slate-200'
+              }`}>
+              {c.name}
             </button>
-            {categories.map(cat => (
-              <button key={cat.id} onClick={() => setCatFilter(catFilter === cat.name ? '' : cat.name)}
-                className="flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold transition-all whitespace-nowrap"
-                style={catFilter === cat.name ? { backgroundColor: cat.color || pc, color: 'white' } : { backgroundColor: '#f3f4f6', color: '#4b5563' }}>
-                {cat.name}
-              </button>
-            ))}
-          </div>
+          ))}
+          <div className="w-px h-7 bg-slate-200 mx-1 self-center" />
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`px-4 py-2 rounded-full text-xs font-extrabold whitespace-nowrap inline-flex items-center gap-1.5 transition-all ${
+              hasFilters ? 'bg-ink text-white' : 'bg-white border-[1.5px] border-slate-200 text-ink hover:border-wa'
+            }`}>
+            <SlidersHorizontal className="w-3 h-3" /> Filtres
+          </button>
         </div>
-      )}
+      </div>
 
       {/* ── FEATURED ── */}
       {featuredProducts.length > 0 && !search && !catFilter && (
@@ -358,7 +431,7 @@ export default function ShopPage() {
           viewMode === 'grid' ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
               {filtered.map(p => (
-                <div key={p.id} className="bg-white rounded-2xl shadow-sm overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 group">
+                <div key={p.id} className="premium-card overflow-hidden group" style={{ borderRadius: 20 }}>
                   <div className="relative">
                     {p.imageUrl ? <img src={p.imageUrl} alt={p.name} className="w-full h-48 object-contain bg-white p-2 group-hover:scale-105 transition-transform duration-500" />
                       : <div className="w-full h-40 flex items-center justify-center text-4xl" style={{ background: `${pc}10` }}>📦</div>}
@@ -402,7 +475,7 @@ export default function ShopPage() {
           ) : (
             <div className="space-y-2.5">
               {filtered.map(p => (
-                <div key={p.id} className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all flex items-center gap-3 p-3">
+                <div key={p.id} className="premium-card flex items-center gap-3 p-3" style={{ borderRadius: 20 }}>
                   <div className="flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden cursor-pointer" onClick={() => setQuickView(p)}>
                     {p.imageUrl ? <img src={p.imageUrl} alt={p.name} className="w-full h-full object-contain bg-white p-2" /> : <div className="w-full h-full flex items-center justify-center text-2xl" style={{ background: `${pc}10` }}>📦</div>}
                   </div>
@@ -460,20 +533,48 @@ export default function ShopPage() {
         </div>
       )}
 
-      {/* ── FOOTER ── */}
-      <footer className="bg-white border-t py-6">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="text-center md:text-left">
-              <p className="font-bold text-gray-800">{shop.name}</p>
-              {shop.city && <p className="text-sm text-gray-500 flex items-center gap-1 justify-center md:justify-start"><MapPin className="w-3.5 h-3.5" />{shop.city}, {shop.country}</p>}
+      {/* ── TRUST FOOTER ── */}
+      <footer className="bg-white border-t border-slate-100">
+        <div className="max-w-7xl mx-auto px-5 lg:px-8 py-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+            {[
+              { Icon: Truck,         t: 'Livraison rapide',  s: shop.deliveryFee ? `${shop.deliveryFee.toLocaleString('fr-FR')} ${shop.currency || 'FCFA'}` : 'Disponible sur demande' },
+              { Icon: MessageCircle, t: 'WhatsApp direct',   s: 'Réponse en quelques minutes' },
+              { Icon: CreditCard,    t: 'Paiements locaux',  s: 'Mobile Money · Cash à la livraison' },
+              { Icon: Shield,        t: 'Vendeur vérifié',   s: 'Boutique active sur MasterShopPro' },
+            ].map(item => (
+              <div key={item.t} className="flex items-start gap-3">
+                <div className="premium-icon flex-shrink-0">
+                  <item.Icon className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-sm font-extrabold tracking-[-0.005em]">{item.t}</div>
+                  <div className="text-[11.5px] text-slate-500 font-semibold mt-0.5">{item.s}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 pt-6 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-400 font-semibold">
+            <div className="flex items-center gap-3">
+              <span>{shop.name}</span>
+              {shop.city && <span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3" />{shop.city}{shop.country ? `, ${shop.country}` : ''}</span>}
             </div>
-            <div className="flex gap-3">
-              {shop.whatsapp && <a href={getWhatsAppLink(shop.whatsapp, `Bonjour ${shop.name}!`)} target="_blank" className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-medium bg-green-500"><MessageCircle className="w-4 h-4" />WhatsApp</a>}
-              {shop.phone && <a href={`tel:${shop.phone}`} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-gray-200 text-gray-600"><Phone className="w-4 h-4" />Appeler</a>}
+            <div className="flex items-center gap-3">
+              {shop.whatsapp && (
+                <a href={getWhatsAppLink(shop.whatsapp, `Bonjour ${shop.name}!`)} target="_blank"
+                   className="inline-flex items-center gap-1.5 font-bold text-wa-dark hover:text-wa">
+                  <MessageCircle className="w-3 h-3" /> WhatsApp
+                </a>
+              )}
+              {shop.phone && (
+                <a href={`tel:${shop.phone}`} className="inline-flex items-center gap-1.5 font-bold text-slate-600 hover:text-ink">
+                  <Phone className="w-3 h-3" /> Appeler
+                </a>
+              )}
+              <span>Propulsé par <a href="/" className="font-extrabold text-wa-dark hover:text-wa">MasterShopPro</a></span>
             </div>
           </div>
-          <div className="mt-4 pt-4 border-t text-center text-xs text-gray-400">Propulsé par <a href="/" className="hover:text-pink-500 font-medium">ShopMaster</a></div>
         </div>
         <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} />
       </footer>

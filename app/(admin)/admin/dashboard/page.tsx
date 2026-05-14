@@ -9,8 +9,71 @@ import { computeDayInsights, DayInsight } from '@/lib/insights';
 import {
   Plus, MessageCircle, Clock, CheckCircle, Package,
   ArrowRight, Copy, ExternalLink, Users, ChevronRight,
-  ShoppingBag, Zap
+  ShoppingBag, Zap, TrendingUp, BarChart3
 } from 'lucide-react';
+import React from 'react';
+
+function formatPriceCompact(value: number): string {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace('.0', '')}M`;
+  if (value >= 1_000)     return `${Math.round(value / 1_000)}k`;
+  return String(value);
+}
+
+function HeroKpiCell({ label, value, sub, accent, icon }: {
+  label: string; value: string; sub: string; accent: string; icon: React.ReactNode;
+}) {
+  return (
+    <div className="px-5 py-5 sm:px-6 sm:py-6 border-r border-white/10 last:border-r-0">
+      <div className="flex items-center gap-2 mb-1.5">
+        <div className="w-7 h-7 rounded-lg flex items-center justify-center"
+             style={{ background: `${accent}22`, color: accent }}>
+          {icon}
+        </div>
+        <div className="text-[10.5px] font-extrabold tracking-[0.22em] uppercase text-white/55">
+          {label}
+        </div>
+      </div>
+      <div className="display-serif text-3xl sm:text-4xl leading-none mt-1.5" style={{ color: accent }}>
+        {value}
+      </div>
+      <div className="text-[11.5px] font-semibold text-white/55 mt-1">{sub}</div>
+    </div>
+  );
+}
+
+function DayRing({ value, goal, currency }: { value: number; goal: number; currency?: string }) {
+  const pct = Math.min(100, Math.round((value / Math.max(goal, 1)) * 100));
+  const r = 88, c = 2 * Math.PI * r;
+  const dashOffset = c * (1 - pct / 100);
+  return (
+    <div className="relative w-[220px] h-[220px] mx-auto">
+      <svg viewBox="0 0 200 200" width="220" height="220">
+        <circle cx="100" cy="100" r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="14" />
+        <circle cx="100" cy="100" r={r} fill="none" stroke="url(#ringGrad)" strokeWidth="14" strokeLinecap="round"
+                strokeDasharray={c} strokeDashoffset={dashOffset} transform="rotate(-90 100 100)" />
+        <defs>
+          <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#1FB955"/>
+            <stop offset="100%" stopColor="#FF6A2C"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <div className="text-[10px] font-extrabold tracking-[0.22em] uppercase text-white/55">Objectif jour</div>
+        <div className="display-serif text-[40px] leading-none text-white mt-1">
+          {value.toLocaleString('fr-FR')}
+        </div>
+        <div className="text-[11px] text-white/65 font-bold">sur {goal.toLocaleString('fr-FR')} {currency || 'FCFA'}</div>
+        {value > 0 && (
+          <div className="mt-2 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold"
+               style={{ background: 'rgba(31,185,85,0.2)', color: '#1FB955' }}>
+            {pct}% de l'objectif
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 const STATUS_COLOR: Record<string, string> = {
   PENDING: 'bg-amber-100 text-amber-700',
@@ -154,7 +217,7 @@ export default function DashboardPage() {
             <p className="text-xs text-gray-400 truncate">{typeof window !== 'undefined' ? window.location.origin : ''}/{shop?.slug}</p>
           </div>
           <div className="flex gap-2 flex-shrink-0">
-            <button onClick={copyLink} className="p-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50">{copied ? <CheckCircle className="w-4 h-4 text-green-500" /> : <CopyIcon className="w-4 h-4 text-gray-400" />}</button>
+            <button onClick={copyLink} className="p-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50">{copied ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-gray-400" />}</button>
             <Link href={`/${shop?.slug}`} target="_blank" className="p-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50"><ExternalLink className="w-4 h-4 text-gray-400" /></Link>
           </div>
         </div>
@@ -163,156 +226,217 @@ export default function DashboardPage() {
   }
 
   // ── VUE UTILISATEUR ACTIF ─────────────────────────────────────────────────
+  const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  const totalRevenue = orders.reduce((s, o) => s + (o.total || 0), 0);
+  const confirmed = orders.filter(o => o.status === 'CONFIRMED').length;
+
   return (
-    <div className="space-y-5 max-w-2xl">
+    <div className="space-y-6 page-enter">
+      {/* HERO — greeting + KPI strip */}
+      <div className="relative overflow-hidden rounded-[2.25rem] shadow-hi" style={{ background: '#0B1220' }}>
+        <div className="pointer-events-none absolute inset-0"
+             style={{
+               background: `
+                 radial-gradient(circle at 92% 8%, rgba(31,185,85,0.32), transparent 50%),
+                 radial-gradient(circle at 6% 92%, rgba(255,106,44,0.18), transparent 55%)`,
+             }} />
 
-      {/* Actions rapides */}
-      <div className="grid grid-cols-2 gap-3">
-        <Link href="/admin/orders" className="flex items-center gap-3 p-4 rounded-2xl text-white font-bold text-sm shadow-lg hover:opacity-90 transition-opacity" style={{ background: `linear-gradient(135deg,${primaryColor},${primaryColor}cc)` }}>
-          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0"><Plus className="w-5 h-5" /></div>
-          <span>Nouvelle commande</span>
-        </Link>
-        <Link href="/admin/clients" className="flex items-center gap-3 p-4 rounded-2xl text-white font-bold text-sm shadow-lg hover:opacity-90 transition-opacity" style={{ background: 'linear-gradient(135deg,#25D366,#128C7E)' }}>
-          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0"><MessageCircle className="w-5 h-5" /></div>
-          <span>Contacter client</span>
-        </Link>
-      </div>
-
-      {/* ── PRIORITÉS DU JOUR ── */}
-      {insights.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-50">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${primaryColor}15` }}>
-              <Zap className="w-3.5 h-3.5" style={{ color: primaryColor }} />
+        <div className="relative grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-6 px-6 sm:px-8 py-8 sm:py-10 text-white items-center">
+          <div>
+            <div className="inline-flex items-center gap-2 text-[11px] font-extrabold tracking-[0.22em] uppercase text-white/55">
+              <span className="pulse-dot" /> {todayLabel}
             </div>
-            <h3 className="font-black text-gray-800 text-sm">Priorités du jour</h3>
-          </div>
-          <div className="divide-y divide-gray-50">
-            {insights.map((insight, i) => (
-              <div key={i} className={`px-4 py-3 flex items-center gap-3 ${insight.href ? 'cursor-pointer hover:bg-gray-50 transition-colors' : ''}`}
-                onClick={() => insight.href && (window.location.href = insight.href)}>
-                <span className="text-lg flex-shrink-0">{insight.emoji}</span>
-                <p className="text-sm text-gray-700 flex-1 leading-snug">{insight.text}</p>
-                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${PRIORITY_DOT[insight.priority]}`} />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 gap-3">
-        <Link href="/admin/orders" className="stat-card hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 bg-amber-100 rounded-xl flex items-center justify-center"><Clock className="w-4 h-4 text-amber-600" /></div><p className="text-xs text-gray-500 font-medium">En attente</p></div>
-          <p className="text-3xl font-black text-amber-600">{pending.length}</p>
-          <p className="text-xs text-gray-400 mt-1">commande(s)</p>
-        </Link>
-        <div className="stat-card">
-          <div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 bg-orange-100 rounded-xl flex items-center justify-center"><span className="text-orange-600 font-bold text-sm">💰</span></div><p className="text-xs text-gray-500 font-medium">À récupérer</p></div>
-          <p className="text-xl font-black text-orange-600">{formatPrice(totalUnpaid, shop?.currency)}</p>
-          <p className="text-xs text-gray-400 mt-1">{unpaid.length} commande(s)</p>
+            <h1 className="display-serif text-4xl sm:text-5xl mt-3 leading-[1.02]">
+              Bonjour <em className="italic" style={{ color: '#1FB955' }}>{shop?.name || 'Boutique'}.</em>
+              {pending.length > 0 && (
+                <>
+                  <br />
+                  {pending.length} commande{pending.length > 1 ? 's attendent' : ' attend'} toi.
+                </>
+              )}
+            </h1>
+
+            {(totalUnpaid > 0 || toRelance.length > 0) && (
+              <p className="mt-3 text-white/75 text-base leading-relaxed max-w-lg">
+                {totalUnpaid > 0 && <>Tu as <strong className="text-white">{formatPrice(totalUnpaid, shop?.currency)}</strong> en attente. </>}
+                {toRelance.length > 0 && <>{toRelance.length} commande{toRelance.length > 1 ? 's' : ''} sans nouvelle depuis 2 jours.</>}
+              </p>
+            )}
+
+            <div className="mt-6 flex flex-wrap gap-2.5">
+              <Link href="/admin/orders" className="btn-primary px-5 text-sm">
+                <MessageCircle className="w-4 h-4" /> Ouvrir les commandes
+              </Link>
+              <Link href="/admin/orders" className="btn px-5 py-3 text-sm rounded-full"
+                    style={{ background: 'rgba(255,255,255,0.10)', border: '1.5px solid rgba(255,255,255,0.18)', color: 'white' }}>
+                <Plus className="w-4 h-4" /> Nouvelle commande
+              </Link>
+              <button onClick={copyLink}
+                      className="btn px-5 py-3 text-sm rounded-full"
+                      style={{ background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.14)', color: 'white' }}>
+                <Copy className="w-4 h-4" /> {copied ? 'Lien copié !' : 'Partager la boutique'}
+              </button>
+            </div>
+          </div>
+
+          <div className="hidden lg:flex justify-center">
+            <DayRing value={todayRevenue} goal={Math.max(todayRevenue * 1.5, 50000)} currency={shop?.currency} />
+          </div>
         </div>
-        <Link href="/admin/clients" className="stat-card hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 bg-green-100 rounded-xl flex items-center justify-center"><Users className="w-4 h-4 text-green-600" /></div><p className="text-xs text-gray-500 font-medium">À relancer</p></div>
-          <p className="text-3xl font-black text-green-600">{toRelance.length}</p>
-          <p className="text-xs text-gray-400 mt-1">depuis +2j</p>
-        </Link>
-        <div className="stat-card">
-          <div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 bg-emerald-100 rounded-xl flex items-center justify-center"><CheckCircle className="w-4 h-4 text-emerald-600" /></div><p className="text-xs text-gray-500 font-medium">Aujourd'hui</p></div>
-          <p className="text-xl font-black text-emerald-600">{formatPrice(todayRevenue, shop?.currency)}</p>
-          <p className="text-xs text-gray-400 mt-1">{todayOrders.length} commande(s)</p>
+
+        <div className="relative grid grid-cols-2 sm:grid-cols-4 border-t border-white/10">
+          <HeroKpiCell
+            label="À encaisser"
+            value={formatPriceCompact(totalUnpaid)}
+            sub={`${shop?.currency || 'FCFA'} · ${unpaid.length} commande${unpaid.length > 1 ? 's' : ''}`}
+            accent="#FF6A2C"
+            icon={<TrendingUp className="w-3.5 h-3.5" />}
+          />
+          <HeroKpiCell
+            label="À préparer"
+            value={String(pending.length + confirmed)}
+            sub="commandes"
+            accent="#3F7BDC"
+            icon={<Package className="w-3.5 h-3.5" />}
+          />
+          <HeroKpiCell
+            label="Aujourd'hui"
+            value={formatPriceCompact(todayRevenue)}
+            sub={`${shop?.currency || 'FCFA'} · ${todayOrders.length} commande${todayOrders.length > 1 ? 's' : ''}`}
+            accent="#1FB955"
+            icon={<BarChart3 className="w-3.5 h-3.5" />}
+          />
+          <HeroKpiCell
+            label="Total"
+            value={formatPriceCompact(totalRevenue)}
+            sub={`${shop?.currency || 'FCFA'} · ${orders.length} commandes`}
+            accent="#FFFFFF"
+            icon={<ShoppingBag className="w-3.5 h-3.5" />}
+          />
         </div>
       </div>
 
-      {/* Alertes */}
-      {pending.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-3">
-          <Clock className="w-5 h-5 text-amber-600 flex-shrink-0" />
-          <div className="flex-1"><p className="font-bold text-amber-800 text-sm">{pending.length} commande(s) à confirmer</p><p className="text-xs text-amber-600">Confirmez pour notifier vos clients sur WhatsApp</p></div>
-          <Link href="/admin/orders" className="text-amber-700 font-bold text-sm flex-shrink-0">Voir →</Link>
-        </div>
-      )}
-      {toRelance.length > 0 && (
-        <div className="bg-green-50 border border-green-200 rounded-2xl p-4 flex items-center gap-3">
-          <MessageCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-          <div className="flex-1"><p className="font-bold text-green-800 text-sm">{toRelance.length} client(s) à relancer</p><p className="text-xs text-green-600">En attente depuis plus de 2 jours</p></div>
-          <button onClick={() => toRelance[0] && quickRelance(toRelance[0])} disabled={!!sending}
-            className="text-white text-xs font-bold px-3 py-1.5 rounded-lg flex-shrink-0" style={{ backgroundColor: '#25D366' }}>
-            {sending ? '...' : '💬 Relancer'}
-          </button>
-        </div>
-      )}
-
-      {/* Lien boutique */}
-      <div className="rounded-2xl p-4 text-white flex items-center justify-between gap-3" style={{ background: `linear-gradient(135deg,${primaryColor},${primaryColor}bb)` }}>
-        <div className="min-w-0">
-          <p className="font-bold text-sm">🔗 Lien de votre boutique</p>
-          <p className="text-white/70 text-xs truncate">{typeof window !== 'undefined' ? window.location.origin : ''}/{shop?.slug}</p>
-        </div>
-        <div className="flex gap-2 flex-shrink-0">
-          <button onClick={copyLink} className="p-2 bg-white/20 rounded-xl hover:bg-white/30 transition-colors">{copied ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}</button>
-          <Link href={`/${shop?.slug}`} target="_blank" className="p-2 bg-white/20 rounded-xl hover:bg-white/30 transition-colors"><ExternalLink className="w-4 h-4" /></Link>
-        </div>
-      </div>
-
-      {/* Dernières commandes */}
-      <div className="bg-white rounded-2xl border border-gray-100">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
-          <h3 className="font-bold text-gray-800">Dernières commandes</h3>
-          <Link href="/admin/orders" className="text-xs font-semibold flex items-center gap-1" style={{ color: primaryColor }}>Tout voir <ArrowRight className="w-3.5 h-3.5" /></Link>
-        </div>
-        {recentOrders.length === 0 ? (
-          <div className="text-center py-10">
-            <Package className="w-12 h-12 mx-auto text-gray-200 mb-2" />
-            <p className="text-gray-400 text-sm">Aucune commande</p>
-            <Link href="/admin/orders" className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-xl text-white text-sm font-bold" style={{ backgroundColor: primaryColor }}>
-              <Plus className="w-4 h-4" />Créer une commande
+      {/* Priorités du jour + Activité */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-5">
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="display-serif text-2xl sm:text-3xl">Priorités du jour</h2>
+            <Link href="/admin/orders" className="text-xs font-extrabold text-slate-500 inline-flex items-center gap-1">
+              Tout voir <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
-        ) : (
-          <div className="divide-y divide-gray-50">
-            {recentOrders.map((order: any) => (
-              <div key={order.id} className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0" style={{ backgroundColor: primaryColor }}>
-                    {order.customerName?.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-800 text-sm">{order.customerName}</p>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${STATUS_COLOR[order.status]}`}>{STATUS_LABEL[order.status]}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <p className="font-bold text-gray-800 text-sm">{formatPrice(order.total, shop?.currency)}</p>
-                    <p className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}</p>
-                  </div>
-                  {order.customerPhone && order.status !== 'DELIVERED' && order.status !== 'CANCELLED' && (
-                    <button onClick={() => quickRelance(order)} disabled={sending === order.id}
-                      className="w-8 h-8 bg-green-50 hover:bg-green-100 rounded-full flex items-center justify-center transition-colors flex-shrink-0">
-                      <MessageCircle className="w-4 h-4 text-green-600" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
 
-      {/* Raccourcis */}
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { href: '/admin/clients',  emoji: '👥', label: 'Clients',  color: '#dbeafe', border: '#93c5fd' },
-          { href: '/admin/products', emoji: '📦', label: 'Produits', color: '#fef3c7', border: '#fde68a' },
-          { href: '/admin/whatsapp', emoji: '💬', label: 'WhatsApp', color: '#dcfce7', border: '#86efac' },
-        ].map((s, i) => (
-          <Link key={i} href={s.href} style={{ background: s.color, border: `2px solid ${s.border}` }}
-            className="rounded-2xl p-4 flex flex-col items-center gap-2 hover:opacity-80 transition-opacity text-center">
-            <span className="text-2xl">{s.emoji}</span>
-            <p className="text-xs font-bold text-gray-700">{s.label}</p>
-          </Link>
-        ))}
+          <div className="grid gap-2.5">
+            {insights.length === 0 && toRelance.length === 0 && pending.length === 0 && (
+              <div className="premium-card p-6 text-center">
+                <CheckCircle className="w-10 h-10 mx-auto text-wa mb-2" />
+                <p className="font-extrabold text-gray-800">Tout est sous contrôle</p>
+                <p className="text-sm text-gray-500 mt-1">Aucune action urgente pour le moment.</p>
+              </div>
+            )}
+
+            {insights.slice(0, 4).map((insight, i) => {
+              const priority = (insight as any).priority || 'medium';
+              const borderColor = priority === 'high' ? '#E1483D' : priority === 'medium' ? '#FF6A2C' : 'rgba(15,23,42,0.08)';
+              const accent = priority === 'high' ? '#FF6A2C' : priority === 'medium' ? '#3F7BDC' : '#1FB955';
+              return (
+                <div key={i} className="premium-card p-4 sm:p-5 flex items-center gap-3 sm:gap-4 cursor-pointer"
+                     style={{ borderLeft: `4px solid ${borderColor}` }}
+                     onClick={() => (insight as any).href && (window.location.href = (insight as any).href)}>
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 text-xl"
+                       style={{ background: `${accent}18` }}>
+                    {(insight as any).emoji || '⚡'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[14px] font-semibold text-gray-800 leading-snug">{(insight as any).text}</p>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                </div>
+              );
+            })}
+
+            {insights.length < 2 && toRelance.length > 0 && (
+              <div className="premium-card p-4 sm:p-5 flex items-center gap-3 sm:gap-4"
+                   style={{ borderLeft: '4px solid #FF6A2C' }}>
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                     style={{ background: 'rgba(255,106,44,0.18)', color: '#FF6A2C' }}>
+                  <TrendingUp className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-[15px] font-extrabold tracking-[-0.01em] text-gray-950 m-0 truncate">Relance — {toRelance[0].customerName}</h3>
+                  <p className="text-[12.5px] text-gray-500 font-semibold mt-0.5 truncate">
+                    Commande {toRelance[0].orderNumber} · {formatPrice(toRelance[0].total, shop?.currency)} · J+{Math.floor((Date.now() - new Date(toRelance[0].createdAt).getTime()) / 86400000)}
+                  </p>
+                </div>
+                <button onClick={() => quickRelance(toRelance[0])}
+                        disabled={sending === toRelance[0].id}
+                        className="px-4 py-2.5 rounded-full text-[12px] font-extrabold inline-flex items-center gap-1.5 whitespace-nowrap bg-ink text-white">
+                  {sending === toRelance[0].id ? 'Envoi...' : 'Relancer'}
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right column */}
+        <div className="grid gap-4 content-start">
+          <div className="premium-card p-5">
+            <div className="text-[11px] font-extrabold tracking-[0.22em] uppercase text-wa-dark">Actions rapides</div>
+            <div className="grid gap-2 mt-3">
+              <Link href="/admin/products"
+                    className="btn-primary px-4 text-sm justify-start rounded-2xl py-3">
+                <Plus className="w-4 h-4" /> Ajouter un produit
+                <ChevronRight className="w-3 h-3 ml-auto opacity-60" />
+              </Link>
+              <Link href="/admin/products"
+                    className="btn-orange px-4 text-sm justify-start rounded-2xl py-3">
+                <Zap className="w-4 h-4" /> Photo + fiche IA
+                <ChevronRight className="w-3 h-3 ml-auto opacity-60" />
+              </Link>
+              <Link href="/admin/orders"
+                    className="btn-dark px-4 text-sm justify-start rounded-2xl py-3">
+                <CheckCircle className="w-4 h-4" /> Enregistrer un paiement
+                <ChevronRight className="w-3 h-3 ml-auto opacity-60" />
+              </Link>
+              <button onClick={copyLink}
+                      className="btn-secondary px-4 text-sm justify-start rounded-2xl py-3">
+                <Copy className="w-4 h-4" /> {copied ? 'Lien copié !' : 'Partager la boutique'}
+                <ChevronRight className="w-3 h-3 ml-auto opacity-60" />
+              </button>
+            </div>
+          </div>
+
+          <div className="premium-card p-5">
+            <div className="flex items-center justify-between">
+              <div className="text-[11px] font-extrabold tracking-[0.22em] uppercase text-slate-400">Dernières commandes</div>
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-wa">
+                <span className="pulse-dot" /> live
+              </span>
+            </div>
+            <div className="grid gap-3 mt-3">
+              {recentOrders.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-4">Aucune commande</p>
+              )}
+              {recentOrders.slice(0, 4).map((o: any) => (
+                <Link key={o.id} href={`/admin/orders`} className="flex items-center gap-3 group">
+                  <div className="w-9 h-9 rounded-full text-white flex items-center justify-center font-black text-xs"
+                       style={{ background: o.status === 'DELIVERED' ? '#1FB955' : o.status === 'PENDING' ? '#FF6A2C' : '#3F7BDC' }}>
+                    {(o.customerName || 'C').split(' ').map((x: string) => x[0]).join('').slice(0, 2)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-extrabold truncate">{o.customerName || 'Client'}</div>
+                    <div className="text-[10.5px] text-slate-500 font-semibold">{o.orderNumber} · {STATUS_LABEL[o.status]}</div>
+                  </div>
+                  <div className="display-serif text-base leading-none">
+                    {(o.total || 0).toLocaleString('fr-FR')}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -165,20 +165,29 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-4 premium-mesh">
+      <div className="ambient-panel w-full max-w-md overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-pink-500 to-rose-600 p-6 text-white text-center">
-          <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Store className="w-8 h-8" />
-          </div>
-          <h1 className="text-2xl font-bold">Créer votre boutique</h1>
-          <p className="text-pink-100 mt-2">Étape {step} sur 2</p>
-          
-          {/* Progress bar */}
-          <div className="flex gap-2 mt-4">
-            <div className={`h-1.5 flex-1 rounded-full ${step >= 1 ? 'bg-white' : 'bg-white/30'}`} />
-            <div className={`h-1.5 flex-1 rounded-full ${step >= 2 ? 'bg-white' : 'bg-white/30'}`} />
+        <div className="relative overflow-hidden p-6 text-white text-center" style={{ background: '#0B1220' }}>
+          <div className="pointer-events-none absolute inset-0"
+               style={{
+                 background: `
+                   radial-gradient(circle at 88% 8%, rgba(31,185,85,0.35), transparent 50%),
+                   radial-gradient(circle at 6% 92%, rgba(255,106,44,0.20), transparent 55%)`,
+               }} />
+          <div className="relative">
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-wa"
+                 style={{ background: 'linear-gradient(135deg,#1FB955,#0E5D32)' }}>
+              <Store className="w-8 h-8" />
+            </div>
+            <h1 className="display-serif text-3xl">Crée ta <em className="italic" style={{ color: '#1FB955' }}>boutique</em></h1>
+            <p className="text-white/65 mt-2 text-sm font-extrabold tracking-[0.18em] uppercase">Étape {step} sur 2</p>
+
+            {/* Progress bar */}
+            <div className="flex gap-2 mt-4 max-w-[200px] mx-auto">
+              <div className={`h-1.5 flex-1 rounded-full transition-all ${step >= 1 ? 'bg-wa' : 'bg-white/20'}`} />
+              <div className={`h-1.5 flex-1 rounded-full transition-all ${step >= 2 ? 'bg-wa' : 'bg-white/20'}`} />
+            </div>
           </div>
         </div>
         
@@ -379,7 +388,7 @@ export default function RegisterPage() {
         <div className="px-6 pb-6 text-center">
           <p className="text-sm text-gray-500">
             Déjà un compte ?{' '}
-            <Link href="/login" className="text-pink-500 hover:text-pink-600 font-medium">
+            <Link href="/login" className="text-wa-dark hover:text-wa font-extrabold">
               Se connecter
             </Link>
           </p>

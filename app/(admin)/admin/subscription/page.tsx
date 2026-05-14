@@ -117,17 +117,18 @@ export default function SubscriptionPage() {
           const features = PLAN_FEATURES[plan.id];
 
           return (
-            <div key={plan.id} className={`relative bg-white rounded-2xl border-2 flex flex-col transition-all overflow-hidden
-              ${isCurrent ? 'border-current shadow-lg' : isPopular ? 'border-blue-400 shadow-md' : 'border-gray-100 hover:border-gray-200 hover:shadow-sm'}`}
-              style={isCurrent ? { borderColor: primaryColor } : {}}>
+            <div key={plan.id} className={`premium-card relative flex flex-col overflow-hidden ${isPopular && !isCurrent ? 'premium-glow ring-2 ring-wa/30 shadow-wa' : ''}`}>
 
               {/* Popular badge */}
               {isPopular && !isCurrent && (
-                <div className="bg-blue-500 text-white text-xs font-bold text-center py-1.5 tracking-wide">⭐ PLUS POPULAIRE</div>
+                <div className="text-white text-[11px] font-extrabold text-center py-1.5 tracking-[0.22em] uppercase"
+                     style={{ background: 'linear-gradient(135deg,#1FB955,#0E5D32)' }}>
+                  ⭐ Le plus populaire
+                </div>
               )}
               {isCurrent && (
-                <div className="text-white text-xs font-bold text-center py-1.5 tracking-wide" style={{ backgroundColor: primaryColor }}>
-                  ✓ PLAN ACTUEL
+                <div className="text-white text-[11px] font-extrabold text-center py-1.5 tracking-[0.22em] uppercase" style={{ background: '#0B1220' }}>
+                  ✓ Plan actuel
                 </div>
               )}
 
@@ -135,17 +136,17 @@ export default function SubscriptionPage() {
                 {/* Header */}
                 <div className="text-center mb-5">
                   <span className="text-4xl">{features?.icon}</span>
-                  <h3 className="text-xl font-bold text-gray-800 mt-2">{plan.name}</h3>
-                  <div className="mt-2">
+                  <h3 className="display-serif text-2xl text-ink mt-2">{plan.name}</h3>
+                  <div className="mt-3">
                     {plan.price === 0 ? (
-                      <p className="text-3xl font-bold text-gray-700">Gratuit</p>
+                      <p className="display-serif text-4xl text-slate-600">Gratuit</p>
                     ) : (
                       <div>
-                        <p className="text-3xl font-bold" style={{ color: plan.color }}>
+                        <p className="display-serif text-5xl leading-none" style={{ color: plan.color }}>
                           {plan.price.toLocaleString('fr-FR')}
-                          <span className="text-sm font-normal text-gray-400"> FCFA</span>
+                          <span className="text-sm font-bold text-slate-400 ml-1" style={{ fontFamily: 'inherit' }}> FCFA</span>
                         </p>
-                        <p className="text-xs text-gray-400">par mois</p>
+                        <p className="text-[11px] font-bold text-slate-400 mt-1 uppercase tracking-[0.18em]">par mois</p>
                       </div>
                     )}
                   </div>

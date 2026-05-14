@@ -2,48 +2,96 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+/* ── Typography ────────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap');
 
-/* ── Safe area variables (iPhone notch, Android punch-hole, Play Store TWA) ── */
+/* ── Design Tokens — MasterShopPro 2026 ───────────────────────────────────── */
 :root {
-  --primary: #f97316;
-  --primary-dark: #ea580c;
-  --primary-light: #fed7aa;
+  /* Brand WhatsApp — légèrement plus profond pour ressenti premium */
+  --wa:            #1FB955;
+  --wa-hover:      #19A44A;
+  --wa-dark:       #0E5D32;
+  --wa-soft:       #E6F8EE;
+  --wa-sheen:      rgba(31, 185, 85, 0.18);
+
+  /* Surfaces — chaudes, pas froides */
+  --app-bg:        #FBF7EF;   /* crème chaude */
+  --app-card:      #FFFFFF;
+  --app-paper:    #F6F2EA;
+  --app-border:    rgba(15, 23, 42, 0.08);
+
+  /* Ink — bleu nuit profond, plus chaud que noir pur */
+  --ink:           #0B1220;
+  --ink-2:         #1F2A44;
+  --mute:          #6B7385;
+
+  /* Action / chaleur */
+  --orange:        #FF6A2C;
+  --orange-ink:    #B23E0A;
+  --orange-soft:   #FFF1E8;
+
+  /* Trust / business */
+  --sky:           #3F7BDC;
+  --sky-soft:      #EAF2FF;
+
+  /* Status colors */
+  --status-pending:    #F59E0B;
+  --status-confirmed:  #3B82F6;
+  --status-processing: #9333EA;
+  --status-delivered:  #10B981;
+  --status-cancelled:  #EF4444;
+
+  /* Safe areas (PWA / Capacitor / Play Store TWA) */
   --safe-top:    env(safe-area-inset-top,    0px);
   --safe-right:  env(safe-area-inset-right,  0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left:   env(safe-area-inset-left,   0px);
+
+  /* Shadows — chaudes */
+  --s-low:   0 1px 0 rgba(15,23,42,0.04), 0 2px 8px rgba(15,23,42,0.04);
+  --s-med:   0 4px 10px rgba(15,23,42,0.05), 0 14px 28px rgba(15,23,42,0.08);
+  --s-hi:    0 10px 24px rgba(15,23,42,0.08), 0 30px 60px rgba(15,23,42,0.16);
+  --s-wa:    0 12px 28px rgba(31, 185, 85, 0.28);
+  --s-orange: 0 12px 28px rgba(255, 106, 44, 0.28);
 }
 
+/* ── Base ──────────────────────────────────────────────────────────────────── */
 html {
   scroll-behavior: smooth;
-  /* Required for env() to work correctly in TWA/Play Store */
   -webkit-text-size-adjust: 100%;
 }
 
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  background-color: var(--app-bg);
+  color: var(--ink);
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
 }
 
-/* ── Safe area utility classes ─────────────────────────────────────────────── */
+::selection {
+  background-color: var(--wa);
+  color: white;
+}
+
+/* Display serif for "wow" headings — usage très ponctuel */
+.display-serif {
+  font-family: 'Instrument Serif', 'Times New Roman', serif;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+/* ── Safe area utilities ───────────────────────────────────────────────────── */
 .pt-safe  { padding-top:    var(--safe-top);    }
 .pb-safe  { padding-bottom: var(--safe-bottom); }
 .pl-safe  { padding-left:   var(--safe-left);   }
 .pr-safe  { padding-right:  var(--safe-right);  }
 
-/* For sticky headers: adds safe-top ON TOP of existing height */
 .h-header-safe { height: calc(4rem + var(--safe-top)); }
+.pb-bar-safe   { padding-bottom: calc(1rem + var(--safe-bottom)); }
+.mb-bar-safe   { margin-bottom:  calc(5rem + var(--safe-bottom)); }
 
-/* For fixed bottom bars (cart bar, nav): adds safe-bottom padding */
-.pb-bar-safe { padding-bottom: calc(1rem + var(--safe-bottom)); }
-
-/* Bottom spacer so content is not hidden behind fixed bottom bars */
-.mb-bar-safe { margin-bottom: calc(4rem + var(--safe-bottom)); }
-
-/* For modals/overlays that need full-screen clearance */
 .inset-safe {
   top:    var(--safe-top);
   right:  var(--safe-right);
@@ -51,95 +99,313 @@ body {
   left:   var(--safe-left);
 }
 
-/* ── Apply safe-top to fixed/sticky top elements automatically ─────────────── */
 @supports (padding-top: env(safe-area-inset-top)) {
-  /* Admin header */
-  header.admin-header {
-    padding-top: var(--safe-top);
-    height: calc(4rem + var(--safe-top));
-  }
-
-  /* Admin sidebar top logo area */
-  aside .sidebar-logo {
-    padding-top: var(--safe-top);
-    height: calc(4rem + var(--safe-top));
-  }
-
-  /* Shop page sticky header */
-  header.shop-header {
-    padding-top: var(--safe-top);
-  }
-
-  /* Fixed bottom bars */
-  .fixed-bottom-bar {
-    padding-bottom: calc(0.75rem + var(--safe-bottom));
-  }
+  header.admin-header { padding-top: var(--safe-top); height: calc(4rem + var(--safe-top)); }
+  aside .sidebar-logo { padding-top: var(--safe-top); height: calc(4rem + var(--safe-top)); }
+  header.shop-header  { padding-top: var(--safe-top); }
+  .fixed-bottom-bar   { padding-bottom: calc(0.75rem + var(--safe-bottom)); }
+  nav.bottom-nav      { padding-bottom: calc(0.5rem + var(--safe-bottom)); }
 }
 
-/* ── Component layer ───────────────────────────────────────────────────────── */
+/* ── Component Layer ───────────────────────────────────────────────────────── */
 @layer components {
-  .btn-primary   { @apply bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 px-5 rounded-lg transition-all shadow-sm hover:shadow-md active:scale-[0.98]; }
-  .btn-secondary { @apply bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 px-5 rounded-lg transition-all; }
-  .btn-success   { @apply bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-2.5 px-5 rounded-lg transition-all; }
-  .btn-danger    { @apply bg-red-500 hover:bg-red-600 text-white font-semibold py-2.5 px-5 rounded-lg transition-all; }
-  .btn-outline   { @apply border-2 border-orange-500 hover:bg-orange-50 text-orange-500 font-semibold py-2.5 px-5 rounded-lg transition-all bg-white; }
-  .btn-whatsapp  { @apply bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center gap-2; }
 
-  .card    { @apply bg-white rounded-xl shadow-sm border border-gray-100 p-6; }
+  /* ── Buttons ─────────────────────────────────────────────────────────────── */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 font-bold transition-all rounded-full active:scale-[0.97];
+    min-height: 48px;
+    position: relative;
+    overflow: hidden;
+    will-change: transform;
+  }
+  .btn-primary {
+    @apply btn bg-wa text-white px-6 py-3 shadow-wa hover:bg-wa-hover;
+  }
+  .btn-primary::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(120deg, transparent 25%, rgba(255,255,255,0.45) 50%, transparent 75%);
+    transform: translateX(-120%);
+    transition: transform .7s ease;
+    pointer-events: none;
+  }
+  .btn-primary:hover::after { transform: translateX(120%); }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 18px 36px rgba(31,185,85,0.38); }
 
-  .input   { @apply w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all bg-white; }
-  .textarea{ @apply w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all resize-none; }
-  .select  { @apply w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all bg-white appearance-none cursor-pointer; }
+  .btn-orange {
+    @apply btn text-white px-6 py-3;
+    background-color: var(--orange);
+    box-shadow: var(--s-orange);
+  }
+  .btn-orange:hover { background-color: #F25B1A; transform: translateY(-1px); }
 
-  .badge         { @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold; }
-  .badge-success { @apply bg-emerald-100 text-emerald-700; }
-  .badge-warning { @apply bg-amber-100 text-amber-700; }
-  .badge-danger  { @apply bg-red-100 text-red-700; }
-  .badge-info    { @apply bg-blue-100 text-blue-700; }
+  .btn-dark {
+    @apply btn text-white px-6 py-3;
+    background-color: var(--ink);
+    box-shadow: var(--s-med);
+  }
+  .btn-dark:hover { background-color: var(--ink-2); transform: translateY(-1px); }
 
-  .stat-card { @apply bg-white rounded-xl p-4 shadow-sm border border-gray-50; }
+  .btn-secondary {
+    @apply btn bg-white border-2 border-slate-200 text-slate-700 px-6 py-3 hover:border-slate-300 hover:bg-slate-50;
+  }
+  .btn-ghost {
+    @apply btn text-slate-600 px-4 py-2 hover:bg-slate-100 rounded-xl;
+  }
+  .btn-danger {
+    @apply btn bg-red-500 text-white px-6 py-3 hover:bg-red-600;
+  }
+  .btn-wa         { @apply btn-primary; }
+  .btn-wa-outline { @apply btn border-2 border-wa text-wa bg-white px-6 py-3 hover:bg-wa-soft; }
+  .btn-icon       { @apply flex items-center justify-center w-11 h-11 rounded-full transition-colors; }
 
-  .sidebar-link        { @apply flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50 transition-all font-medium; }
-  .sidebar-link-active { @apply flex items-center gap-3 px-4 py-3 rounded-lg bg-orange-50 text-orange-600 font-semibold; }
+  /* ── Cards ───────────────────────────────────────────────────────────────── */
+  .card {
+    @apply bg-white rounded-2xl border border-slate-100 shadow-ios;
+  }
+  .card-sm {
+    @apply bg-white rounded-xl border border-slate-100 shadow-soft;
+  }
+
+  /* PREMIUM CARD — usage page Produits + landing */
+  .premium-card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.97), rgba(255,255,255,0.93));
+    border: 1px solid var(--app-border);
+    border-radius: 28px;
+    box-shadow: var(--s-low);
+    transition:
+      transform 260ms cubic-bezier(.2,.7,.2,1),
+      box-shadow 260ms cubic-bezier(.2,.7,.2,1),
+      border-color 260ms cubic-bezier(.2,.7,.2,1);
+    position: relative;
+  }
+  .premium-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(31, 185, 85, 0.22);
+    box-shadow: var(--s-hi);
+  }
+  .premium-card:hover .premium-zoom { transform: scale(1.04); filter: saturate(1.06); }
+  .premium-card:hover .premium-icon { transform: translateY(-2px) scale(1.08); box-shadow: 0 12px 28px rgba(31,185,85,0.22); }
+
+  .premium-zoom { transition: transform .5s cubic-bezier(.2,.7,.2,1), filter .5s; }
+
+  .premium-icon {
+    @apply inline-flex items-center justify-center;
+    width: 44px; height: 44px; border-radius: 14px;
+    background: linear-gradient(135deg, var(--wa-soft), white);
+    color: var(--wa-dark);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 4px 12px rgba(31,185,85,0.08);
+    transition: transform .26s cubic-bezier(.2,.7,.2,1), box-shadow .26s;
+  }
+
+  /* Tilt 3D léger — usage carte produit */
+  .premium-tilt { perspective: 1200px; }
+  .premium-tilt-inner { transform-style: preserve-3d; transition: transform .35s cubic-bezier(.2,.7,.2,1); }
+  .premium-tilt:hover .premium-tilt-inner { transform: rotateX(2deg) rotateY(-3deg) translateZ(8px); }
+
+  /* Glow CTA — usage bouton/carte critique */
+  .premium-glow:hover {
+    box-shadow: 0 0 0 1px rgba(31,185,85,0.45), 0 18px 48px rgba(31,185,85,0.18), var(--s-med);
+  }
+
+  /* Mesh background — fond hero produits + landing */
+  .premium-mesh {
+    background:
+      radial-gradient(60% 60% at 12% 10%, rgba(31,185,85,0.10), transparent 60%),
+      radial-gradient(50% 50% at 88% 8%, rgba(255,106,44,0.10), transparent 60%),
+      radial-gradient(60% 60% at 50% 100%, rgba(63,123,220,0.08), transparent 60%),
+      linear-gradient(180deg, var(--app-bg) 0%, #FFFFFF 70%);
+  }
+
+  /* Status pill produit (En ligne / Masqué) */
+  .status-pill {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] font-extrabold;
+  }
+  .status-pill-live {
+    background: var(--wa); color: white;
+    box-shadow: 0 6px 14px rgba(31,185,85,0.4);
+  }
+  .status-pill-hidden {
+    background: #E5E7EB; color: #475569;
+  }
+
+  /* ── Inputs ──────────────────────────────────────────────────────────────── */
+  .input {
+    @apply w-full h-14 px-4 bg-white border-2 border-slate-200 rounded-2xl text-[15px] font-medium
+           placeholder-slate-300 focus:border-wa focus:ring-2 focus:ring-wa/10 outline-none transition-all;
+  }
+  .input-sm {
+    @apply w-full h-10 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm
+           placeholder-slate-400 focus:border-wa focus:bg-white focus:ring-2 focus:ring-wa/10 outline-none transition-all;
+  }
+  .textarea {
+    @apply w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-2xl text-[15px] font-medium
+           placeholder-slate-300 focus:border-wa focus:ring-2 focus:ring-wa/10 outline-none transition-all resize-none;
+  }
+  .select {
+    @apply w-full h-14 px-4 bg-white border-2 border-slate-200 rounded-2xl text-[15px] font-medium
+           focus:border-wa focus:ring-2 focus:ring-wa/10 outline-none transition-all appearance-none cursor-pointer;
+  }
+
+  /* ── Badges / Status chips (inchangés) ─────────────────────────────────── */
+  .badge { @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide; }
+  .badge-pending    { @apply badge bg-amber-50   text-amber-700   border border-amber-200;   }
+  .badge-confirmed  { @apply badge bg-blue-50    text-blue-700    border border-blue-200;    }
+  .badge-processing { @apply badge bg-purple-50  text-purple-700  border border-purple-200; }
+  .badge-delivered  { @apply badge bg-emerald-50 text-emerald-700 border border-emerald-200; }
+  .badge-cancelled  { @apply badge bg-red-50     text-red-700     border border-red-200;     }
+  .badge-paid       { @apply badge bg-emerald-50 text-emerald-700 border border-emerald-200; }
+  .badge-unpaid     { @apply badge bg-amber-50   text-amber-700   border border-amber-200;   }
+  .badge-success    { @apply badge-delivered; }
+  .badge-warning    { @apply badge-pending; }
+  .badge-danger     { @apply badge-cancelled; }
+  .badge-info       { @apply badge-confirmed; }
+
+  .stat-card { @apply card p-4 flex flex-col gap-3; }
+
+  /* ── Sidebar / Navigation ───────────────────────────────────────────────── */
+  .sidebar-link        { @apply flex items-center gap-3 px-3 py-3 rounded-xl text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition-all font-medium text-sm; }
+  .sidebar-link-active { @apply flex items-center gap-3 px-3 py-3 rounded-xl bg-wa-soft text-wa-dark font-semibold text-sm; }
+  .nav-tab             { @apply flex flex-col items-center gap-1 text-slate-400 transition-colors; }
+  .nav-tab-active      { @apply flex flex-col items-center gap-1 text-wa-dark; }
+
+  .insight-card { @apply card p-4 flex items-center justify-between gap-3 relative overflow-hidden cursor-pointer active:scale-[0.98] transition-all; }
+
+  .glass      { background: rgba(255,255,255,0.9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+  .glass-dark { background: rgba(15,23,42,0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+
+  /* Chip premium (kicker hero) */
+  .premium-chip {
+    @apply inline-flex items-center gap-2 rounded-full border bg-white px-3.5 py-2 text-xs font-extrabold;
+    border-color: var(--app-border);
+    box-shadow: 0 10px 24px rgba(15,23,42,0.05);
+    color: var(--ink-2);
+  }
+  .premium-chip-wa     { background: var(--wa-soft); border-color: rgba(31,185,85,0.22); color: var(--wa-dark); }
+  .premium-chip-orange { background: var(--orange-soft); border-color: rgba(255,106,44,0.22); color: var(--orange-ink); }
+
+  .section-kicker { @apply inline-flex items-center gap-2 text-[11px] font-extrabold tracking-[0.22em] uppercase; color: var(--wa-dark); }
+  .section-title  { @apply mt-3 font-black tracking-[-0.04em]; font-size: clamp(2rem, 2.4vw, 3.5rem); line-height: 1.04; color: var(--ink); }
+  .section-copy   { @apply mt-3 text-base leading-[1.7] text-slate-600 max-w-[42rem]; }
 }
 
-/* ── Inputs ────────────────────────────────────────────────────────────────── */
-input[type="checkbox"] { accent-color: #f97316; }
-input[type="radio"]    { accent-color: #f97316; }
+/* ── Scrollbars ────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 20px; }
+::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
 
-/* Remove number input arrows */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Animations ────────────────────────────────────────────────────────────── */
+@keyframes slideUp    { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+@keyframes slideRight { from { opacity:0; transform:translateX(-10px); } to { opacity:1; transform:translateX(0); } }
+@keyframes fadeIn     { from { opacity:0; } to { opacity:1; } }
+@keyframes fadeInUp   { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+@keyframes pulse-soft { 0%,100% { opacity:1; } 50% { opacity:.55; } }
+@keyframes spin       { to { transform:rotate(360deg); } }
+@keyframes ping       { 75%,100% { transform:scale(2); opacity:0; } }
+@keyframes msPulse    { 0%{ transform:scale(1); opacity:1 } 70%{ transform:scale(2.4); opacity:0 } 100%{ opacity:0 } }
+@keyframes msFloat    { 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-6px) } }
+@keyframes msShimmer  { 0%{ background-position: -200% 0 } 100%{ background-position: 200% 0 } }
+
+.animate-slideUp   { animation: slideUp   0.3s ease-out; }
+.animate-fadeIn    { animation: fadeIn    0.3s ease-out; }
+.animate-fadeInUp  { animation: fadeInUp  0.6s cubic-bezier(0.16,1,0.3,1) forwards; }
+.page-enter        { animation: fadeIn    0.2s ease-out; }
+
+/* Pulse dot — usage "live" indicator */
+.pulse-dot { position: relative; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--wa); }
+.pulse-dot::before { content: ''; position: absolute; inset: 0; border-radius: 50%; background: var(--wa); animation: msPulse 1.8s infinite; }
+
+/* Float — éléments décoratifs hero */
+.float-soft      { animation: msFloat 6s ease-in-out infinite; }
+.float-soft-slow { animation: msFloat 9s ease-in-out infinite; }
+
+/* Shimmer — usage état "L'IA travaille" */
+.shimmer-fx {
+  background: linear-gradient(110deg, rgba(255,255,255,0) 30%, rgba(255,255,255,0.7) 50%, rgba(255,255,255,0) 70%);
+  background-size: 200% 100%;
+  animation: msShimmer 2s linear infinite;
+}
+
+/* Tap targets (WCAG accessibility) */
+button, a, [role="button"] { min-height: 44px; }
+
+/* Form elements */
+input[type="checkbox"] { accent-color: var(--wa); }
+input[type="radio"]    { accent-color: var(--wa); }
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 input[type="number"] { -moz-appearance: textfield; }
 
-/* ── Scrollbar ─────────────────────────────────────────────────────────────── */
-::-webkit-scrollbar       { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
-::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #aaa; }
-
-/* ── Animations ────────────────────────────────────────────────────────────── */
-@keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
-@keyframes pulse-soft { 0%,100% { opacity:1; } 50% { opacity:.6; } }
-
-.animate-slideUp   { animation: slideUp 0.3s ease-out; }
-.animate-fadeIn    { animation: fadeIn  0.3s ease-out; }
-.page-enter        { animation: fadeIn  0.2s ease-out; }
-
-/* ── Tap targets (accessibility) ───────────────────────────────────────────── */
-button, a, [role="button"] { min-height: 36px; }
-
-/* ── No user select for UI chrome ──────────────────────────────────────────── */
 .no-select { -webkit-user-select: none; user-select: none; }
+.tap-active:active { transform: scale(0.97); }
 
-/* ── Print ─────────────────────────────────────────────────────────────────── */
 @media print { .no-print { display: none !important; } }
 
-/* ── Play Store / PWA Standalone — hide Google Sign-In ─────────────────────── */
-/* When running as installed PWA (Play Store TWA, "Add to Home Screen"),         */
-/* Google OAuth is blocked — hide the button entirely via CSS, no JS flash.      */
+/* PWA Standalone — hide Google Sign-In */
 @media (display-mode: standalone) {
-  .google-signin-btn  { display: none !important; }
-  .google-signin-sep  { display: none !important; }
+  .google-signin-btn { display: none !important; }
+  .google-signin-sep { display: none !important; }
+}
+
+/* ── Marketing surfaces — landing, recap, hero produits ────────────────── */
+.ambient-panel {
+  background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.92));
+  border: 1px solid var(--app-border);
+  border-radius: 28px;
+  box-shadow: var(--s-med);
+  backdrop-filter: blur(16px);
+}
+
+.media-frame {
+  position: relative;
+  border: 1px solid var(--app-border);
+  box-shadow: var(--s-med);
+  background: #fff;
+}
+
+.media-hover {
+  transition:
+    transform 280ms cubic-bezier(.2,.7,.2,1),
+    box-shadow 280ms cubic-bezier(.2,.7,.2,1),
+    border-color 280ms cubic-bezier(.2,.7,.2,1);
+}
+.media-hover img { transition: transform 380ms cubic-bezier(.2,.7,.2,1), filter 380ms cubic-bezier(.2,.7,.2,1); }
+.media-hover:hover { transform: translateY(-4px); border-color: rgba(31,185,85,0.22); box-shadow: var(--s-hi); }
+.media-hover:hover img { transform: scale(1.04); filter: saturate(1.04); }
+
+.ambient-orb {
+  pointer-events: none; position: absolute;
+  width: 180px; height: 180px; border-radius: 9999px;
+  filter: blur(38px); opacity: 0.55;
+}
+.ambient-orb-green { top: -18px;  right: 18%;  background: rgba(31,185,85,0.26); }
+.ambient-orb-blue  { bottom: 10%; left: -24px; background: rgba(63,130,246,0.20); }
+
+/* Icon shell legacy (utilisé par la landing) */
+.icon-shell {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 3rem; height: 3rem; border-radius: 1rem;
+  background: linear-gradient(135deg, rgba(31,185,85,0.18), rgba(31,185,85,0.08));
+  color: var(--wa-dark);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+  transition: transform 220ms cubic-bezier(.2,.7,.2,1), box-shadow 220ms cubic-bezier(.2,.7,.2,1);
+}
+.premium-card:hover .icon-shell {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 16px 32px rgba(31,185,85,0.16);
+}
+
+/* ── Reduced motion — accessibilité ────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .premium-card, .premium-zoom, .premium-icon, .premium-tilt-inner,
+  .float-soft, .float-soft-slow, .shimmer-fx,
+  .btn, .btn-primary::after, .media-hover, .media-hover img,
+  .pulse-dot::before, .icon-shell {
+    transition: none !important;
+    animation: none !important;
+  }
 }

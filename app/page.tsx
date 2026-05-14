@@ -1,14 +1,56 @@
 'use client';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import {
+  ArrowRight, CheckCircle2, Camera, Sparkles, FileText, MessageCircle,
+  Play, ShieldCheck, Zap, Image as ImageIcon, ShoppingBag, Bell,
+  Users, CreditCard, Smartphone,
+} from 'lucide-react';
 
-const PLAY_URL  = 'https://www.mastershoppro.com/register';
-const DEMO_URL  = '/demo';
-const WA_NUM    = '393299639430';
-const YT_ID     = 'gKLc2s5CcBU';
+const PLAY_URL = 'https://www.mastershoppro.com/register';
+const DEMO_URL = '/demo';
+const WA_NUM   = '393299639430';
+const YT_ID    = 'gKLc2s5CcBU';
 
-export default function LandingAds() {
-  const [scrolled, setScrolled]   = useState(false);
-  const [count,    setCount]      = useState(487);
+const BENEFITS = [
+  'Photo → Fiche IA en 8 sec',
+  'Brochure WhatsApp prête',
+  'Commandes & relances sans désordre',
+];
+
+const FLOW_STEPS = [
+  { icon: Camera,    title: 'Photo',       sub: 'Prends ton produit',           tone: 'wa' as const },
+  { icon: Sparkles,  title: 'Fiche IA',    sub: 'Nom, prix, description',       tone: 'orange' as const },
+  { icon: FileText,  title: 'Brochure',    sub: 'PDF + image prête à coller',   tone: 'sky' as const },
+  { icon: MessageCircle, title: 'WhatsApp', sub: 'Tu partages. Client commande.', tone: 'wa' as const },
+];
+
+const PROBLEMS = [
+  { pb: 'Tu notes les commandes dans un carnet ou dans ta tête', sol: 'Toutes tes commandes enregistrées, classées et suivies' },
+  { pb: "Tu oublies de relancer les clients qui n'ont pas payé", sol: 'Rappel paiement WhatsApp en 1 clic — montant pré-rempli' },
+  { pb: "Tu ne sais plus ce que chaque client a acheté", sol: 'Historique client complet — achats, montants, dernier contact' },
+  { pb: 'Tes photos produits font amateur', sol: 'Studio Photo IA — fond pro automatique en 1 clic' },
+];
+
+const FEATURES = [
+  { Icon: ShoppingBag,   title: 'Commandes WhatsApp', desc: 'Centralise, suis et confirme chaque commande' },
+  { Icon: Bell,          title: 'Relances 1-clic',     desc: 'Rappel paiement, confirmation, prêt à retirer' },
+  { Icon: Users,         title: 'Historique clients',  desc: 'Achats, paiements, dernier contact' },
+  { Icon: FileText,      title: 'Reçus WhatsApp',      desc: 'Envoi direct depuis l’app en 1 clic' },
+  { Icon: ImageIcon,     title: 'Studio Photo IA',     desc: 'Fond blanc pro — photo prête en 1 clic' },
+  { Icon: Smartphone,    title: 'Hors connexion',      desc: 'Continue de fonctionner en 2G ou offline' },
+];
+
+const TESTIMONIALS = [
+  { name: 'Aminata K.',   loc: 'Dakar · Tissus',       text: "Avant j'oubliais toujours de relancer. Maintenant je clique et le message part. Plus aucun impayé !", color: '#C68A4E' },
+  { name: 'Jean-Paul M.', loc: 'Abidjan · Épicerie',   text: "Mes clients reçoivent leur reçu sur WhatsApp dès que je valide. Ils adorent.", color: '#D14C3C' },
+  { name: 'Fatou D.',     loc: 'Douala · Cosmétiques', text: "Je vois tout l'historique de chaque cliente. Je sais ce qu'elle a acheté, quand, et combien.", color: '#3F7BDC' },
+  { name: 'Moussa T.',    loc: 'Bamako · Téléphonie',  text: "Fini le carnet. Toutes mes commandes WhatsApp sont là. Je gère 3 vendeurs sans confusion.", color: '#1FB955' },
+];
+
+export default function LandingPage() {
+  const [scrolled, setScrolled] = useState(false);
+  const [count, setCount] = useState(1247);
   const [showVideo, setShowVideo] = useState(false);
 
   useEffect(() => {
@@ -19,247 +61,351 @@ export default function LandingAds() {
   }, []);
 
   return (
-    <div style={{ fontFamily: "'Plus Jakarta Sans','Nunito',system-ui,sans-serif", background: '#fff', color: '#111', minHeight: '100vh', overflowX: 'hidden' }}>
-      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
-      <style>{`
-        @keyframes pulse-green { 0%,100%{box-shadow:0 0 0 0 rgba(22,163,74,0.6),0 8px 32px rgba(22,163,74,0.4)} 50%{box-shadow:0 0 0 14px rgba(22,163,74,0),0 8px 32px rgba(22,163,74,0.4)} }
-        @keyframes shine { 0%{transform:translateX(-100%) skewX(-15deg)} 100%{transform:translateX(300%) skewX(-15deg)} }
-        @keyframes float {0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)}}
-        @keyframes ticker {0%{transform:translateX(0)} 100%{transform:translateX(-50%)}}
-        .pulse-cta { animation: pulse-green 2s ease-in-out infinite; }
-        .shine-btn { position:relative; overflow:hidden; }
-        .shine-btn::after { content:''; position:absolute; top:0; left:0; width:40%; height:100%; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent); animation: shine 2.5s ease-in-out infinite; }
-        .float { animation: float 4s ease-in-out infinite; }
-        .ticker-wrap { overflow:hidden; white-space:nowrap; }
-        .ticker { display:inline-block; animation: ticker 22s linear infinite; }
-      `}</style>
-
-      {/* VIDEO MODAL */}
+    <div className="min-h-screen overflow-x-hidden" style={{ background: 'var(--app-bg)', color: 'var(--ink)' }}>
+      {/* Video modal */}
       {showVideo && (
-        <div onClick={() => setShowVideo(false)} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div style={{ position: 'relative', borderRadius: 24, overflow: 'hidden', background: '#000', width: '100%', maxWidth: 360 }} onClick={e => e.stopPropagation()}>
-            <div style={{ paddingTop: '177.78%', position: 'relative' }}>
-              <iframe style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }}
+        <div onClick={() => setShowVideo(false)}
+             className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+             style={{ background: 'rgba(11,18,32,0.92)' }}>
+          <div onClick={e => e.stopPropagation()}
+               className="relative w-full max-w-sm overflow-hidden rounded-3xl bg-black shadow-hi">
+            <div className="relative" style={{ paddingTop: '177.78%' }}>
+              <iframe
+                className="absolute inset-0 h-full w-full border-0"
                 src={`https://www.youtube.com/embed/${YT_ID}?autoplay=1&rel=0&modestbranding=1&playsinline=1`}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
             </div>
-            <button onClick={() => setShowVideo(false)} style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: '50%', width: 32, height: 32, color: '#fff', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+            <button onClick={() => setShowVideo(false)}
+                    className="absolute top-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-black/70 text-white text-lg">
+              ×
+            </button>
           </div>
         </div>
       )}
 
       {/* HEADER */}
-      <header style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, padding: '12px 20px', background: scrolled ? 'rgba(255,255,255,0.97)' : 'transparent', backdropFilter: scrolled ? 'blur(20px)' : 'none', borderBottom: scrolled ? '1px solid #f0f0f0' : 'none', transition: 'all 0.3s', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg,#f97316,#ea580c)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 14 }}>M</div>
-          <span style={{ fontWeight: 800, fontSize: 16 }}>Mastershop</span>
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <a href={DEMO_URL} style={{ padding: '7px 14px', borderRadius: 20, border: '1px solid #e5e7eb', fontSize: 12, fontWeight: 700, color: '#374151', textDecoration: 'none' }}>Demo</a>
-          <a href={PLAY_URL} style={{ padding: '7px 14px', borderRadius: 20, background: 'linear-gradient(135deg,#16a34a,#15803d)', fontSize: 12, fontWeight: 700, color: '#fff', textDecoration: 'none' }}>S'inscrire</a>
+      <header className={`fixed inset-x-0 top-0 z-[100] transition-all ${scrolled ? 'glass border-b border-slate-100' : ''}`}>
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-3 lg:px-8">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl font-black text-white shadow-wa"
+                 style={{ background: 'linear-gradient(135deg,#1FB955,#0E5D32)' }}>M</div>
+            <span className="text-base font-extrabold tracking-tight">MasterShopPro</span>
+          </Link>
+          <div className="flex items-center gap-2">
+            <Link href={DEMO_URL}
+                  className="hidden h-10 items-center rounded-full border border-slate-200 bg-white px-4 text-xs font-extrabold text-slate-700 sm:inline-flex hover:border-slate-300">
+              Démo
+            </Link>
+            <Link href={PLAY_URL} className="btn-primary h-10 px-4 text-xs">
+              S'inscrire <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
         </div>
       </header>
 
-      {/* ── HERO ─────────────────────────────────────────────────────── */}
-      <section style={{ padding: '100px 20px 60px', background: 'linear-gradient(180deg,#fff7ed 0%,#fff 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+      {/* HERO */}
+      <section className="relative overflow-hidden px-5 pb-16 pt-28 lg:px-8 lg:pb-24 lg:pt-36">
+        {/* Mesh background */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[44rem]"
+             style={{
+               background: `
+                 radial-gradient(60% 60% at 8% 10%, rgba(31,185,85,0.18), transparent 55%),
+                 radial-gradient(45% 60% at 92% 18%, rgba(255,106,44,0.14), transparent 55%),
+                 radial-gradient(60% 60% at 50% 100%, rgba(63,123,220,0.10), transparent 60%),
+                 linear-gradient(180deg, #FBF7EF 0%, #FFFFFF 70%)`,
+             }} />
 
-        {/* Badge */}
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 20, padding: '6px 14px', marginBottom: 28, fontSize: 12, fontWeight: 700, color: '#92400e' }}>
-          <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#f97316', display: 'inline-block' }} />
-          {count.toLocaleString()} vendeurs WhatsApp actifs — Afrique & Diaspora
-        </div>
+        <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
+          <div>
+            <div className="premium-chip premium-chip-wa">
+              <span className="pulse-dot" />
+              {count.toLocaleString('fr-FR')} commerçants WhatsApp actifs
+            </div>
 
-        {/* Titre principal — UNE seule idée */}
-        <h1 style={{ fontSize: 'clamp(1.9rem,7vw,3.2rem)', fontWeight: 900, lineHeight: 1.15, marginBottom: 20, maxWidth: 640 }}>
-          Vous vendez sur WhatsApp ?<br />
-          <span style={{ color: '#ea580c' }}>Gérez vos commandes, paiements<br />et clients sans désordre.</span>
-        </h1>
+            <h1 className="display-serif mt-6 max-w-3xl text-[2.6rem] leading-[1.02] tracking-[-0.035em] sm:text-6xl lg:text-7xl">
+              Tu vends sur WhatsApp.
+              <span className="block italic" style={{ color: '#1FB955' }}>Ton produit</span>
+              devient prêt à vendre.
+            </h1>
 
-        {/* Sous-titre — clair, une phrase */}
-        <p style={{ fontSize: 'clamp(0.95rem,3vw,1.1rem)', color: '#4b5563', maxWidth: 500, margin: '0 0 8px', lineHeight: 1.7 }}>
-          MasterShopPro vous aide à suivre chaque commande, relancer les paiements et garder l'historique client — sans changer votre façon de vendre.
-        </p>
+            <p className="mt-6 max-w-2xl text-base leading-[1.7] text-slate-600 sm:text-lg">
+              Prends une photo. MasterShopPro génère la fiche, la brochure et le message client.
+              Tu partages sur WhatsApp en <strong className="text-ink">30 secondes</strong>.
+            </p>
 
-        {/* Ligne de renfort */}
-        <p style={{ fontSize: 13, color: '#16a34a', fontWeight: 700, marginBottom: 32 }}>
-          Continuez à vendre sur WhatsApp. MasterShopPro organise le reste.
-        </p>
+            <div className="mt-7 grid gap-2.5 sm:grid-cols-1">
+              {BENEFITS.map((item) => (
+                <div key={item} className="premium-chip">
+                  <CheckCircle2 className="h-4 w-4" style={{ color: '#1FB955' }} />
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
 
-        {/* Mini bénéfices hero — 3 max */}
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 36 }}>
-          {['✅ Commandes claires', '💰 Paiements suivis', '🔔 Relances en 1 clic'].map((b, i) => (
-            <span key={i} style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 20, padding: '6px 14px', fontSize: 12, fontWeight: 700, color: '#15803d' }}>{b}</span>
-          ))}
-        </div>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link href={PLAY_URL} className="btn-primary px-6 text-sm sm:text-base">
+                Créer ma boutique gratuitement
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <button onClick={() => setShowVideo(true)} className="btn-secondary px-6 text-sm sm:text-base">
+                <Play className="h-4 w-4" style={{ color: '#1FB955' }} />
+                Voir comment ça marche
+              </button>
+            </div>
 
-        {/* CTAs */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, width: '100%', maxWidth: 380, marginBottom: 48 }}>
-          <a href={PLAY_URL} className="pulse-cta shine-btn"
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, background: 'linear-gradient(135deg,#16a34a,#15803d)', color: '#fff', textDecoration: 'none', padding: '20px 28px', borderRadius: 18, fontWeight: 800, fontSize: 17, width: '100%' }}>
-            <span style={{ fontSize: 20 }}>🛍️</span>
-            Créer ma boutique gratuitement
-          </a>
-          <p style={{ fontSize: 11, color: '#9ca3af', margin: 0 }}>✅ Gratuit · Sans carte bancaire · Fonctionne sur tous les téléphones</p>
-          <button onClick={() => setShowVideo(true)}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'transparent', color: '#374151', border: '2px solid #e5e7eb', cursor: 'pointer', padding: '13px 24px', borderRadius: 14, fontWeight: 700, fontSize: 14, width: '100%' }}>
-            <div style={{ width: 26, height: 26, background: '#f97316', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 10 }}>▶</div>
-            Voir comment ça marche (30 sec)
-          </button>
-          <a href={DEMO_URL} style={{ fontSize: 13, color: '#16a34a', fontWeight: 600, textDecoration: 'none' }}>→ Essayer la démo sans compte</a>
-        </div>
+            <div className="mt-6 flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-3">
+                <div className="flex">
+                  {['#C68A4E', '#D14C3C', '#3F7BDC', '#1FB955'].map((c, i) => (
+                    <div key={i} className="h-7 w-7 rounded-full border-2 border-white shadow-ios"
+                         style={{ background: c, marginLeft: i ? -8 : 0 }} />
+                  ))}
+                </div>
+                <div>
+                  <div className="text-[13px] font-extrabold text-slate-900">+1 200 commerçants</div>
+                  <div className="text-[11px] font-semibold text-slate-500">Cameroun · Sénégal · Côte d'Ivoire</div>
+                </div>
+              </div>
+              <Link href={DEMO_URL} className="text-xs font-extrabold text-wa-dark underline-offset-4 hover:underline">
+                → Essayer la démo sans compte
+              </Link>
+            </div>
+          </div>
 
-        {/* Phone mockup */}
-        <div className="float" style={{ position: 'relative', width: 220 }}>
-          <div style={{ position: 'absolute', inset: 0, borderRadius: '3rem', background: 'radial-gradient(circle,rgba(249,115,22,0.25) 0%,rgba(52,211,153,0.15) 100%)', filter: 'blur(28px)', transform: 'scale(1.15)' }} />
-          <div style={{ position: 'relative', borderRadius: '2.6rem', border: '6px solid #1f2937', background: '#111', overflow: 'hidden', aspectRatio: '9/16' }}>
-            <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', width: 52, height: 13, background: '#000', borderRadius: 7, zIndex: 10 }} />
-            <iframe style={{ width: '100%', height: '100%', border: 'none', pointerEvents: 'none' }}
-              src={`https://www.youtube.com/embed/${YT_ID}?autoplay=1&mute=1&rel=0&playsinline=1&loop=1&playlist=${YT_ID}&controls=0&modestbranding=1`}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
-            <button onClick={() => setShowVideo(true)} style={{ position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 10, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.95)', border: 'none', borderRadius: 20, padding: '6px 12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-              <div style={{ width: 20, height: 20, background: '#f97316', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: '#fff' }}>▶</div>
-              <span style={{ fontSize: 11, fontWeight: 800, color: '#111' }}>Voir avec son</span>
-            </button>
+          {/* Phone visual */}
+          <div className="relative mx-auto w-full max-w-md lg:max-w-none">
+            <div className="ambient-orb ambient-orb-green" />
+            <div className="ambient-orb ambient-orb-blue" />
+
+            {/* Floating chips above phone */}
+            <div className="absolute -left-4 top-8 z-30 float-soft hidden sm:block" style={{ transform: 'rotate(-6deg)' }}>
+              <FloatingChip Icon={Camera} title="Photo prise" sub="1 sec" tone="white" />
+            </div>
+            <div className="absolute -right-2 top-32 z-30 float-soft-slow hidden sm:block" style={{ transform: 'rotate(4deg)' }}>
+              <FloatingChip Icon={Sparkles} title="Fiche générée" sub="IA · 8 sec" tone="wa" />
+            </div>
+            <div className="absolute -bottom-4 left-6 z-30 float-soft hidden sm:block" style={{ transform: 'rotate(-3deg)' }}>
+              <FloatingChip Icon={FileText} title="Brochure prête" sub="WhatsApp" tone="orange" />
+            </div>
+
+            <div className="relative mx-auto float-soft" style={{ width: 260 }}>
+              <div className="absolute inset-0 -z-10 scale-110 rounded-[3rem]"
+                   style={{ background: 'radial-gradient(circle, rgba(31,185,85,0.30) 0%, rgba(255,106,44,0.18) 70%)', filter: 'blur(32px)' }} />
+              <div className="relative overflow-hidden rounded-[2.8rem] border-[6px] border-ink shadow-hi"
+                   style={{ background: '#0B1220', aspectRatio: '9 / 18' }}>
+                <div className="absolute left-1/2 top-3 z-10 h-3.5 w-14 -translate-x-1/2 rounded-full bg-black" />
+                <iframe className="h-full w-full border-0"
+                        style={{ pointerEvents: 'none' }}
+                        src={`https://www.youtube.com/embed/${YT_ID}?autoplay=1&mute=1&rel=0&playsinline=1&loop=1&playlist=${YT_ID}&controls=0&modestbranding=1`}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
+                <button onClick={() => setShowVideo(true)}
+                        className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-white/95 px-3 py-1.5 shadow-float">
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full text-[8px] text-white"
+                       style={{ background: '#FF6A2C' }}>▶</div>
+                  <span className="text-[11px] font-extrabold text-ink">Voir avec son</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* TICKER */}
-      <div style={{ background: '#16a34a', padding: '10px 0' }}>
-        <div className="ticker-wrap">
-          <div className="ticker" style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>
-            {['✓ Commandes WhatsApp organisées','✓ Relances en 1 clic','✓ Historique clients','✓ Paiements suivis','✓ Sans internet','✓ Studio Photo IA','✓ Mobile Money','✓ Gratuit pour démarrer',
-              '✓ Commandes WhatsApp organisées','✓ Relances en 1 clic','✓ Historique clients','✓ Paiements suivis','✓ Sans internet','✓ Studio Photo IA','✓ Mobile Money','✓ Gratuit pour démarrer']
-              .map((t, i) => <span key={i} style={{ marginRight: 48 }}>{t}</span>)}
-          </div>
+      <div className="relative overflow-hidden py-3" style={{ background: '#0E5D32' }}>
+        <div className="flex whitespace-nowrap" style={{ animation: 'ticker 22s linear infinite' }}>
+          {Array.from({ length: 2 }).flatMap((_, k) =>
+            ['✓ Commandes WhatsApp claires','✓ Relances 1 clic','✓ Historique clients','✓ Paiements suivis','✓ Sans connexion','✓ Studio Photo IA','✓ Mobile Money','✓ Gratuit pour démarrer']
+              .map((t, i) => (
+                <span key={`${k}-${i}`} className="px-8 text-xs font-extrabold text-white/90">{t}</span>
+              ))
+          )}
         </div>
+        <style jsx>{`@keyframes ticker { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }`}</style>
       </div>
 
-      {/* ── SECTION WHATSAPP — preuve concrète ──────────────────────── */}
-      <section style={{ padding: '70px 20px', background: '#f0fdf4' }}>
-        <div style={{ maxWidth: 700, margin: '0 auto' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#dcfce7', border: '1px solid #86efac', borderRadius: 20, padding: '5px 12px', marginBottom: 16, fontSize: 11, fontWeight: 700, color: '#15803d' }}>
-            💬 Ce que MasterShopPro fait pour vous
+      {/* FLOW — Comment ça marche */}
+      <section className="px-5 py-16 lg:px-8 lg:py-24">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-12 text-center">
+            <span className="section-kicker">Le parcours magique</span>
+            <h2 className="section-title mx-auto">Photo → Fiche IA → Brochure → WhatsApp</h2>
+            <p className="section-copy mx-auto">
+              Quatre étapes. Aucune compétence technique. Ton produit devient une vraie fiche
+              prête à coller dans une discussion client.
+            </p>
           </div>
-          <h2 style={{ fontSize: 'clamp(1.4rem,4vw,2rem)', fontWeight: 900, marginBottom: 8, maxWidth: 560 }}>
-            Fini le désordre dans vos DM WhatsApp
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {FLOW_STEPS.map((s, i) => (
+              <div key={s.title} className="premium-card relative p-6">
+                <div className="absolute right-5 top-5 text-[11px] font-extrabold tracking-[0.22em] text-slate-300">
+                  0{i + 1}
+                </div>
+                <div className={`premium-icon ${s.tone === 'orange' ? 'bg-orange-soft' : s.tone === 'sky' ? 'bg-sky-soft' : ''}`}
+                     style={s.tone === 'orange' ? { background: 'var(--orange-soft)', color: 'var(--orange-ink)' }
+                          : s.tone === 'sky'    ? { background: 'var(--sky-soft)', color: 'var(--sky)' } : undefined}>
+                  <s.icon className="h-5 w-5" />
+                </div>
+                <h3 className="display-serif mt-4 text-2xl">{s.title}</h3>
+                <p className="mt-1 text-sm font-semibold text-slate-500">{s.sub}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* PROBLEMS → SOLUTIONS */}
+      <section className="px-5 py-16 lg:px-8 lg:py-24" style={{ background: 'var(--app-paper)' }}>
+        <div className="mx-auto max-w-3xl">
+          <div className="mb-10 text-center">
+            <span className="section-kicker">Tu te reconnais ?</span>
+            <h2 className="section-title mx-auto">Les vrais problèmes des vendeurs WhatsApp</h2>
+          </div>
+
+          <div className="grid gap-3">
+            {PROBLEMS.map((p) => (
+              <div key={p.pb} className="premium-card p-5 sm:p-6">
+                <p className="text-[14px] font-semibold text-slate-500">{p.pb}</p>
+                <p className="mt-2 inline-flex items-center gap-2 text-[14px] font-extrabold text-wa-dark">
+                  <CheckCircle2 className="h-4 w-4" style={{ color: '#1FB955' }} />
+                  {p.sol}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* TESTIMONIALS */}
+      <section className="px-5 py-16 lg:px-8 lg:py-24">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-12 text-center">
+            <span className="section-kicker">Ils l'utilisent tous les jours</span>
+            <h2 className="section-title mx-auto">+1 200 commerçants à travers l'Afrique francophone</h2>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {TESTIMONIALS.map((t) => (
+              <div key={t.name} className="premium-card p-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full font-black text-white"
+                       style={{ background: t.color }}>
+                    {t.name[0]}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="truncate text-[13px] font-extrabold">{t.name}</div>
+                    <div className="truncate text-[10.5px] font-semibold text-slate-500">{t.loc}</div>
+                  </div>
+                </div>
+                <p className="mt-4 text-[13.5px] italic leading-[1.65] text-slate-600">"{t.text}"</p>
+                <div className="mt-3 text-[12px]" style={{ color: '#F5A623' }}>★★★★★</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FEATURES */}
+      <section className="px-5 py-16 lg:px-8 lg:py-24" style={{ background: 'var(--app-paper)' }}>
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-12 text-center">
+            <span className="section-kicker">Tout-en-un</span>
+            <h2 className="section-title mx-auto">Tout ce dont un vendeur WhatsApp a besoin</h2>
+            <p className="section-copy mx-auto">Aucune formation. Opérationnel en 5 minutes.</p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {FEATURES.map((f) => (
+              <div key={f.title} className="premium-card p-6">
+                <div className="premium-icon">
+                  <f.Icon className="h-5 w-5" />
+                </div>
+                <h3 className="mt-4 text-[15px] font-extrabold tracking-[-0.005em]">{f.title}</h3>
+                <p className="mt-1.5 text-[13px] leading-[1.65] text-slate-500">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FINAL CTA */}
+      <section className="relative overflow-hidden px-5 py-20 lg:px-8 lg:py-28"
+               style={{ background: '#0B1220' }}>
+        <div className="pointer-events-none absolute inset-0"
+             style={{
+               background: `
+                 radial-gradient(circle at 88% 10%, rgba(31,185,85,0.30), transparent 50%),
+                 radial-gradient(circle at 8% 92%, rgba(255,106,44,0.18), transparent 55%)`,
+             }} />
+
+        <div className="relative mx-auto max-w-3xl text-center text-white">
+          <div className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[11px] font-extrabold tracking-[0.22em] uppercase"
+               style={{ background: 'rgba(31,185,85,0.18)', color: '#1FB955' }}>
+            <span className="pulse-dot" />
+            Prêt à vendre mieux ?
+          </div>
+
+          <h2 className="display-serif mt-6 text-5xl leading-[1.04] sm:text-6xl">
+            Continue à vendre sur WhatsApp.
+            <span className="block italic" style={{ color: '#1FB955' }}>MasterShopPro organise le reste.</span>
           </h2>
-          <p style={{ color: '#6b7280', marginBottom: 32, fontSize: 14, maxWidth: 520 }}>
-            Chaque commande prise sur WhatsApp est enregistrée, suivie et relancée automatiquement depuis MasterShopPro.
+
+          <p className="mx-auto mt-5 max-w-xl text-base text-white/70">
+            Commandes · Paiements · Relances · Brochures IA — Tout en 1 app. Gratuit pour démarrer.
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12 }}>
-            {[
-              { emoji: '📥', title: 'Commandes centralisées', desc: 'Toutes vos commandes WhatsApp en un seul endroit, classées et claires' },
-              { emoji: '💰', title: 'Suivi des paiements', desc: 'Voyez en temps réel qui a payé, qui doit encore payer, et combien' },
-              { emoji: '🔔', title: 'Relances en 1 clic', desc: 'Rappel paiement, confirmation de commande, commande prête — message automatique' },
-              { emoji: '👥', title: 'Historique clients', desc: 'Chaque client : ses commandes, ses achats, son dernier contact' },
-              { emoji: '🧾', title: 'Reçus sur WhatsApp', desc: 'Envoyez un reçu professionnel directement depuis l\'app' },
-              { emoji: '📋', title: 'Journal des échanges', desc: 'Retrouvez tout ce que vous avez envoyé à chaque client, avec la date' },
-            ].map((f, i) => (
-              <div key={i} style={{ background: '#fff', border: '1px solid #d1fae5', borderRadius: 16, padding: '18px' }}>
-                <span style={{ fontSize: 28, display: 'block', marginBottom: 10 }}>{f.emoji}</span>
-                <p style={{ fontWeight: 800, fontSize: 13, marginBottom: 4, color: '#111' }}>{f.title}</p>
-                <p style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.5, margin: 0 }}>{f.desc}</p>
-              </div>
-            ))}
+
+          <div className="mx-auto mt-8 flex max-w-md flex-col gap-3">
+            <Link href={PLAY_URL} className="btn-primary px-6 text-base">
+              <Zap className="h-4 w-4" />
+              Créer ma boutique gratuitement
+            </Link>
+            <a href={`https://wa.me/${WA_NUM}?text=Bonjour, je veux essayer MasterShopPro`}
+               target="_blank" rel="noopener noreferrer"
+               className="btn px-6 py-3 text-sm rounded-full"
+               style={{ background: 'rgba(31,185,85,0.15)', border: '1.5px solid rgba(31,185,85,0.4)', color: '#1FB955' }}>
+              <MessageCircle className="h-4 w-4" />
+              Une question ? Écris-nous sur WhatsApp
+            </a>
+            <Link href={DEMO_URL} className="text-[13px] font-extrabold text-white/50 underline-offset-4 hover:text-white/80 hover:underline">
+              → Essayer la démo sans compte
+            </Link>
+          </div>
+
+          <div className="mt-10 flex items-center justify-center gap-2 text-[11px] font-semibold text-white/40">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            Sans carte bancaire · Sans engagement · Fonctionne en 2G
           </div>
         </div>
       </section>
 
-      {/* ── PROBLÈMES → SOLUTIONS ────────────────────────────────────── */}
-      <section style={{ padding: '70px 20px', background: '#f9fafb' }}>
-        <div style={{ maxWidth: 600, margin: '0 auto' }}>
-          <h2 style={{ fontSize: 'clamp(1.5rem,5vw,2.2rem)', fontWeight: 900, textAlign: 'center', marginBottom: 8 }}>Ça vous parle ? 👇</h2>
-          <p style={{ textAlign: 'center', color: '#6b7280', marginBottom: 32, fontSize: 14 }}>Ce sont les vrais problèmes des vendeurs WhatsApp</p>
-          {[
-            { pb: '😤 Vous notez les commandes dans un carnet ou dans votre tête', sol: 'Toutes vos commandes sont enregistrées, classées et suivies dans MasterShopPro' },
-            { pb: '💸 Vous oubliez de relancer les clients qui n\'ont pas encore payé', sol: 'Rappel paiement WhatsApp en 1 clic — message pré-rempli avec le montant exact' },
-            { pb: '🤷 Vous ne savez plus ce que chaque client a acheté par le passé', sol: 'Historique client complet : commandes, montants, dernier contact' },
-            { pb: '📸 Vos photos produits font amateur comparé aux vraies boutiques', sol: 'Studio Photo IA : fond blanc pro automatique en 1 clic, sans matériel' },
-          ].map((item, i) => (
-            <div key={i} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: '18px 20px', marginBottom: 10 }}>
-              <p style={{ fontSize: 14, color: '#9ca3af', marginBottom: 8 }}>{item.pb}</p>
-              <p style={{ fontSize: 14, fontWeight: 700, color: '#16a34a' }}>✅ {item.sol}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── TÉMOIGNAGES ──────────────────────────────────────────────── */}
-      <section style={{ padding: '70px 20px', background: 'linear-gradient(160deg,#f0fdf4,#fffbeb)' }}>
-        <h2 style={{ fontSize: 'clamp(1.5rem,5vw,2.2rem)', fontWeight: 900, textAlign: 'center', marginBottom: 36 }}>
-          Ils vendent sur WhatsApp et gèrent tout avec MasterShopPro 🌍
-        </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(250px,1fr))', gap: 14, maxWidth: 900, margin: '0 auto' }}>
-          {[
-            { av: '👩🏾', name: 'Aminata K.', loc: 'Dakar · Tissus', text: 'Avant j\'oubliais toujours de relancer. Maintenant je clique sur un bouton et le message part. Plus aucun impayé !' },
-            { av: '👨🏿', name: 'Jean-Paul M.', loc: 'Abidjan · Épicerie', text: "Mes clients reçoivent leur reçu sur WhatsApp dès que je valide la commande. Ils adorent." },
-            { av: '👩🏽', name: 'Fatou D.', loc: 'Douala · Cosmétiques', text: 'Je vois tout l\'historique de chaque cliente. Je sais ce qu\'elle a acheté, quand, et combien elle a dépensé.' },
-            { av: '👨🏾', name: 'Moussa T.', loc: 'Bamako · Téléphonie', text: 'Fini le carnet. Toutes mes commandes WhatsApp sont dans MasterShopPro. Je gère 3 vendeurs sans confusion.' },
-          ].map((t, i) => (
-            <div key={i} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: '18px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                <span style={{ fontSize: 30 }}>{t.av}</span>
-                <div><p style={{ fontWeight: 700, fontSize: 13, margin: 0 }}>{t.name}</p><p style={{ fontSize: 11, color: '#9ca3af', margin: 0 }}>{t.loc}</p></div>
-                <div style={{ marginLeft: 'auto', color: '#f59e0b', fontSize: 11 }}>★★★★★</div>
-              </div>
-              <p style={{ fontSize: 13, color: '#4b5563', lineHeight: 1.6, fontStyle: 'italic', margin: 0 }}>"{t.text}"</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── FEATURES — ordre priorisé ────────────────────────────────── */}
-      <section style={{ padding: '70px 20px' }}>
-        <div style={{ maxWidth: 700, margin: '0 auto' }}>
-          <h2 style={{ fontSize: 'clamp(1.5rem,5vw,2.2rem)', fontWeight: 900, textAlign: 'center', marginBottom: 8 }}>
-            Tout ce dont un vendeur WhatsApp a besoin 📱
-          </h2>
-          <p style={{ textAlign: 'center', color: '#6b7280', marginBottom: 36, fontSize: 14 }}>Aucune formation. Opérationnel en 5 minutes.</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
-            {[
-              { icon: '💬', bg: '#dcfce7', bd: '#86efac', title: 'Gestion commandes WhatsApp', desc: 'Centralisez, suivez et confirmez chaque commande' },
-              { icon: '🔔', bg: '#fef3c7', bd: '#fde68a', title: 'Relances automatiques', desc: 'Rappel paiement, confirmation, prêt à retirer' },
-              { icon: '👥', bg: '#dbeafe', bd: '#93c5fd', title: 'Historique clients', desc: 'Achats, paiements, dernier contact par client' },
-              { icon: '🧾', bg: '#ffe4e6', bd: '#fecdd3', title: 'Reçus sur WhatsApp', desc: 'Envoi direct depuis l\'app en 1 clic' },
-              { icon: '🤖', bg: '#f3e8ff', bd: '#e9d5ff', title: 'Studio Photo IA', desc: 'Fond blanc pro automatique — photo prête en 1 clic' },
-              { icon: '📶', bg: '#fff7ed', bd: '#fed7aa', title: 'Hors connexion', desc: 'Continue de fonctionner sans internet ou en 2G' },
-            ].map((f, i) => (
-              <div key={i} style={{ background: f.bg, border: `2px solid ${f.bd}`, borderRadius: 16, padding: '16px' }}>
-                <span style={{ fontSize: 28, display: 'block', marginBottom: 8 }}>{f.icon}</span>
-                <p style={{ fontWeight: 800, fontSize: 12, marginBottom: 4 }}>{f.title}</p>
-                <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.5, margin: 0 }}>{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── CTA FINAL ────────────────────────────────────────────────── */}
-      <section style={{ padding: '70px 20px', background: 'linear-gradient(135deg,#1a1a2e 0%,#0f3460 100%)', textAlign: 'center' }}>
-        <p style={{ fontSize: 12, fontWeight: 700, color: '#4ade80', textTransform: 'uppercase', letterSpacing: 3, marginBottom: 16 }}>Prêt à organiser vos ventes ?</p>
-        <h2 style={{ fontSize: 'clamp(1.6rem,5vw,2.6rem)', fontWeight: 900, color: '#fff', maxWidth: 560, margin: '0 auto 12px', lineHeight: 1.2 }}>
-          Continuez à vendre sur WhatsApp.<br />
-          <span style={{ color: '#4ade80' }}>MasterShopPro organise le reste.</span>
-        </h2>
-        <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 40, fontSize: 14 }}>
-          Commandes · Paiements · Relances · Clients — Tout en 1 app · Gratuit pour démarrer
+      <footer className="px-5 py-6 text-center lg:px-8" style={{ background: '#0B1220', color: 'rgba(255,255,255,0.4)' }}>
+        <p className="text-[11px] font-semibold">
+          mastershoppro.com · {new Date().getFullYear()} · Le back-office des ventes WhatsApp
         </p>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, maxWidth: 380, margin: '0 auto' }}>
-          <a href={PLAY_URL} className="pulse-cta shine-btn"
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, background: 'linear-gradient(135deg,#16a34a,#15803d)', color: '#fff', textDecoration: 'none', padding: '20px 28px', borderRadius: 18, fontWeight: 800, fontSize: 17, width: '100%' }}>
-            <span style={{ fontSize: 20 }}>🛍️</span>
-            Créer ma boutique gratuitement
-          </a>
-          <a href={`https://wa.me/${WA_NUM}?text=Bonjour, je veux essayer MasterShopPro`} target="_blank"
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'rgba(37,211,102,0.15)', border: '1px solid rgba(37,211,102,0.4)', color: '#4ade80', textDecoration: 'none', padding: '14px 24px', borderRadius: 14, fontWeight: 700, fontSize: 15, width: '100%' }}>
-            <span style={{ fontSize: 20 }}>💬</span>
-            Une question ? Écrivez-nous sur WhatsApp
-          </a>
-          <a href={DEMO_URL} style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, textDecoration: 'none', fontWeight: 600 }}>→ Essayer la démo sans compte</a>
-        </div>
-        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', marginTop: 32 }}>mastershoppro.com · {new Date().getFullYear()}</p>
-      </section>
+      </footer>
+    </div>
+  );
+}
+
+function FloatingChip({ Icon, title, sub, tone }: {
+  Icon: React.ComponentType<{ className?: string }>; title: string; sub: string;
+  tone: 'white' | 'wa' | 'orange';
+}) {
+  const bg = tone === 'white' ? 'white' : tone === 'wa' ? '#1FB955' : '#FF6A2C';
+  const fg = tone === 'white' ? '#0B1220' : 'white';
+  const iconBg = tone === 'white' ? '#E6F8EE' : 'rgba(255,255,255,0.18)';
+  const iconFg = tone === 'white' ? '#0E5D32' : 'white';
+  return (
+    <div className="inline-flex items-center gap-2.5 rounded-2xl px-3 py-2 shadow-hi"
+         style={{ background: bg, color: fg, border: tone === 'white' ? '1px solid rgba(15,23,42,0.08)' : undefined }}>
+      <div className="flex h-7 w-7 items-center justify-center rounded-lg"
+           style={{ background: iconBg, color: iconFg }}>
+        <Icon className="h-3.5 w-3.5" />
+      </div>
+      <div>
+        <div className="text-[11px] font-extrabold leading-tight">{title}</div>
+        <div className="text-[9.5px] font-bold opacity-75">{sub}</div>
+      </div>
     </div>
   );
 }

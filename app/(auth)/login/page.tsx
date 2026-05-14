@@ -50,54 +50,70 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen flex" style={{ background: 'var(--app-bg)' }}>
 
-      {/* ── Branding gauche (desktop) ── */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-orange-500 to-orange-600 p-12 flex-col justify-between">
-        <Link href="/" className="flex items-center gap-3 text-white">
-          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+      {/* ── Branding gauche (desktop) — premium dark ── */}
+      <div className="relative hidden lg:flex lg:w-1/2 p-12 flex-col justify-between overflow-hidden"
+           style={{ background: '#0B1220' }}>
+        <div className="pointer-events-none absolute inset-0"
+             style={{
+               background: `
+                 radial-gradient(circle at 88% 8%, rgba(31,185,85,0.35), transparent 50%),
+                 radial-gradient(circle at 6% 92%, rgba(255,106,44,0.20), transparent 55%)`,
+             }} />
+        <Link href="/" className="relative flex items-center gap-3 text-white">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-wa"
+               style={{ background: 'linear-gradient(135deg,#1FB955,#0E5D32)' }}>
             <Store className="w-5 h-5" />
           </div>
-          <span className="text-xl font-bold">ShopMaster</span>
+          <span className="text-xl font-extrabold">MasterShopPro</span>
         </Link>
-        <div className="text-white">
-          <h1 className="text-4xl font-bold mb-4">Bienvenue !</h1>
-          <p className="text-orange-100 text-lg leading-relaxed">
-            Connectez-vous pour gérer votre boutique, scanner vos produits et analyser vos ventes.
+        <div className="relative text-white">
+          <div className="inline-flex items-center gap-2 text-[11px] font-extrabold tracking-[0.22em] uppercase text-white/55">
+            <span className="pulse-dot" /> Espace administration
+          </div>
+          <h1 className="display-serif text-5xl mt-3 leading-[1.04]">
+            Bon retour <em className="italic" style={{ color: '#1FB955' }}>commerçant.</em>
+          </h1>
+          <p className="text-white/70 text-lg leading-relaxed mt-4 max-w-md">
+            Tes commandes, tes clients, tes brochures IA — tout est là où tu les as laissés.
           </p>
-          <div className="mt-8 space-y-3">
+          <div className="mt-8 space-y-3 max-w-md">
             {[
-              '🤖 IA pour analyser vos produits',
-              '📷 Scanner de codes-barres',
-              '🖨️ Reçus imprimables',
-              '🌍 21 pays africains supportés',
+              { e: '🤖', t: 'IA pour générer les fiches en 8 sec' },
+              { e: '📷', t: 'Studio Photo IA — fond pro automatique' },
+              { e: '🧾', t: 'Brochures WhatsApp prêtes à coller' },
+              { e: '🌍', t: 'Pensé pour l\'Afrique francophone' },
             ].map(f => (
-              <div key={f} className="text-orange-100 text-sm">{f}</div>
+              <div key={f.t} className="flex items-center gap-3 text-white/85 text-sm">
+                <span className="text-base">{f.e}</span>{f.t}
+              </div>
             ))}
           </div>
         </div>
-        <div className="text-orange-200 text-sm">© {new Date().getFullYear()} ShopMaster</div>
+        <div className="relative text-white/40 text-sm font-semibold">© {new Date().getFullYear()} MasterShopPro</div>
       </div>
 
       {/* ── Formulaire ── */}
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-md">
 
-          <Link href="/" className="flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-8 lg:hidden">
+          <Link href="/" className="flex items-center gap-2 text-slate-500 hover:text-slate-700 mb-8 lg:hidden font-bold">
             <ArrowLeft className="w-4 h-4" />Retour
           </Link>
           <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-wa"
+                 style={{ background: 'linear-gradient(135deg,#1FB955,#0E5D32)' }}>
               <Store className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-800">ShopMaster</span>
+            <span className="text-xl font-extrabold text-ink">MasterShopPro</span>
           </div>
 
           {/* ══ CONNEXION ══ */}
           {tab === 'login' && (
             <>
-              <h2 className="text-2xl font-bold text-gray-800 mb-1">Connexion</h2>
-              <p className="text-gray-500 mb-8">Accédez à votre espace administration</p>
+              <h2 className="display-serif text-4xl text-ink mb-1">Connexion</h2>
+              <p className="text-slate-500 mb-8 font-semibold">Accède à ton espace administration</p>
 
               {error && (
                 <div className="bg-red-50 text-red-600 px-4 py-3 rounded-xl text-sm flex items-center gap-2 mb-6">
@@ -125,7 +141,7 @@ export default function LoginPage() {
                     <label className="text-sm font-medium text-gray-700">Mot de passe</label>
                     <button type="button"
                       onClick={() => { setTab('forgot'); setResetEmail(form.email); setError(''); setSuccess(''); }}
-                      className="text-xs text-orange-500 hover:text-orange-600 font-medium">
+                      className="text-xs text-wa-dark hover:text-wa font-medium">
                       Mot de passe oublié ?
                     </button>
                   </div>
@@ -155,7 +171,7 @@ export default function LoginPage() {
 
               <p className="text-center mt-6 text-gray-500 text-sm">
                 Pas encore de boutique ?{' '}
-                <Link href="/register" className="text-orange-500 hover:text-orange-600 font-semibold">
+                <Link href="/register" className="text-wa-dark hover:text-wa font-semibold">
                   Créer ma boutique
                 </Link>
               </p>
@@ -169,9 +185,9 @@ export default function LoginPage() {
                 className="flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-6">
                 <ArrowLeft className="w-4 h-4" />Retour à la connexion
               </button>
-              <h2 className="text-2xl font-bold text-gray-800 mb-1">Mot de passe oublié</h2>
-              <p className="text-gray-500 mb-6">
-                Entrez votre email pour recevoir un lien de réinitialisation.
+              <h2 className="display-serif text-4xl text-ink mb-1">Mot de passe oublié</h2>
+              <p className="text-slate-500 mb-6 font-semibold">
+                Entre ton email pour recevoir un lien de réinitialisation.
               </p>
 
               {error && (
@@ -185,7 +201,7 @@ export default function LoginPage() {
                   <p className="font-semibold mb-1">✅ Email envoyé !</p>
                   <p>{success}</p>
                   <button onClick={() => { setTab('login'); setSuccess(''); }}
-                    className="mt-3 text-orange-500 font-medium hover:text-orange-600">
+                    className="mt-3 text-wa-dark font-extrabold hover:text-wa">
                     ← Retour connexion
                   </button>
                 </div>

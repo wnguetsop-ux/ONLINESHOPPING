@@ -4,3 +4,6 @@ node_modules
 out
 build
 .vercel
+
+# Design bundle cache (aidesigner)
+.aidesigner-cache/
