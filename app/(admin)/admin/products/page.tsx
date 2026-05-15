@@ -634,7 +634,8 @@ export default function ProductsPage() {
     try {
       const reader=new FileReader();
       const b64=await new Promise<string>((res,rej)=>{ reader.onload=()=>res((reader.result as string).split(',')[1]); reader.onerror=rej; reader.readAsDataURL(blob); });
-      const r=await fetch('/api/analyze-product',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64:b64,mediaType:'image/jpeg'})});
+      const costPrice = form.costPrice ? parseFloat(form.costPrice) : undefined;
+      const r=await fetch('/api/analyze-product',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64:b64,mediaType:'image/jpeg', costPrice})});
       if (!r.ok) throw new Error();
       const p=await r.json();
       if (p.name||p.description) {
@@ -747,7 +748,11 @@ export default function ProductsPage() {
     setProImageUrl('');
     if (brochurePreviewUrl) URL.revokeObjectURL(brochurePreviewUrl);
     setBrochurePreviewUrl('');
-    await generateBrochure(product, initial);
+    // Génère le texte IA ET le canvas en parallèle
+    await Promise.all([
+      generateBrochure(product, initial),
+      refreshBrochurePreview(product.imageUrl || '').catch(() => {}),
+    ]);
   }
 
   async function generateBrochure(product: Product, fallback = defaultBrochure(product, shop?.name || 'MasterShopPro', shop?.currency || 'FCFA', shop?.slug || '')) {
@@ -1616,7 +1621,33 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Marque</label><input type="text" value={form.brand} onChange={e=>setForm({...form,brand:e.target.value})} className="input" placeholder="Samsung, Nike..."/></div>
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Prix d'achat *</label><input type="number" required min="0" value={form.costPrice} onChange={e=>setForm({...form,costPrice:e.target.value})} className="input"/></div>
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Prix de vente *</label><input type="number" required min="0" value={form.sellingPrice} onChange={e=>setForm({...form,sellingPrice:e.target.value})} className="input"/>{margin>0&&<p className={`text-xs mt-1 font-medium ${margin>=20?'text-emerald-600':'text-amber-600'}`}>Marge: {margin}%</p>}</div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Prix de vente *</label>
+                  <input type="number" required min="0" value={form.sellingPrice} onChange={e=>setForm({...form,sellingPrice:e.target.value})} className="input"/>
+                  {(() => {
+                    const cost = parseFloat(form.costPrice) || 0;
+                    const sell = parseFloat(form.sellingPrice) || 0;
+                    if (!sell || !cost) return null;
+                    if (sell < cost) return (
+                      <p className="text-xs mt-1 font-extrabold text-red-600 flex items-center gap-1">
+                        ⚠️ Tu vends à perte ! Prix coût : {cost.toLocaleString('fr-FR')} {shop?.currency||'FCFA'}
+                      </p>
+                    );
+                    if (sell === cost) return (
+                      <p className="text-xs mt-1 font-extrabold text-red-500">⚠️ Marge nulle — pas de bénéfice</p>
+                    );
+                    const m = Math.round(((sell - cost) / cost) * 100);
+                    if (m < 15) return (
+                      <p className="text-xs mt-1 font-extrabold text-amber-600">⚠️ Marge {m}% — trop faible, risque de perte</p>
+                    );
+                    if (m < 30) return (
+                      <p className="text-xs mt-1 font-bold text-amber-500">Marge {m}% — correcte mais peut mieux faire</p>
+                    );
+                    return (
+                      <p className="text-xs mt-1 font-extrabold text-emerald-600">✓ Marge {m}% — bonne</p>
+                    );
+                  })()}
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Stock *</label><input type="number" required min="0" value={form.stock} onChange={e=>setForm({...form,stock:e.target.value})} className="input"/></div>

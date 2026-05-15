@@ -161,6 +161,12 @@ export async function createProduct(
   shopId: string,
   data: Omit<Product, 'id' | 'shopId' | 'createdAt'>
 ): Promise<string> {
+  // Vérification serveur des limites du plan
+  const limits = await checkShopLimits(shopId);
+  if (!limits.canAddProduct) {
+    const max = limits.plan.maxProducts;
+    throw new Error(`LIMIT_REACHED: Limite de ${max} produits atteinte pour le plan ${limits.plan.name}. Passez au plan supérieur pour continuer.`);
+  }
   const ref = await addDoc(collection(db, 'products'), {
     ...data,
     shopId,

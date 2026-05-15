@@ -6,16 +6,27 @@ import { NextRequest, NextResponse } from 'next/server';
 // Visible dans SuperAdmin → onglet "🔍 Logs API"
 // ══════════════════════════════════════════════════════════════════════
 
-const PROMPT = `Tu es un expert e-commerce spécialisé en Afrique francophone.
-Analyse la photo de ce produit et réponds UNIQUEMENT avec ce JSON (aucun texte avant/après, pas de backticks) :
+function buildPrompt(costPrice?: number): string {
+  const costCtx = costPrice && costPrice > 0
+    ? `\nLe coût d'achat du produit est ${costPrice.toLocaleString('fr-FR')} FCFA. Calcule un prix de vente qui assure une marge bénéficiaire saine (entre 30% et 60% selon la catégorie, typique pour les marchés d'Afrique francophone).`
+    : `\nEstime le prix de vente habituel de ce type de produit en FCFA sur les marchés d'Afrique francophone (Cameroun, Sénégal, Côte d'Ivoire). Tiens compte de la qualité visible et de la marque.`;
+
+  return `Tu es un expert e-commerce spécialisé en Afrique francophone.
+Analyse la photo de ce produit.${costCtx}
+
+Réponds UNIQUEMENT avec ce JSON (aucun texte avant/après, pas de backticks) :
 {
   "name": "nom commercial précis en français",
   "description": "description de vente courte et attrayante en français (1-2 phrases)",
   "specifications": "Couleur: xxx\\nMatière: xxx\\nDimensions: xxx\\nPoids: xxx",
   "category": "Vêtements|Chaussures|Électronique|Téléphones|Beauté|Alimentation|Maison|Sport|Accessoires|Autre",
   "brand": "marque visible ou vide",
-  "suggestedPrice": "prix suggéré en FCFA si estimable, sinon vide"
+  "suggestedPrice": "prix de vente suggéré en FCFA (nombre entier uniquement, ex: 15000)",
+  "priceMin": "prix minimum acceptable pour ce marché (nombre entier, ex: 10000)",
+  "priceMax": "prix maximum réaliste pour ce marché (nombre entier, ex: 25000)",
+  "marginAdvice": "conseil court sur la marge en 1 phrase"
 }`;
+}
 
 // ── Log vers Firestore via REST (pas besoin Firebase Admin SDK) ───────────
 async function writeLog(entry: Record<string, any>) {
@@ -48,7 +59,7 @@ async function writeLog(entry: Record<string, any>) {
 }
 
 // ── Gemini ─────────────────────────────────────────────────────────────────
-async function callGemini(apiKey: string, base64: string, mediaType: string, model: string) {
+async function callGemini(apiKey: string, base64: string, mediaType: string, model: string, prompt: string) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
   const res = await fetch(url, {
     method: 'POST',
@@ -56,7 +67,7 @@ async function callGemini(apiKey: string, base64: string, mediaType: string, mod
     body: JSON.stringify({
       contents: [{ parts: [
         { inline_data: { mime_type: mediaType, data: base64 } },
-        { text: PROMPT }
+        { text: prompt }
       ]}],
       generationConfig: { temperature: 0.1, maxOutputTokens: 512 },
       safetySettings: [
@@ -81,7 +92,7 @@ async function callGemini(apiKey: string, base64: string, mediaType: string, mod
 }
 
 // ── OpenAI GPT-4o mini ─────────────────────────────────────────────────────
-async function callOpenAI(apiKey: string, base64: string, mediaType: string) {
+async function callOpenAI(apiKey: string, base64: string, mediaType: string, prompt: string) {
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -90,13 +101,13 @@ async function callOpenAI(apiKey: string, base64: string, mediaType: string) {
     },
     body: JSON.stringify({
       model:       'gpt-4o-mini',
-      max_tokens:  512,
+      max_tokens:  600,
       temperature: 0.1,
       messages: [{
         role: 'user',
         content: [
           { type: 'image_url', image_url: { url: `data:${mediaType};base64,${base64}`, detail: 'low' } },
-          { type: 'text', text: PROMPT }
+          { type: 'text', text: prompt }
         ]
       }]
     }),
@@ -119,7 +130,7 @@ function parseAIResponse(text: string) {
     const match = clean.match(/\{[\s\S]*\}/);
     if (match) parsed = JSON.parse(match[0]);
   } catch {
-    for (const field of ['name','description','specifications','category','brand','suggestedPrice']) {
+    for (const field of ['name','description','specifications','category','brand','suggestedPrice','priceMin','priceMax','marginAdvice']) {
       const m = text.match(new RegExp(`"${field}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`));
       if (m) parsed[field] = m[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
     }
@@ -131,6 +142,9 @@ function parseAIResponse(text: string) {
     category:       parsed.category       || '',
     brand:          parsed.brand          || '',
     suggestedPrice: parsed.suggestedPrice || '',
+    priceMin:       parsed.priceMin       || '',
+    priceMax:       parsed.priceMax       || '',
+    marginAdvice:   parsed.marginAdvice   || '',
   };
 }
 
@@ -154,7 +168,8 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const { base64, mediaType = 'image/jpeg' } = body;
+    const { base64, mediaType = 'image/jpeg', costPrice } = body;
+    const PROMPT = buildPrompt(costPrice ? Number(costPrice) : undefined);
 
     if (!base64) {
       writeLog({ ...logCtx, status: 'error_no_image', durationMs: Date.now() - startMs });
@@ -171,7 +186,7 @@ export async function POST(req: NextRequest) {
     if (geminiKey && !geminiKey.includes('VOTRE_CLE')) {
       for (const model of ['gemini-1.5-flash', 'gemini-1.5-flash-8b']) {
         try {
-          const text   = await callGemini(geminiKey, base64, mediaType, model);
+          const text   = await callGemini(geminiKey, base64, mediaType, model, PROMPT);
           const result = parseAIResponse(text);
           const dur    = Date.now() - startMs;
           writeLog({ ...logCtx, provider: `gemini-${model}`, status: 'success', durationMs: dur, productName: result.name, category: result.category });
@@ -189,7 +204,7 @@ export async function POST(req: NextRequest) {
     // ── 2. OpenAI GPT-4o mini ─────────────────────────────────────────────
     if (openaiKey && !openaiKey.includes('VOTRE_CLE')) {
       try {
-        const text   = await callOpenAI(openaiKey, base64, mediaType);
+        const text   = await callOpenAI(openaiKey, base64, mediaType, PROMPT);
         const result = parseAIResponse(text);
         const dur    = Date.now() - startMs;
         writeLog({ ...logCtx, provider: 'openai-gpt4o-mini', status: 'success_fallback', durationMs: dur, productName: result.name, category: result.category, error: errors.join(' | ') });
