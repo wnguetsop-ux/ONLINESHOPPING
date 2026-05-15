@@ -2,8 +2,8 @@
 import { useEffect, useState } from 'react';
 import { Check, Loader2, RefreshCw, Zap, CreditCard, Smartphone, AlertTriangle, Search } from 'lucide-react';
 
-const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!;
-const API_KEY    = process.env.NEXT_PUBLIC_FIREBASE_API_KEY!;
+const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'stockflow-b6d58';
+const API_KEY    = process.env.NEXT_PUBLIC_FIREBASE_API_KEY    || 'AIzaSyALcMJIbHJxe_nX0Ja1zoeOOXNuYv8K2pw';
 const BASE       = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
 
 const PACKS = [
