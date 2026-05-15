@@ -631,19 +631,73 @@ export default function ProductsPage() {
 
   async function analyzeAI(blob: Blob) {
     setIsAnalyzing(true);
+    let b64 = '';
     try {
-      const reader=new FileReader();
-      const b64=await new Promise<string>((res,rej)=>{ reader.onload=()=>res((reader.result as string).split(',')[1]); reader.onerror=rej; reader.readAsDataURL(blob); });
+      const reader = new FileReader();
+      b64 = await new Promise<string>((res, rej) => {
+        reader.onload = () => res((reader.result as string).split(',')[1]);
+        reader.onerror = rej;
+        reader.readAsDataURL(blob);
+      });
       const costPrice = form.costPrice ? parseFloat(form.costPrice) : undefined;
-      const r=await fetch('/api/analyze-product',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64:b64,mediaType:'image/jpeg', costPrice})});
+      const r = await fetch('/api/analyze-product', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base64: b64, mediaType: 'image/jpeg', costPrice }),
+      });
       if (!r.ok) throw new Error();
-      const p=await r.json();
-      if (p.name||p.description) {
-        setForm(prev=>({ ...prev, name:p.name||prev.name, description:p.description||prev.description, specifications:p.specifications||prev.specifications, brand:p.brand||prev.brand, sellingPrice:p.suggestedPrice?p.suggestedPrice.replace(/[^0-9]/g,'')||prev.sellingPrice:prev.sellingPrice, category:p.category?(categories.find(c=>c.name.toLowerCase().includes(p.category.toLowerCase()))?.name||prev.category):prev.category }));
+      const p = await r.json();
+      if (p.name || p.description) {
+        setForm(prev => ({
+          ...prev,
+          name:         p.name         || prev.name,
+          description:  p.description  || prev.description,
+          specifications: p.specifications || prev.specifications,
+          brand:        p.brand        || prev.brand,
+          sellingPrice: p.suggestedPrice ? p.suggestedPrice.replace(/[^0-9]/g, '') || prev.sellingPrice : prev.sellingPrice,
+          category:     p.category ? (categories.find(c => c.name.toLowerCase().includes(p.category.toLowerCase()))?.name || prev.category) : prev.category,
+        }));
         setAiAnalysis(p);
       }
-      // Studio Photo est maintenant MANUEL — clic bouton "Studio IA" uniquement
-    } catch {} finally { setIsAnalyzing(false); }
+    } catch {
+      /* analyse silencieuse — ne jamais bloquer */
+    } finally {
+      setIsAnalyzing(false);
+    }
+
+    // ── Studio Photo — traitement fond en arrière-plan (silent, non-bloquant) ──
+    if (!b64) return;
+    try {
+      // Vérifier les crédits avant de consommer
+      if (shop?.id) {
+        const { doc: fsDoc, getDoc, updateDoc } = await import('firebase/firestore');
+        const { db: fsDb } = await import('@/lib/firebase');
+        const shopRef = fsDoc(fsDb, 'shops', shop.id);
+        const shopSnap = await getDoc(shopRef);
+        const currentCredits = shopSnap.data()?.photoCredits ?? 0;
+        if (currentCredits <= 0) return; // plus de crédits → on garde la photo originale
+        // Lancer le studio en background — ne rien afficher tant que pas prêt
+        fetch('/api/photo-studio', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ base64: b64 }),
+        }).then(async sRes => {
+          if (!sRes.ok) return;
+          const sData = await sRes.json();
+          if (!sData.processedImage) return;
+          // Déduire 1 crédit seulement si succès
+          updateDoc(shopRef, { photoCredits: Math.max(0, currentCredits - 1), updatedAt: new Date().toISOString() }).catch(() => {});
+          // Appliquer la photo pro silencieusement
+          const processedBlob = await fetch(sData.processedImage).then(r => r.blob());
+          const processedUrl = URL.createObjectURL(processedBlob);
+          setPhotoPreview(processedUrl);
+          setRawSrc(sData.processedImage);
+          setPhotoFile(new File([processedBlob], `studio-${Date.now()}.png`, { type: 'image/png' }));
+          setPhotoMode('done');
+          setStudioCredits(c => Math.max(0, c - 1));
+        }).catch(() => { /* Remove.bg indisponible — photo originale conservée */ });
+      }
+    } catch { /* non-bloquant */ }
   }
 
   async function applyStudio() {

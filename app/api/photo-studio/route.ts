@@ -13,7 +13,9 @@ export async function POST(req: NextRequest) {
 
     const removebgKey = process.env.REMOVEBG_API_KEY || '';
     if (!removebgKey) {
-      return NextResponse.json({ error: 'REMOVEBG_API_KEY non configurée' }, { status: 500 });
+      // Clé absente → réponse sans erreur bloquante (le client garde la photo originale)
+      console.warn('[PhotoStudio] REMOVEBG_API_KEY non configurée');
+      return NextResponse.json({ error: 'NO_KEY', processedImage: null }, { status: 200 });
     }
 
     // Convertit base64 → blob
