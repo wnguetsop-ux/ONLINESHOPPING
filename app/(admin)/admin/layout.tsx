@@ -21,21 +21,23 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
+// Produits au centre (position 3/5) = zone de pouce dominante sur mobile
 const BOTTOM_NAV = [
-  { href: '/admin/inbox', icon: Inbox, label: 'Inbox' },
-  { href: '/admin/orders', icon: ShoppingBag, label: 'Commandes' },
-  { href: '/admin/clients', icon: Users, label: 'Clients' },
-  { href: '/admin/products', icon: Package, label: 'Produits' },
-  { href: '/admin/settings', icon: Settings, label: 'Reglages' },
+  { href: '/admin/inbox',    icon: Inbox,       label: 'Inbox' },
+  { href: '/admin/orders',   icon: ShoppingBag, label: 'Commandes' },
+  { href: '/admin/products', icon: Package,      label: 'Produits',  featured: true },
+  { href: '/admin/clients',  icon: Users,        label: 'Clients' },
+  { href: '/admin/settings', icon: Settings,     label: 'Reglages' },
 ];
 
+// Produits en 1er dans la sidebar — c'est le cœur de l'app
 const SIDEBAR_MAIN = [
-  { href: '/admin/dashboard', icon: Home, label: 'Tableau de bord' },
-  { href: '/admin/inbox', icon: Inbox, label: 'Inbox' },
-  { href: '/admin/orders', icon: ShoppingBag, label: 'Commandes' },
-  { href: '/admin/clients', icon: Users, label: 'Clients' },
-  { href: '/admin/products', icon: Package, label: 'Produits' },
-  { href: '/admin/whatsapp', icon: MessageCircle, label: 'WhatsApp' },
+  { href: '/admin/products',  icon: Package,       label: 'Produits',        featured: true },
+  { href: '/admin/dashboard', icon: Home,          label: 'Tableau de bord' },
+  { href: '/admin/inbox',     icon: Inbox,         label: 'Inbox' },
+  { href: '/admin/orders',    icon: ShoppingBag,   label: 'Commandes' },
+  { href: '/admin/clients',   icon: Users,         label: 'Clients' },
+  { href: '/admin/whatsapp',  icon: MessageCircle, label: 'WhatsApp' },
 ];
 
 const SIDEBAR_TOOLS = [
@@ -154,8 +156,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-          {SIDEBAR_MAIN.map((item) => {
+          {SIDEBAR_MAIN.map((item: any) => {
             const active = pathname === item.href;
+            if (item.featured) return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setSidebarOpen(false)}
+                className="flex items-center gap-3 px-3 py-3 rounded-xl font-extrabold text-sm transition-all shadow-wa"
+                style={active
+                  ? { background: 'linear-gradient(135deg,#1FB955,#0E5D32)', color: 'white' }
+                  : { background: 'linear-gradient(135deg,rgba(31,185,85,0.12),rgba(14,93,50,0.06))', color: 'var(--wa-dark)', border: '1px solid rgba(31,185,85,0.2)' }
+                }
+              >
+                <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
+                {item.label}
+                <span className="ml-auto text-[9px] font-extrabold tracking-[0.18em] uppercase opacity-70">Cœur</span>
+              </Link>
+            );
             return (
               <Link
                 key={item.href}
@@ -166,9 +184,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
                 {item.label}
                 {item.href === '/admin/whatsapp' && !active && (
-                  <span className="ml-auto rounded-full bg-wa px-1.5 py-0.5 text-[9px] font-bold text-white">
-                    IA
-                  </span>
+                  <span className="ml-auto rounded-full bg-wa px-1.5 py-0.5 text-[9px] font-bold text-white">IA</span>
                 )}
               </Link>
             );
@@ -265,9 +281,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       )}
 
-      <nav className="bottom-nav fixed bottom-0 left-0 right-0 z-30 flex border-t border-app-border bg-white/90 shadow-[0_-18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl lg:hidden">
-        {BOTTOM_NAV.map((item) => {
+      <nav className="bottom-nav fixed bottom-0 left-0 right-0 z-30 flex items-end border-t border-app-border bg-white/90 shadow-[0_-18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl lg:hidden"
+           style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+        {(BOTTOM_NAV as any[]).map((item) => {
           const active = pathname === item.href;
+          if (item.featured) return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="flex flex-1 flex-col items-center justify-end pb-2 -mt-5"
+            >
+              {/* Bouton central élevé — zone de pouce dominante */}
+              <div className={`flex h-14 w-14 items-center justify-center rounded-2xl shadow-wa transition-all ${
+                active ? 'scale-110' : 'hover:scale-105'
+              }`} style={{ background: active ? 'linear-gradient(135deg,#1FB955,#0E5D32)' : 'linear-gradient(135deg,#1FB955cc,#0E5D32cc)' }}>
+                <item.icon className="h-6 w-6 text-white stroke-[2.5]" />
+              </div>
+              <span className={`mt-1 text-[9px] font-extrabold ${active ? 'text-wa-dark' : 'text-slate-500'}`}>{item.label}</span>
+            </Link>
+          );
           return (
             <Link
               key={item.href}

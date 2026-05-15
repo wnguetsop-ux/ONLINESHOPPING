@@ -828,6 +828,25 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
       }
       setProImageUrl(data.image);
       await refreshBrochurePreview(data.image);
+      // Auto-sauvegarde dans la boutique — la photo pro devient l'image principale
+      if (brochureProduct?.id && shop?.id) {
+        try {
+          let finalUrl: string = data.image;
+          if (data.image.startsWith('data:')) {
+            const blob = await fetch(data.image).then(r => r.blob());
+            const r2 = ref(storage, `shops/${shop.id}/products/pro-${brochureProduct.id}-${Date.now()}.png`);
+            await uploadBytes(r2, blob, { contentType: blob.type || 'image/png' });
+            finalUrl = await getDownloadURL(r2);
+          }
+          const prevImages = brochureProduct.images || [];
+          const nextImages = [finalUrl, ...prevImages.filter(i => i && i !== finalUrl)].slice(0, 6);
+          await updateProduct(brochureProduct.id, { imageUrl: finalUrl, images: nextImages });
+          setBrochureProduct(prev => prev ? { ...prev, imageUrl: finalUrl, images: nextImages } : prev);
+          setProImageUrl(finalUrl);
+          await loadData();
+          setBrochureError('✓ Photo pro sauvegardée dans la boutique.');
+        } catch { /* non-bloquant */ }
+      }
       return data.image as string;
     } catch (error: any) {
       console.error('[Brochure] Image pro IA impossible:', error);
