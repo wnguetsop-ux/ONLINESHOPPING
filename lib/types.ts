@@ -52,13 +52,13 @@ export interface PlanDefinition {
 // Ces valeurs pilotent la déduction côté client ET la documentation.
 export const AI_CREDIT_COSTS = {
   analysePhoto:   1,   // Gemini/GPT analyse la photo → remplit la fiche
-  photoProIA:     2,   // OpenAI génère une photo produit professionnelle
+  photoProIA:     3,   // OpenAI génère une photo produit professionnelle
   brochureIA:     1,   // IA génère le texte + canvas de la brochure
   quickSell:      3,   // analysePhoto + brochureIA en 1 flow express
 } as const;
 
 export const PLANS: Record<PlanId, PlanDefinition> = {
-  // ── Compte de base — gratuit, 10 crédits offerts à l'inscription ──────────
+  // ── Compte de base — gratuit, 5 crédits offerts à l'inscription ───────────
   FREE: {
     id: 'FREE',
     code: 'FREE',
@@ -67,15 +67,15 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     priceXaf: 0,
     billingCycle: 'monthly',
     annualPriceXaf: null,
-    badge: '10 crédits IA offerts',
+    badge: '5 crédits IA offerts',
     color: '#64748b',
     maxProducts: -1,           // produits illimités
     maxOrdersPerMonth: -1,     // commandes illimitées
     maxWhatsappAccounts: 0,
     maxStaff: 1,
-    aiCreditsIncluded: 10,     // crédits offerts à l'inscription (non renouvelables)
+    aiCreditsIncluded: 5,      // crédits offerts à l'inscription (non renouvelables)
     features: [
-      '10 crédits IA offerts',
+      '5 crédits IA offerts',
       'Produits & commandes illimités',
       'Boutique en ligne publique',
       'Brochures texte de base',

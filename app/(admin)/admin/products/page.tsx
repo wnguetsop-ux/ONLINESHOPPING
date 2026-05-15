@@ -674,7 +674,7 @@ export default function ProductsPage() {
       const shopRef = fsDoc(fsDb, 'shops', shop.id);
       const shopSnap = await getDoc(shopRef);
       const currentCredits = shopSnap.data()?.aiCredits ?? 0;
-      if (currentCredits < 2) return; // coût = 2 crédits (photoProIA)
+      if (currentCredits < 3) return; // coût = 3 crédits (photoProIA)
       fetch('/api/generate-visual', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -691,9 +691,9 @@ export default function ProductsPage() {
         if (!sRes.ok) return;
         const sData = await sRes.json();
         if (!sData.image) return;
-        // Déduire 2 crédits seulement si succès
-        updateDoc(shopRef, { aiCredits: Math.max(0, currentCredits - 2), updatedAt: new Date().toISOString() }).catch(() => {});
-        setStudioCredits(c => Math.max(0, c - 2));
+        // Déduire 3 crédits seulement si succès
+        updateDoc(shopRef, { aiCredits: Math.max(0, currentCredits - 3), updatedAt: new Date().toISOString() }).catch(() => {});
+        setStudioCredits(c => Math.max(0, c - 3));
         const imgData = sData.image;
         const processedBlob = await fetch(imgData).then(r => r.blob());
         const processedUrl = URL.createObjectURL(processedBlob);
@@ -708,7 +708,7 @@ export default function ProductsPage() {
   async function generateModalProPhoto() {
     const srcToUse = photoPreview || form.imageUrl;
     if (!srcToUse || !shop?.id) return;
-    if (studioCredits < 2) { setShowCreditsModal(true); return; }
+    if (studioCredits < 3) { setShowCreditsModal(true); return; }
     setModalProLoading(true);
     try {
       const referenceImages = [await imageUrlToDataUrl(proxySrc(srcToUse))];
@@ -729,8 +729,8 @@ export default function ProductsPage() {
       if (!res.ok || !data.image) throw new Error(data.error || 'Génération impossible');
       const { doc: fsDoc, updateDoc } = await import('firebase/firestore');
       const { db: fsDb } = await import('@/lib/firebase');
-      updateDoc(fsDoc(fsDb, 'shops', shop.id), { aiCredits: Math.max(0, studioCredits - 2), updatedAt: new Date().toISOString() }).catch(() => {});
-      setStudioCredits(c => Math.max(0, c - 2));
+      updateDoc(fsDoc(fsDb, 'shops', shop.id), { aiCredits: Math.max(0, studioCredits - 3), updatedAt: new Date().toISOString() }).catch(() => {});
+      setStudioCredits(c => Math.max(0, c - 3));
       const processedBlob = await fetch(data.image).then(r => r.blob());
       const processedUrl = URL.createObjectURL(processedBlob);
       setPhotoPreview(processedUrl);
@@ -1672,7 +1672,7 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
                     <button type="button" onClick={generateModalProPhoto} disabled={modalProLoading}
                             className="mt-2 w-full py-2.5 text-white text-[11.5px] rounded-xl font-extrabold flex items-center justify-center gap-1.5 disabled:opacity-60 transition hover:-translate-y-0.5"
                             style={{background:'linear-gradient(135deg,#7c3aed,#4c1d95)'}}>
-                      {modalProLoading?<><Loader2 className="w-3.5 h-3.5 animate-spin"/>Génération en cours...</>:<><Sparkles className="w-3.5 h-3.5"/>Photo Pro IA{studioCredits>=2?<span className="ml-1 bg-white/20 px-1.5 py-0.5 rounded-full text-[10px]">2 crédits</span>:<span className="ml-1 text-violet-300 text-[10px]">— {studioCredits} crédit{studioCredits!==1?'s':''} (recharger)</span>}</>}
+                      {modalProLoading?<><Loader2 className="w-3.5 h-3.5 animate-spin"/>Génération en cours...</>:<><Sparkles className="w-3.5 h-3.5"/>Photo Pro IA{studioCredits>=3?<span className="ml-1 bg-white/20 px-1.5 py-0.5 rounded-full text-[10px]">3 crédits</span>:<span className="ml-1 text-violet-300 text-[10px]">— {studioCredits} crédit{studioCredits!==1?'s':''} (recharger)</span>}</>}
                     </button>
                   </div>
                 )}

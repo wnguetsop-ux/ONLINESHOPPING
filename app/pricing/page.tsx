@@ -30,9 +30,9 @@ const PACK_VALUE: Record<string, {
 }> = {
   FREE: {
     icon: <ShoppingBag className="h-6 w-6" />,
-    tagline: '10 crédits offerts',
+    tagline: '5 crédits offerts',
     forWho: 'Pour découvrir l\'IA sans risque à l\'inscription',
-    valueProof: '10 crédits = 10 analyses produit, ou 5 photos pro IA, ou 10 brochures. Gratuit pour toujours.',
+    valueProof: '5 crédits = 5 analyses produit, ou 1 photo pro IA, ou 5 brochures. Gratuit pour toujours.',
     highlight: 'Sans carte bancaire',
     cta: 'Commencer gratuitement',
     mobileMoneyOk: false,
@@ -71,7 +71,7 @@ const FEATURES_TABLE = [
   { label: 'Crédits inclus',              FREE: '10 offerts',    STARTER: '50',          STANDARD: '200',          PRO: '500',           section: 'Crédits' },
   { label: 'Prix par crédit',             FREE: '—',             STARTER: '30 FCFA',     STANDARD: '25 FCFA',      PRO: '20 FCFA',       section: 'Crédits' },
   { label: 'Analyse photo (1 crédit)',    FREE: true,            STARTER: true,          STANDARD: true,           PRO: true,            section: 'IA' },
-  { label: 'Photo Pro IA (2 crédits)',    FREE: true,            STARTER: true,          STANDARD: true,           PRO: true,            section: 'IA' },
+  { label: 'Photo Pro IA (3 crédits)',    FREE: true,            STARTER: true,          STANDARD: true,           PRO: true,            section: 'IA' },
   { label: 'Brochure IA (1 crédit)',      FREE: true,            STARTER: true,          STANDARD: true,           PRO: true,            section: 'IA' },
   { label: 'Quick Sell (3 crédits)',      FREE: true,            STARTER: true,          STANDARD: true,           PRO: true,            section: 'IA' },
   { label: 'Produits illimités',          FREE: true,            STARTER: true,          STANDARD: true,           PRO: true,            section: 'Boutique' },
@@ -93,7 +93,7 @@ const FAQS = [
   },
   {
     q: 'À quoi ça sert concrètement 1 crédit ?',
-    a: '1 crédit = 1 analyse photo IA (la fiche se remplit automatiquement) ou 1 brochure IA. 2 crédits = 1 photo produit professionnelle générée par OpenAI. 3 crédits = tout en 1 via Quick Sell.',
+    a: '1 crédit = 1 analyse photo IA (la fiche se remplit automatiquement) ou 1 brochure IA. 3 crédits = 1 photo produit professionnelle générée par OpenAI. 3 crédits aussi = Quick Sell (analyse + brochure express).',
   },
   {
     q: 'Puis-je acheter plusieurs packs ?',
@@ -232,7 +232,7 @@ export default function PricingPage() {
                         {plan.priceXaf === 0 ? (
                           <div>
                             <span className="display-serif text-5xl text-ink">Gratuit</span>
-                            <p className="mt-1 text-[12px] font-semibold text-slate-400">10 crédits offerts</p>
+                            <p className="mt-1 text-[12px] font-semibold text-slate-400">5 crédits offerts</p>
                           </div>
                         ) : (
                           <div>
@@ -446,7 +446,7 @@ export default function PricingPage() {
 
           <div className="relative mx-auto max-w-2xl text-center text-white">
             <h2 className="display-serif text-4xl leading-[1.04] sm:text-5xl">
-              Commence avec 10 crédits.<br />
+              Commence avec 5 crédits.<br />
               <em className="italic" style={{ color: '#1FB955' }}>Gratuit. Pour toujours.</em>
             </h2>
             <p className="mx-auto mt-4 max-w-lg text-base text-white/70">
