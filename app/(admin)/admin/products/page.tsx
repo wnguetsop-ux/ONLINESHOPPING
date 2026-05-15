@@ -846,11 +846,63 @@ export default function ProductsPage() {
     setProImageUrl('');
     if (brochurePreviewUrl) URL.revokeObjectURL(brochurePreviewUrl);
     setBrochurePreviewUrl('');
-    // Génère le texte IA ET le canvas en parallèle
-    await Promise.all([
-      generateBrochure(product, initial),
-      refreshBrochurePreview(product.imageUrl || '').catch(() => {}),
-    ]);
+    setBrochureLoading(true);
+
+    // Phase 1: texte IA + photo pro OpenAI en parallèle
+    let generatedCopy: ProductBrochureCopy = initial;
+    let proImg = '';
+
+    const textPromise = (async () => {
+      try {
+        const res = await fetch('/api/product-brochure', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            productName: product.name,
+            description: product.description || '',
+            category: product.category || '',
+            brand: product.brand || '',
+            price: product.sellingPrice || 0,
+            currency: shop?.currency || 'FCFA',
+            shopName: shop?.name || 'MasterShopPro',
+            stock: product.stock,
+          }),
+        });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        generatedCopy = { ...initial, ...data, bullets: data.bullets?.length ? data.bullets : initial.bullets };
+        setBrochureCopy(generatedCopy);
+      } catch {
+        setBrochureCopy(initial);
+      }
+    })();
+
+    const photoPromise = (async () => {
+      if (!product.imageUrl) return;
+      try {
+        proImg = await generateProfessionalProductImage(product) || '';
+        if (proImg) setProImageUrl(proImg);
+      } catch { /* photo pro non bloquante */ }
+    })();
+
+    await Promise.all([textPromise, photoPromise]);
+    setBrochureLoading(false);
+
+    // Phase 2: canvas avec la photo pro
+    const imageForCanvas = proImg || product.imageUrl || '';
+    try {
+      const blob = await renderCommercialBrochureBlob(imageForCanvas, product, generatedCopy);
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        setBrochurePreviewUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return url; });
+        // Phase 3: sauvegarder la brochure dans la boutique
+        if (product.id) autoSaveBrochureImage(product.id, blob).catch(() => {});
+        setBrochureError('');
+      }
+    } catch (e) {
+      console.warn('[openBrochure] canvas failed', e);
+      setBrochureError('Brochure texte prête. Télécharge pour voir le visuel complet.');
+    }
   }
 
   async function generateBrochure(product: Product, fallback = defaultBrochure(product, shop?.name || 'MasterShopPro', shop?.currency || 'FCFA', shop?.slug || '')) {
@@ -889,13 +941,14 @@ export default function ProductsPage() {
     setTimeout(() => setBrochureCopied(false), 1800);
   }
 
-  async function generateProfessionalProductImage() {
-    if (!brochureProduct) return '';
+  async function generateProfessionalProductImage(pOverride?: Product) {
+    const p = pOverride ?? brochureProduct;
+    if (!p) return '';
     setProImageLoading(true);
     setBrochureError('');
     try {
-      const referenceImages = brochureProduct.imageUrl
-        ? [await imageUrlToDataUrl(proxySrc(brochureProduct.imageUrl))]
+      const referenceImages = p.imageUrl
+        ? [await imageUrlToDataUrl(proxySrc(p.imageUrl))]
         : [];
       const res = await fetch('/api/generate-visual', {
         method: 'POST',
@@ -907,7 +960,7 @@ export default function ProductsPage() {
           imageSize: '1K',
           quality: 'fast',
           referenceImages,
-          description: `Create a premium but realistic ecommerce product photo for "${brochureProduct.name}" using the reference image as the strict source of truth.
+          description: `Create a premium but realistic ecommerce product photo for "${p.name}" using the reference image as the strict source of truth.
 The final image must show the exact same product: same object, same shape, same color, same visible logo or label if present, same quantity, same packaging and same main details.
 Do not invent a different product, different model, different brand, different color, extra accessories, fake labels, fake text, or unrealistic features.
 Only improve lighting, background cleanliness, centering, sharpness, shadows and perceived value.
@@ -927,18 +980,18 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
       setProImageUrl(data.image);
       await refreshBrochurePreview(data.image);
       // Auto-sauvegarde dans la boutique — la photo pro devient l'image principale
-      if (brochureProduct?.id && shop?.id) {
+      if (p?.id && shop?.id) {
         try {
           let finalUrl: string = data.image;
           if (data.image.startsWith('data:')) {
             const blob = await fetch(data.image).then(r => r.blob());
-            const r2 = ref(storage, `shops/${shop.id}/products/pro-${brochureProduct.id}-${Date.now()}.png`);
+            const r2 = ref(storage, `shops/${shop.id}/products/pro-${p.id}-${Date.now()}.png`);
             await uploadBytes(r2, blob, { contentType: blob.type || 'image/png' });
             finalUrl = await getDownloadURL(r2);
           }
-          const prevImages = brochureProduct.images || [];
+          const prevImages = p.images || [];
           const nextImages = [finalUrl, ...prevImages.filter(i => i && i !== finalUrl)].slice(0, 6);
-          await updateProduct(brochureProduct.id, { imageUrl: finalUrl, images: nextImages });
+          await updateProduct(p.id!, { imageUrl: finalUrl, images: nextImages });
           setBrochureProduct(prev => prev ? { ...prev, imageUrl: finalUrl, images: nextImages } : prev);
           setProImageUrl(finalUrl);
           await loadData();
@@ -952,6 +1005,20 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
       return '';
     } finally {
       setProImageLoading(false);
+    }
+  }
+
+  async function autoSaveBrochureImage(productId: string, blob: Blob) {
+    if (!shop?.id) return;
+    try {
+      const r2 = ref(storage, `shops/${shop.id}/products/brochure-${productId}-${Date.now()}.png`);
+      await uploadBytes(r2, blob, { contentType: 'image/png' });
+      const url = await getDownloadURL(r2);
+      await updateProduct(productId, { brochureImageUrl: url } as any);
+      setProducts(prev => prev.map(p => p.id === productId ? { ...p, brochureImageUrl: url } : p));
+      setBrochureProduct(prev => prev ? { ...prev, brochureImageUrl: url } : prev);
+    } catch (e) {
+      console.warn('[AutoSaveBrochure]', e);
     }
   }
 
@@ -1096,8 +1163,10 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
     }
   }
 
-  async function renderCommercialBrochureBlob(imageOverride = '') {
-    if (!brochureProduct || !brochureCopy) return;
+  async function renderCommercialBrochureBlob(imageOverride = '', pOverride?: Product | null, cOverride?: ProductBrochureCopy | null) {
+    const prod = pOverride ?? brochureProduct;
+    const copy = cOverride ?? brochureCopy;
+    if (!prod || !copy) return;
       const whatsappNumber = getShopWhatsappNumber(shop);
       const canvas = document.createElement('canvas');
       canvas.width = 1080;
@@ -1108,23 +1177,23 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
       const width = canvas.width;
       const height = canvas.height;
       const currency = shop?.currency || 'FCFA';
-      const price = brochureProduct.sellingPrice > 0
-        ? `${brochureProduct.sellingPrice.toLocaleString('fr-FR')} ${currency}`
+      const price = prod.sellingPrice > 0
+        ? `${prod.sellingPrice.toLocaleString('fr-FR')} ${currency}`
         : 'Prix a confirmer';
-      const availability = brochureProduct.stock > 0
-        ? `${brochureProduct.stock} disponible${brochureProduct.stock > 1 ? 's' : ''}`
+      const availability = prod.stock > 0
+        ? `${prod.stock} disponible${prod.stock > 1 ? 's' : ''}`
         : 'Disponibilite a confirmer';
       const detailRows = [
-        { label: 'Categorie', value: brochureProduct.category || 'Produit boutique' },
-        { label: 'Marque', value: brochureProduct.brand || 'Non renseignee' },
+        { label: 'Categorie', value: prod.category || 'Produit boutique' },
+        { label: 'Marque', value: prod.brand || 'Non renseignee' },
         { label: 'Stock', value: availability },
-        { label: 'Reference', value: brochureProduct.sku || 'Non renseignee' },
-        { label: 'Code-barres', value: brochureProduct.barcode || 'Non renseigne' },
-        { label: 'Unite', value: brochureProduct.unit || 'Piece' },
-        { label: 'Poids', value: brochureProduct.weight || 'Non renseigne' },
+        { label: 'Reference', value: prod.sku || 'Non renseignee' },
+        { label: 'Code-barres', value: prod.barcode || 'Non renseigne' },
+        { label: 'Unite', value: prod.unit || 'Piece' },
+        { label: 'Poids', value: prod.weight || 'Non renseigne' },
       ];
-      const specRows = getSpecRows(brochureProduct);
-      const productStrengths = getProductStrengths(brochureProduct, brochureCopy);
+      const specRows = getSpecRows(prod);
+      const productStrengths = getProductStrengths(prod, copy);
 
       function sectionTitle(text: string, x: number, y: number, color = '#0645a8') {
         ctx.fillStyle = color;
@@ -1190,7 +1259,7 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
       ctx.fillStyle = '#061433';
       ctx.font = '900 42px Arial';
       wrapCanvasText(ctx, shop?.name || 'MasterShopPro', 52, 126, 520, 48, 1);
-      drawCanvasPill(ctx, 52, 172, brochureCopy.badge || 'Produit disponible', '#ff5a0a');
+      drawCanvasPill(ctx, 52, 172, copy.badge || 'Produit disponible', '#ff5a0a');
 
       ctx.fillStyle = '#ffffff';
       roundRect(ctx, 52, 238, 536, 326, 30);
@@ -1202,11 +1271,11 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
       ctx.font = '900 18px Arial';
       ctx.fillText('NOM DU PRODUIT', 86, 292);
       ctx.fillStyle = '#061433';
-      const titleLength = brochureProduct.name.length;
+      const titleLength = prod.name.length;
       ctx.font = titleLength > 38 ? '900 40px Arial' : titleLength > 24 ? '900 46px Arial' : '900 54px Arial';
-      wrapCanvasText(ctx, brochureProduct.name.toUpperCase(), 86, 356, 460, titleLength > 38 ? 46 : 54, 4);
+      wrapCanvasText(ctx, prod.name.toUpperCase(), 86, 356, 460, titleLength > 38 ? 46 : 54, 4);
 
-      const imageForBrochure = imageOverride || proImageUrl || brochureProduct.imageUrl;
+      const imageForBrochure = imageOverride || proImageUrl || prod.imageUrl;
       if (imageForBrochure) {
         try {
           const img = await loadCanvasImage(imageForBrochure.startsWith('data:') ? imageForBrochure : proxySrc(imageForBrochure));
@@ -1246,7 +1315,7 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
       ctx.font = '800 26px Arial';
       wrapCanvasText(
         ctx,
-        brochureProduct.description || brochureCopy.subheadline || 'Ajoute une description dans la fiche produit pour rendre la brochure plus convaincante.',
+        prod.description || copy.subheadline || 'Ajoute une description dans la fiche produit pour rendre la brochure plus convaincante.',
         82,
         930,
         910,
@@ -1286,7 +1355,7 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
       wrapCanvasText(ctx, whatsappNumber || 'Numero disponible sur la boutique', 582, 1668, 390, 28, 2);
       ctx.fillStyle = '#111827';
       ctx.font = '800 19px Arial';
-      wrapCanvasText(ctx, brochureCopy.cta || 'Contactez la boutique pour commander.', 582, 1728, 390, 25, 1);
+      wrapCanvasText(ctx, copy.cta || 'Contactez la boutique pour commander.', 582, 1728, 390, 25, 1);
 
       ctx.fillStyle = '#0645a8';
       roundRect(ctx, 96, 1802, 888, 84, 30);
@@ -1311,9 +1380,11 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
       });
   }
 
-  async function refreshBrochurePreview(imageOverride = '') {
-    if (!brochureProduct || !brochureCopy) return '';
-    const blob = await renderCommercialBrochureBlob(imageOverride);
+  async function refreshBrochurePreview(imageOverride = '', pOverride?: Product | null, cOverride?: ProductBrochureCopy | null) {
+    const prod = pOverride ?? brochureProduct;
+    const copy = cOverride ?? brochureCopy;
+    if (!prod || !copy) return '';
+    const blob = await renderCommercialBrochureBlob(imageOverride, prod, copy);
     if (!blob) return '';
     const url = URL.createObjectURL(blob);
     setBrochurePreviewUrl((previous) => {

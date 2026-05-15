@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import {
   Search, ShoppingCart, Plus, Minus, Star, Phone, MapPin, MessageCircle,
   SlidersHorizontal, Heart, Eye, Truck, Shield, RotateCcw, X, ChevronRight,
-  Grid3X3, LayoutList, Settings, ArrowLeft, Loader2, CheckCircle, CreditCard, Trash2
+  Grid3X3, LayoutList, Settings, ArrowLeft, Loader2, CheckCircle, CreditCard, Trash2, FileText
 } from 'lucide-react';
 import { getShopBySlug, getProducts, getCategories, createOrder } from '@/lib/firestore';
 import PhoneInput from '@/components/PhoneInput';
@@ -43,6 +43,7 @@ export default function ShopPage() {
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [quickView, setQuickView] = useState<Product | null>(null);
   const [cartAnimId, setCartAnimId] = useState<string | null>(null);
+  const [brochureViewUrl, setBrochureViewUrl] = useState<string | null>(null);
 
   // ── CHECKOUT MODAL ────────────────────────────────────────────────────────
   const [showCheckout, setShowCheckout] = useState(false);
@@ -341,6 +342,10 @@ export default function ShopPage() {
                         <Heart className={`w-4 h-4 ${wishlist.includes(p.id!) ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} /></button>
                       <button onClick={e => { e.stopPropagation(); setQuickView(p); }} className="w-8 h-8 bg-white rounded-full shadow flex items-center justify-center">
                         <Eye className="w-4 h-4 text-gray-400" /></button>
+                      {(p as any).brochureImageUrl && (
+                        <button onClick={e => { e.stopPropagation(); setBrochureViewUrl((p as any).brochureImageUrl); }} className="w-8 h-8 bg-white rounded-full shadow flex items-center justify-center" title="Voir la brochure">
+                          <FileText className="w-4 h-4 text-emerald-500" /></button>
+                      )}
                     </div>
                   </div>
                   <div className="p-3">
@@ -364,6 +369,11 @@ export default function ShopPage() {
                         )
                       ) : <span className="text-xs text-red-500 font-semibold bg-red-50 px-2 py-1 rounded-lg">Épuisé</span>}
                     </div>
+                    {(p as any).brochureImageUrl && (
+                      <button onClick={() => setBrochureViewUrl((p as any).brochureImageUrl)} className="mt-2 w-full flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors">
+                        <FileText className="w-3 h-3" />Voir la brochure
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -486,6 +496,23 @@ export default function ShopPage() {
                 ) : <span className="text-red-500 font-semibold bg-red-50 px-4 py-2 rounded-xl">Épuisé</span>}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── BROCHURE VIEW MODAL ── */}
+      {brochureViewUrl && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm" onClick={() => setBrochureViewUrl(null)}>
+          <div className="relative max-w-sm w-full" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setBrochureViewUrl(null)} className="absolute -top-10 right-0 text-white/70 hover:text-white flex items-center gap-1 text-sm font-semibold">
+              <X className="w-4 h-4" /> Fermer
+            </button>
+            <img src={brochureViewUrl} alt="Brochure produit" className="w-full rounded-2xl shadow-2xl" />
+            <a href={brochureViewUrl} download="brochure.png"
+               className="mt-3 flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-white font-bold text-sm"
+               style={{ backgroundColor: pc }}>
+              Télécharger la brochure
+            </a>
           </div>
         </div>
       )}
