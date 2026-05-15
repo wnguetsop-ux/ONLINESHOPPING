@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowRight, CheckCircle2, MessageCircle, Package, ShoppingBag } from 'lucide-react';
+import { ArrowRight, CheckCircle2, MessageCircle, Package, ShoppingBag, FileText, Store, Sparkles } from 'lucide-react';
 import Reveal from '@/components/marketing/Reveal';
 import { PLANS } from '@/lib/types';
 
@@ -10,9 +10,9 @@ const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.master
 const SIGNUP_URL = '/register';
 
 const BENEFITS = [
-  'Centraliser les demandes qui arrivent par chat',
-  'Suivre paiement, statut, client et stock au meme endroit',
-  'Transformer une discussion en commande sans changer WhatsApp',
+  'Photo → brochure produit prête en 8 secondes',
+  'Commandes, paiements et relances centralisés',
+  'Boutique en ligne à partager en 1 lien',
 ];
 
 const FAQS = [
@@ -70,20 +70,21 @@ export default function LandingPage() {
               <Reveal>
                 <div className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.22em]" style={{ background: 'var(--wa-soft)', color: 'var(--wa-dark)', border: '1px solid rgba(31,185,85,0.22)' }}>
                   <MessageCircle className="h-4 w-4" />
-                  Pensé pour les vendeurs WhatsApp
+                  Photo → Brochure → Commande → Boutique
                 </div>
               </Reveal>
 
               <Reveal delay={80}>
                 <h1 className="display-serif mt-6 max-w-3xl text-5xl tracking-[-0.05em] text-slate-950 sm:text-6xl lg:text-7xl">
-                  WhatsApp vous aide a vendre.
-                  <span className="block" style={{ color: '#1FB955' }}>MasterShopPro vous aide a gerer.</span>
+                  Tu prends une photo.
+                  <span className="block italic" style={{ color: '#1FB955' }}>La brochure est prête.</span>
+                  Tu partages. Le client commande.
                 </h1>
               </Reveal>
 
               <Reveal delay={140}>
                 <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600 sm:text-xl">
-                  Gardez vos clients sur WhatsApp. Suivez les commandes, paiements, clients et stocks dans un tableau de bord clair.
+                  MasterShopPro génère la fiche produit, crée la brochure, suit tes commandes et publie ta boutique en ligne — tout depuis ton téléphone.
                 </p>
               </Reveal>
 
@@ -101,7 +102,7 @@ export default function LandingPage() {
               <Reveal delay={260}>
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                   <Link href={SIGNUP_URL} className="btn-primary px-7 text-base">
-                    Organiser mes ventes WhatsApp
+                    Créer ma boutique gratuitement
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                   <a
@@ -179,33 +180,42 @@ export default function LandingPage() {
           <div className="mx-auto max-w-6xl">
             <Reveal>
               <div className="mx-auto max-w-2xl text-center">
-                <p className="section-kicker justify-center">Apres le catalogue WhatsApp</p>
-                <h2 className="section-title">Le travail commence quand le client ecrit</h2>
+                <p className="section-kicker justify-center">3 outils. 1 seule app.</p>
+                <h2 className="section-title">Tout ce qu'il faut pour vendre sur WhatsApp</h2>
               </div>
             </Reveal>
 
             <div className="mt-10 grid gap-5 lg:grid-cols-3">
               {[
                 {
-                  icon: MessageCircle,
-                  title: 'Prioriser les messages',
-                  text: 'Les demandes client deviennent une inbox de travail, pas un chat melange.',
+                  icon: Sparkles,
+                  badge: '✨ IA',
+                  title: 'Brochure produit en 1 photo',
+                  text: 'Prends une photo. MasterShopPro génère le nom, le prix, la description et une brochure prête à coller dans ta discussion WhatsApp.',
+                  accent: '#1FB955',
                 },
                 {
                   icon: Package,
-                  title: 'Creer une commande suivie',
-                  text: 'Une discussion peut devenir une commande avec statut, paiement et notes.',
+                  badge: '🛒 Suivi',
+                  title: 'Commandes & paiements clairs',
+                  text: 'Chaque commande WhatsApp est enregistrée avec son statut, son montant et son client. Relance en 1 clic. Plus rien ne se perd.',
+                  accent: '#3F7BDC',
                 },
                 {
-                  icon: CheckCircle2,
-                  title: 'Garder le controle',
-                  text: 'Retrouvez ce qui reste a payer, a preparer, a livrer ou a relancer.',
+                  icon: Store,
+                  badge: '🔗 Boutique',
+                  title: 'Boutique en ligne à partager',
+                  text: 'Un lien personnalisé (mastershoppro.com/ta-boutique) à partager partout. Les clients voient tes produits et commandent directement.',
+                  accent: '#FF6A2C',
                 },
               ].map((item, index) => (
                 <Reveal key={item.title} delay={index * 80}>
                   <article className="premium-card p-6">
-                    <div className="icon-shell">
-                      <item.icon className="h-5 w-5" />
+                    <div className="flex items-center gap-3">
+                      <div className="icon-shell" style={{ background: `${item.accent}18`, color: item.accent }}>
+                        <item.icon className="h-5 w-5" />
+                      </div>
+                      <span className="text-[11px] font-extrabold tracking-[0.18em] uppercase" style={{ color: item.accent }}>{item.badge}</span>
                     </div>
                     <h3 className="mt-4 text-xl font-black text-slate-950">{item.title}</h3>
                     <p className="mt-2 text-sm leading-7 text-slate-600">{item.text}</p>
@@ -295,15 +305,16 @@ export default function LandingPage() {
           <Reveal>
             <div className="mx-auto max-w-5xl rounded-[36px] border border-slate-200 bg-[linear-gradient(135deg,#0f172a_0%,#111827_58%,#14532d_100%)] px-6 py-10 text-white shadow-[0_35px_80px_rgba(15,23,42,0.24)] sm:px-10 sm:py-12">
               <div className="mx-auto max-w-3xl text-center">
-                <h2 className="text-3xl font-black tracking-tight sm:text-5xl">
-                  Gardez WhatsApp pour vendre. Utilisez MasterShopPro pour ne plus perdre le suivi.
+                <h2 className="display-serif text-3xl tracking-tight sm:text-5xl">
+                  Tu vends sur WhatsApp.<br />
+                  <em className="italic" style={{ color: '#1FB955' }}>On s'occupe du reste.</em>
                 </h2>
                 <p className="mt-4 text-base leading-8 text-white/75">
-                  Le client ecrit comme avant. Vous travaillez avec une inbox, des commandes, des paiements et un historique clair.
+                  Brochures IA · Commandes suivies · Boutique en ligne · Relances en 1 clic
                 </p>
                 <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
                   <Link href={SIGNUP_URL} className="btn bg-white px-6 py-4 text-sm font-black text-slate-900 hover:-translate-y-0.5">
-                    Organiser mes ventes
+                    Créer ma boutique gratuitement
                   </Link>
                   <a
                     href={PLAY_STORE_URL}
@@ -337,7 +348,7 @@ export default function LandingPage() {
             </div>
             <div>
               <p className="text-base font-black tracking-tight">MasterShopPro</p>
-              <p className="text-sm text-slate-500">WhatsApp vend. MasterShopPro organise le suivi.</p>
+              <p className="text-sm text-slate-500">Brochures IA · Commandes · Boutique en ligne</p>
             </div>
           </div>
           <div className="flex flex-wrap gap-4 text-sm font-semibold text-slate-500">
