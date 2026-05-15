@@ -100,15 +100,28 @@ function StudioSlider({ label, icon: Icon, value, min, max, onChange, color='#16
   );
 }
 
-function defaultBrochure(product: Product, shopName = 'MasterShopPro', currency = 'FCFA'): ProductBrochureCopy {
+function defaultBrochure(product: Product, shopName = 'MasterShopPro', currency = 'FCFA', shopSlug = ''): ProductBrochureCopy {
   const price = product.sellingPrice > 0 ? `${product.sellingPrice.toLocaleString('fr-FR')} ${currency}` : 'Prix disponible';
+  const shopUrl = shopSlug ? `${typeof window !== 'undefined' ? window.location.origin : 'https://mastershoppro.com'}/${shopSlug}` : '';
+  const caption = [
+    `🛍️ *${product.name}*`,
+    ``,
+    `💰 Prix : *${price}*`,
+    product.stock > 0 ? `✅ Disponible maintenant` : `⚠️ Stock limité`,
+    product.description ? `\n📝 ${product.description}` : '',
+    ``,
+    shopUrl ? `📦 Voir tous les produits et commander :\n👉 ${shopUrl}` : `📦 Boutique : ${shopName}`,
+    ``,
+    `💬 Réponds à ce message pour commander !`,
+  ].filter(l => l !== null && l !== undefined).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+
   return {
     headline: `${product.name} pret a commander`,
     subheadline: product.description || `Un produit clair, bien presente, facile a commander chez ${shopName}.`,
     badge: product.stock > 0 ? 'Disponible maintenant' : 'A verifier',
     bullets: ['Prix clair', 'Commande WhatsApp simple', 'Boutique professionnelle'],
     cta: `Commander a ${price}`,
-    whatsappCaption: `Bonjour, je suis interesse(e) par ${product.name}. Est-ce encore disponible ?\n\nPrix: ${price}\nBoutique: ${shopName}`,
+    whatsappCaption: caption,
     source: 'local',
   };
 }
@@ -626,27 +639,9 @@ export default function ProductsPage() {
       const p=await r.json();
       if (p.name||p.description) {
         setForm(prev=>({ ...prev, name:p.name||prev.name, description:p.description||prev.description, specifications:p.specifications||prev.specifications, brand:p.brand||prev.brand, sellingPrice:p.suggestedPrice?p.suggestedPrice.replace(/[^0-9]/g,'')||prev.sellingPrice:prev.sellingPrice, category:p.category?(categories.find(c=>c.name.toLowerCase().includes(p.category.toLowerCase()))?.name||prev.category):prev.category }));
+        setAiAnalysis(p);
       }
-      try {
-        if (shop?.id) {
-          const { doc: fsDoc, getDoc, updateDoc } = await import('firebase/firestore');
-          const { db: fsDb } = await import('@/lib/firebase');
-          const shopRef = fsDoc(fsDb, 'shops', shop.id);
-          const shopSnap = await getDoc(shopRef);
-          const currentCredits = shopSnap.data()?.photoCredits || 0;
-          if (currentCredits <= 0) { console.warn('[PhotoStudio] Credits insuffisants'); return; }
-          await updateDoc(shopRef, { photoCredits: currentCredits - 1, updatedAt: new Date().toISOString() });
-        }
-        const sRes=await fetch('/api/photo-studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64:b64})});
-        const sData=await sRes.json();
-        if (sRes.ok && sData.processedImage) {
-          const processedBlob = await fetch(sData.processedImage).then(r=>r.blob());
-          const processedUrl = URL.createObjectURL(processedBlob);
-          setPhotoPreview(processedUrl); setRawSrc(sData.processedImage);
-          setPhotoFile(new File([processedBlob],`studio-${Date.now()}.png`,{type:'image/png'}));
-          setPhotoMode('done');
-        }
-      } catch(studioErr) { console.error('[PhotoStudio] Exception:', studioErr); }
+      // Studio Photo est maintenant MANUEL — clic bouton "Studio IA" uniquement
     } catch {} finally { setIsAnalyzing(false); }
   }
 
@@ -744,7 +739,7 @@ export default function ProductsPage() {
   async function handleAddCat(e: React.FormEvent) { e.preventDefault(); if (!shop?.id||!newCat.name.trim()) return; await createCategory(shop.id,newCat); setNewCat({name:'',color:'#16a34a'}); await loadData(); setShowCatModal(false); }
 
   async function openBrochure(product: Product) {
-    const initial = defaultBrochure(product, shop?.name || 'MasterShopPro', shop?.currency || 'FCFA');
+    const initial = defaultBrochure(product, shop?.name || 'MasterShopPro', shop?.currency || 'FCFA', shop?.slug || '');
     setBrochureProduct(product);
     setBrochureCopy(initial);
     setBrochureError('');
@@ -755,7 +750,7 @@ export default function ProductsPage() {
     await generateBrochure(product, initial);
   }
 
-  async function generateBrochure(product: Product, fallback = defaultBrochure(product, shop?.name || 'MasterShopPro', shop?.currency || 'FCFA')) {
+  async function generateBrochure(product: Product, fallback = defaultBrochure(product, shop?.name || 'MasterShopPro', shop?.currency || 'FCFA', shop?.slug || '')) {
     setBrochureLoading(true);
     setBrochureError('');
     try {
@@ -1469,11 +1464,11 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
                       <img src={photoPreview} alt="Apercu" className="w-full h-full object-contain p-2"/>
                       {isAnalyzing&&<div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-2xl backdrop-blur-sm"><div className="text-center text-white"><Sparkles className="w-10 h-10 mx-auto mb-2 text-purple-300 animate-pulse"/><p className="font-bold text-sm">IA analyse...</p></div></div>}
                       {photoMode==='done'&&!isAnalyzing&&(
-                        <div className="absolute bottom-2 left-2 right-2 rounded-xl px-3 py-2 flex items-center gap-2 cursor-pointer hover:opacity-90" style={{background:'linear-gradient(135deg,#7c3aed,#6d28d9)'}} onClick={()=>setShowStudio(true)}>
-                          <span className="text-base">✨</span>
-                          <div className="flex-1"><p className="text-white text-xs font-extrabold">Studio Photo IA</p><p className="text-purple-200 text-[10px]">Fond blanc pro automatique</p></div>
-                          <span className="text-white text-xs font-bold">→</span>
-                        </div>
+                        <button type="button" onClick={()=>setShowStudio(true)}
+                                className="absolute top-2 right-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-extrabold shadow-md"
+                                style={{ background: 'rgba(124,58,237,0.88)', color: 'white', backdropFilter: 'blur(4px)' }}>
+                          <Wand2 className="w-3 h-3"/>Studio IA
+                        </button>
                       )}
                     </div>
                     <div className="grid grid-cols-3 gap-2 mt-2">
