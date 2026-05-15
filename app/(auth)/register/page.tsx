@@ -2,7 +2,10 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Store, Mail, Lock, User, Loader2, Eye, EyeOff, Phone, CheckCircle, AlertCircle } from 'lucide-react';
+import {
+  AlertCircle, ArrowLeft, CheckCircle, Eye, EyeOff,
+  Loader2, Lock, Mail, Phone, ShoppingBag, Store, User,
+} from 'lucide-react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { trackRegistrationComplete, trackLeadClick } from '@/components/MetaPixel';
 import { auth } from '@/lib/firebase';
@@ -12,111 +15,58 @@ import PhoneInput from '@/components/PhoneInput';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [step,          setStep]          = useState(1);
+  const [loading,       setLoading]       = useState(false);
+  const [error,         setError]         = useState('');
+  const [showPassword,  setShowPassword]  = useState(false);
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
-  const [checkingSlug, setCheckingSlug] = useState(false);
-  
+  const [checkingSlug,  setCheckingSlug]  = useState(false);
+
   const [form, setForm] = useState({
-    // Step 1: Admin info
-    name: '',
-    email: '',
-    phone: '',
-    password: '',
-    
-    // Step 2: Shop info
-    shopName: '',
-    shopSlug: '',
-    shopDescription: '',
-    city: '',
-    whatsapp: '',
+    name: '', email: '', phone: '', password: '',
+    shopName: '', shopSlug: '', shopDescription: '', city: '', whatsapp: '',
   });
 
-  const handleShopNameChange = async (name: string) => {
+  async function handleShopNameChange(name: string) {
     setForm(prev => ({ ...prev, shopName: name }));
     const slug = slugify(name);
     setForm(prev => ({ ...prev, shopSlug: slug }));
-    
     if (slug.length >= 3) {
-      setCheckingSlug(true);
-      setSlugAvailable(null);
-      try {
-        const available = await checkSlugAvailable(slug);
-        setSlugAvailable(available);
-      } catch (e) {
-        console.error(e);
-      }
+      setCheckingSlug(true); setSlugAvailable(null);
+      try { setSlugAvailable(await checkSlugAvailable(slug)); } catch {}
       setCheckingSlug(false);
-    } else {
-      setSlugAvailable(null);
-    }
-  };
+    } else { setSlugAvailable(null); }
+  }
 
-  const handleSlugChange = async (slug: string) => {
-    const cleanSlug = slugify(slug);
-    setForm(prev => ({ ...prev, shopSlug: cleanSlug }));
-    
-    if (cleanSlug.length >= 3) {
-      setCheckingSlug(true);
-      setSlugAvailable(null);
-      try {
-        const available = await checkSlugAvailable(cleanSlug);
-        setSlugAvailable(available);
-      } catch (e) {
-        console.error(e);
-      }
+  async function handleSlugChange(slug: string) {
+    const clean = slugify(slug);
+    setForm(prev => ({ ...prev, shopSlug: clean }));
+    if (clean.length >= 3) {
+      setCheckingSlug(true); setSlugAvailable(null);
+      try { setSlugAvailable(await checkSlugAvailable(clean)); } catch {}
       setCheckingSlug(false);
-    } else {
-      setSlugAvailable(null);
-    }
-  };
+    } else { setSlugAvailable(null); }
+  }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    
     if (step === 1) {
-      // Validation step 1
-      if (!form.name || !form.email || !form.password) {
-        setError('Veuillez remplir tous les champs obligatoires');
-        return;
-      }
-      if (form.password.length < 6) {
-        setError('Le mot de passe doit contenir au moins 6 caractères');
-        return;
-      }
-      setError('');
-      setStep(2);
-      return;
+      if (!form.name || !form.email || !form.password) { setError('Veuillez remplir tous les champs obligatoires'); return; }
+      if (form.password.length < 6) { setError('Le mot de passe doit contenir au moins 6 caractères'); return; }
+      setError(''); setStep(2); return;
     }
-    
-    // Step 2: Create account and shop
-    if (!form.shopName || !form.shopSlug || !form.whatsapp) {
-      setError('Veuillez remplir tous les champs obligatoires');
-      return;
-    }
-    
-    if (slugAvailable === false) {
-      setError('Ce nom de boutique est déjà pris');
-      return;
-    }
-    
-    setLoading(true);
-    setError('');
-    
+    if (!form.shopName || !form.shopSlug || !form.whatsapp) { setError('Veuillez remplir tous les champs obligatoires'); return; }
+    if (slugAvailable === false) { setError('Ce nom de boutique est déjà pris'); return; }
+
+    setLoading(true); setError('');
     try {
-      // 1. Create Firebase Auth user
-      const userCredential = await createUserWithEmailAndPassword(auth, form.email, form.password);
-      const uid = userCredential.user.uid;
-      
-      // 2. Create Shop
+      const { user } = await createUserWithEmailAndPassword(auth, form.email, form.password);
       const shopId = await createShop({
         slug: form.shopSlug.toLowerCase(),
-        ownerId: uid,
+        ownerId: user.uid,
         name: form.shopName,
         description: form.shopDescription,
-        primaryColor: '#ec4899',
+        primaryColor: '#25D366',
         whatsapp: form.whatsapp.replace(/[^0-9]/g, ''),
         phone: form.phone.replace(/[^0-9+]/g, '') || form.phone,
         city: form.city,
@@ -127,261 +77,219 @@ export default function RegisterPage() {
         deliveryEnabled: true,
         planId: 'FREE',
       });
-      
-      // 3. Create Admin record
       await createAdmin({
-        uid,
-        email: form.email,
-        name: form.name,
-        phone: form.phone,
-        shopId,
-        shopSlug: form.shopSlug.toLowerCase(),
+        uid: user.uid, email: form.email, name: form.name,
+        phone: form.phone, shopId, shopSlug: form.shopSlug.toLowerCase(),
         createdAt: new Date().toISOString(),
       });
-      
-      // 4. Track conversion Meta Pixel
       trackRegistrationComplete('FREE');
-
-      // 5. Redirect to dashboard
-      router.push('/admin/dashboard');
-      
+      router.push('/admin/orders');
     } catch (err: any) {
-      console.error('Registration error:', err);
-      
-      if (err.code === 'auth/email-already-in-use') {
-        setError('Cet email est déjà utilisé. Connectez-vous ou utilisez un autre email.');
-      } else if (err.code === 'auth/weak-password') {
-        setError('Le mot de passe est trop faible. Utilisez au moins 6 caractères.');
-      } else if (err.code === 'auth/invalid-email') {
-        setError('Adresse email invalide.');
-      } else if (err.message?.includes('déjà pris')) {
-        setError(err.message);
-      } else {
-        setError('Une erreur est survenue. Veuillez réessayer.');
-      }
-    } finally {
-      setLoading(false);
+      if      (err.code === 'auth/email-already-in-use') setError('Cet email est déjà utilisé. Connectez-vous ou utilisez un autre email.');
+      else if (err.code === 'auth/weak-password')        setError('Mot de passe trop faible. Minimum 6 caractères.');
+      else if (err.code === 'auth/invalid-email')        setError('Adresse email invalide.');
+      else if (err.message?.includes('déjà pris'))       setError(err.message);
+      else                                                setError('Une erreur est survenue. Réessayez.');
     }
-  };
+    setLoading(false);
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-pink-500 to-rose-600 p-6 text-white text-center">
-          <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Store className="w-8 h-8" />
+    <div className="min-h-screen bg-app-bg flex">
+
+      {/* ── Left branding panel (desktop) ─────────────────────────────────── */}
+      <div className="hidden lg:flex lg:w-[420px] xl:w-[480px] bg-gradient-to-br from-wa to-wa-dark flex-col justify-between p-12 flex-shrink-0">
+        <Link href="/" className="flex items-center gap-3 text-white">
+          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+            <ShoppingBag className="w-5 h-5" />
           </div>
-          <h1 className="text-2xl font-bold">Créer votre boutique</h1>
-          <p className="text-pink-100 mt-2">Étape {step} sur 2</p>
-          
-          {/* Progress bar */}
-          <div className="flex gap-2 mt-4">
-            <div className={`h-1.5 flex-1 rounded-full ${step >= 1 ? 'bg-white' : 'bg-white/30'}`} />
-            <div className={`h-1.5 flex-1 rounded-full ${step >= 2 ? 'bg-white' : 'bg-white/30'}`} />
+          <span className="text-xl font-extrabold tracking-tight">MasterShopPro</span>
+        </Link>
+
+        <div className="text-white">
+          <h1 className="text-4xl font-extrabold tracking-tight mb-4 leading-tight">
+            Créez votre boutique<br />en 2 minutes.
+          </h1>
+          <p className="text-white/70 text-lg leading-relaxed mb-8">
+            Gratuit pour commencer. Gérez vos commandes WhatsApp dès aujourd&apos;hui.
+          </p>
+          <div className="space-y-3">
+            {[
+              '✅ Aucune carte bancaire requise',
+              '📦 8 commandes gratuites pour tester',
+              '📱 Mobile Money intégré (Wave, Orange, MTN)',
+              '🌍 12 pays africains supportés',
+            ].map(f => (
+              <div key={f} className="flex items-center gap-2 text-white/80 text-[15px]">{f}</div>
+            ))}
           </div>
         </div>
-        
-        {/* Form */}
-        <form onSubmit={(e) => { trackLeadClick(); handleSubmit(e); }} className="p-6 space-y-4">
+
+        <p className="text-white/40 text-sm">© {new Date().getFullYear()} MasterShopPro</p>
+      </div>
+
+      {/* ── Form panel ─────────────────────────────────────────────────────── */}
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="w-full max-w-md animate-fadeIn">
+
+          {/* Mobile logo */}
+          <div className="lg:hidden mb-8">
+            <Link href="/" className="flex items-center gap-2 text-slate-400 hover:text-slate-600 mb-6 text-sm font-medium">
+              <ArrowLeft className="w-4 h-4" /> Retour
+            </Link>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-wa rounded-xl flex items-center justify-center shadow-wa">
+                <Store className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-xl font-extrabold tracking-tight text-slate-900">MasterShopPro</span>
+            </div>
+          </div>
+
+          {/* Title + progress */}
+          <div className="mb-8">
+            <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Créer ma boutique</h2>
+            <p className="text-slate-500 mt-1 text-sm">Étape {step} sur 2</p>
+            <div className="flex gap-2 mt-4">
+              <div className={`h-1.5 flex-1 rounded-full transition-all ${step >= 1 ? 'bg-wa' : 'bg-slate-200'}`} />
+              <div className={`h-1.5 flex-1 rounded-full transition-all ${step >= 2 ? 'bg-wa' : 'bg-slate-200'}`} />
+            </div>
+          </div>
+
+          {/* Error */}
           {error && (
-            <div className="bg-red-50 text-red-600 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 flex-shrink-0" />
-              {error}
+            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-2xl text-sm flex items-center gap-2 mb-6">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />{error}
             </div>
           )}
-          
-          {step === 1 && (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Votre nom *</label>
-                <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="text"
-                    required
-                    value={form.name}
-                    onChange={(e) => setForm({...form, name: e.target.value})}
-                    className="input pl-12"
-                    placeholder="Jean Pierre"
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
-                <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="email"
-                    required
-                    value={form.email}
-                    onChange={(e) => setForm({...form, email: e.target.value})}
-                    className="input pl-12"
-                    placeholder="jean@email.com"
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <PhoneInput
-                  label="Téléphone"
-                  value={form.phone}
-                  onChange={(v) => setForm({...form, phone: v})}
-                  placeholder="6XX XXX XXX"
-                  defaultCountry="CM"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Mot de passe *</label>
-                <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    minLength={6}
-                    value={form.password}
-                    onChange={(e) => setForm({...form, password: e.target.value})}
-                    className="input pl-12 pr-12"
-                    placeholder="••••••••"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">Minimum 6 caractères</p>
-              </div>
-            </>
-          )}
-          
-          {step === 2 && (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Nom de votre boutique *</label>
-                <input
-                  type="text"
-                  required
-                  value={form.shopName}
-                  onChange={(e) => handleShopNameChange(e.target.value)}
-                  className="input"
-                  placeholder="Ma Super Boutique"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Lien de votre boutique *
-                </label>
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-400 text-sm">shopmaster.vercel.app/</span>
-                  <div className="relative flex-1">
-                    <input
-                      type="text"
-                      required
-                      value={form.shopSlug}
-                      onChange={(e) => handleSlugChange(e.target.value)}
-                      className={`input ${
-                        slugAvailable === true ? 'border-emerald-500 focus:border-emerald-500' : 
-                        slugAvailable === false ? 'border-red-500 focus:border-red-500' : ''
-                      }`}
-                      placeholder="ma-boutique"
-                    />
-                    {checkingSlug && (
-                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 animate-spin" />
-                    )}
-                    {!checkingSlug && slugAvailable === true && (
-                      <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-500" />
-                    )}
-                    {!checkingSlug && slugAvailable === false && (
-                      <AlertCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-red-500" />
-                    )}
+
+          <form onSubmit={e => { trackLeadClick(); handleSubmit(e); }} className="space-y-4">
+
+            {/* ── Step 1 ──────────────────────────────────────────────────── */}
+            {step === 1 && (
+              <>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Votre nom *</label>
+                  <div className="relative">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <input type="text" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+                      className="input pl-12" placeholder="Jean Pierre" />
                   </div>
                 </div>
-                {slugAvailable === false && (
-                  <p className="text-xs text-red-500 mt-1">Ce nom est déjà pris</p>
-                )}
-                {slugAvailable === true && (
-                  <p className="text-xs text-emerald-500 mt-1">✓ Disponible !</p>
-                )}
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description (optionnel)</label>
-                <textarea
-                  value={form.shopDescription}
-                  onChange={(e) => setForm({...form, shopDescription: e.target.value})}
-                  className="textarea"
-                  rows={2}
-                  placeholder="Décrivez votre boutique en quelques mots..."
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Ville</label>
-                <input
-                  type="text"
-                  value={form.city}
-                  onChange={(e) => setForm({...form, city: e.target.value})}
-                  className="input"
-                  placeholder="Yaoundé, Douala..."
-                />
-              </div>
-              
-              <div>
-                <PhoneInput
-                  label="WhatsApp *"
-                  required
-                  value={form.whatsapp}
-                  onChange={(v) => setForm({...form, whatsapp: v})}
-                  placeholder="6XX XXX XXX"
-                  defaultCountry="CM"
-                />
-                <p className="text-xs text-gray-500 mt-1">Numéro WhatsApp de la boutique</p>
-              </div>
-            </>
-          )}
-          
-          <div className="flex gap-3 pt-4">
-            {step === 2 && (
-              <button
-                type="button"
-                onClick={() => setStep(1)}
-                className="btn-secondary flex-1"
-              >
-                Retour
-              </button>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Email *</label>
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <input type="email" required autoComplete="email" value={form.email}
+                      onChange={e => setForm({ ...form, email: e.target.value })}
+                      className="input pl-12" placeholder="jean@email.com" />
+                  </div>
+                </div>
+
+                <div>
+                  <PhoneInput label="Téléphone" value={form.phone}
+                    onChange={v => setForm({ ...form, phone: v })}
+                    placeholder="6XX XXX XXX" defaultCountry="CM" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Mot de passe *</label>
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <input type={showPassword ? 'text' : 'password'} required minLength={6}
+                      autoComplete="new-password" value={form.password}
+                      onChange={e => setForm({ ...form, password: e.target.value })}
+                      className="input pl-12 pr-12" placeholder="••••••••" />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1.5">Minimum 6 caractères</p>
+                </div>
+              </>
             )}
-            <button
-              type="submit"
-              disabled={loading || (step === 2 && slugAvailable === false)}
-              className="btn-primary flex-1 flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Création...
-                </>
-              ) : step === 1 ? (
-                'Continuer'
-              ) : (
-                '🚀 Créer ma boutique'
+
+            {/* ── Step 2 ──────────────────────────────────────────────────── */}
+            {step === 2 && (
+              <>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Nom de votre boutique *</label>
+                  <input type="text" required value={form.shopName}
+                    onChange={e => handleShopNameChange(e.target.value)}
+                    className="input" placeholder="Ma Super Boutique" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Lien de votre boutique *</label>
+                  <div className="flex items-center bg-slate-50 border border-app-border rounded-2xl overflow-hidden focus-within:ring-2 focus-within:ring-wa/30 focus-within:border-wa">
+                    <span className="text-slate-400 text-sm pl-4 whitespace-nowrap">mastershoppro.com/</span>
+                    <div className="relative flex-1">
+                      <input type="text" required value={form.shopSlug}
+                        onChange={e => handleSlugChange(e.target.value)}
+                        className={`w-full bg-transparent px-2 py-3.5 text-sm font-medium text-slate-800 outline-none border-none ${
+                          slugAvailable === true  ? 'text-emerald-700' :
+                          slugAvailable === false ? 'text-red-600' : ''
+                        }`}
+                        placeholder="ma-boutique" />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        {checkingSlug         && <Loader2   className="w-4 h-4 text-slate-400 animate-spin" />}
+                        {!checkingSlug && slugAvailable === true  && <CheckCircle className="w-4 h-4 text-emerald-500" />}
+                        {!checkingSlug && slugAvailable === false && <AlertCircle className="w-4 h-4 text-red-500" />}
+                      </div>
+                    </div>
+                  </div>
+                  {slugAvailable === false && <p className="text-xs text-red-500 mt-1.5">Ce nom est déjà pris</p>}
+                  {slugAvailable === true  && <p className="text-xs text-wa-dark mt-1.5 font-semibold">Disponible !</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Description <span className="text-slate-400 font-normal">(optionnel)</span></label>
+                  <textarea value={form.shopDescription}
+                    onChange={e => setForm({ ...form, shopDescription: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-50 border border-app-border rounded-2xl text-sm text-slate-800 outline-none focus:border-wa focus:ring-2 focus:ring-wa/20 resize-none"
+                    rows={2} placeholder="Décrivez votre boutique en quelques mots..." />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Ville</label>
+                  <input type="text" value={form.city}
+                    onChange={e => setForm({ ...form, city: e.target.value })}
+                    className="input" placeholder="Yaoundé, Douala..." />
+                </div>
+
+                <div>
+                  <PhoneInput label="Numéro WhatsApp *" required value={form.whatsapp}
+                    onChange={v => setForm({ ...form, whatsapp: v })}
+                    placeholder="6XX XXX XXX" defaultCountry="CM" />
+                  <p className="text-xs text-slate-400 mt-1.5 flex items-center gap-1">
+                    <Phone className="w-3 h-3" /> Numéro WhatsApp de votre boutique
+                  </p>
+                </div>
+              </>
+            )}
+
+            {/* ── Actions ─────────────────────────────────────────────────── */}
+            <div className="flex gap-3 pt-2">
+              {step === 2 && (
+                <button type="button" onClick={() => setStep(1)}
+                  className="flex-1 h-14 rounded-2xl border border-app-border bg-white text-slate-700 font-semibold text-sm hover:bg-slate-50 transition-colors">
+                  Retour
+                </button>
               )}
-            </button>
-          </div>
-        </form>
-        
-        {/* Footer */}
-        <div className="px-6 pb-6 text-center">
-          <p className="text-sm text-gray-500">
+              <button type="submit"
+                disabled={loading || (step === 2 && slugAvailable === false)}
+                className="btn-wa flex-1 h-14 text-base rounded-2xl">
+                {loading
+                  ? <><Loader2 className="w-5 h-5 animate-spin" /> Création...</>
+                  : step === 1 ? 'Continuer' : 'Créer ma boutique'}
+              </button>
+            </div>
+          </form>
+
+          <p className="text-center mt-6 text-slate-500 text-sm">
             Déjà un compte ?{' '}
-            <Link href="/login" className="text-pink-500 hover:text-pink-600 font-medium">
-              Se connecter
-            </Link>
+            <Link href="/login" className="text-wa-dark hover:underline font-bold">Se connecter</Link>
           </p>
         </div>
       </div>

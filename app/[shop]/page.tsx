@@ -188,16 +188,16 @@ export default function ShopPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+    <div className="premium-mesh min-h-screen flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
 
       {/* ── HEADER ── */}
-      <header className="shop-header bg-white shadow-sm sticky top-0 z-40" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+      <header className="shop-header sticky top-0 z-40 border-b border-app-border bg-white/88 shadow-[0_16px_45px_rgba(15,23,42,0.06)] backdrop-blur-2xl" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             {shop.logo ? (
               <img src={shop.logo} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
             ) : (
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0"
+              <div className="premium-icon w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0"
                 style={{ background: `linear-gradient(135deg, ${pc}, ${pc}bb)` }}>
                 {shop.name.charAt(0)}
               </div>
@@ -210,7 +210,7 @@ export default function ShopPage() {
           <div className="flex items-center gap-2">
             {shop.whatsapp && (
               <a href={getWhatsAppLink(shop.whatsapp, `Bonjour ${shop.name}!`)} target="_blank"
-                className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-white bg-green-500 hover:bg-green-600 transition-colors">
+                className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold text-white bg-wa hover:bg-wa-hover shadow-wa transition-colors">
                 <MessageCircle className="w-4 h-4" /><span className="hidden md:inline">WhatsApp</span>
               </a>
             )}
@@ -229,7 +229,7 @@ export default function ShopPage() {
       </header>
 
       {/* ── HERO ── */}
-      <section className="relative overflow-hidden py-10 text-white"
+      <section className="relative overflow-hidden py-10 text-white shadow-[0_28px_80px_rgba(15,23,42,0.16)]"
         style={{ background: `linear-gradient(135deg, ${pc} 0%, ${pc}88 100%)` }}>
         <div className="absolute inset-0 opacity-10 pointer-events-none">
           <div className="absolute top-4 right-12 w-32 h-32 rounded-full border-4 border-white" />
@@ -250,7 +250,7 @@ export default function ShopPage() {
 
       {/* ── CATEGORY PILLS ── */}
       {categories.length > 0 && (
-        <div className="bg-white border-b overflow-x-auto">
+        <div className="border-b border-app-border bg-white/82 backdrop-blur-xl overflow-x-auto">
           <div className="flex items-center gap-2 px-4 py-2.5 max-w-6xl mx-auto min-w-max">
             <button onClick={() => setCatFilter('')}
               className="flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold transition-all"
@@ -279,7 +279,7 @@ export default function ShopPage() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {featuredProducts.slice(0, 4).map(p => (
-              <div key={p.id} className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer border-2"
+              <div key={p.id} className="premium-card media-hover overflow-hidden cursor-pointer border-2"
                 style={{ borderColor: `${pc}25` }} onClick={() => setQuickView(p)}>
                 {p.imageUrl ? (
                   <div className="relative"><img src={p.imageUrl} alt={p.name} className="w-full h-36 object-contain bg-white p-1" />
@@ -322,7 +322,7 @@ export default function ShopPage() {
         </div>
 
         {showFilters && (
-          <div className="mt-3 bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+          <div className="premium-card mt-3 rounded-2xl border border-gray-100 p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="font-semibold text-gray-800 text-sm">Filtres & Tri</p>
               {hasFilters && <button onClick={clearFilters} className="text-xs text-red-500 font-medium">Réinitialiser</button>}
@@ -358,7 +358,7 @@ export default function ShopPage() {
           viewMode === 'grid' ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
               {filtered.map(p => (
-                <div key={p.id} className="bg-white rounded-2xl shadow-sm overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 group">
+                <div key={p.id} className="premium-card overflow-hidden group">
                   <div className="relative">
                     {p.imageUrl ? <img src={p.imageUrl} alt={p.name} className="w-full h-48 object-contain bg-white p-2 group-hover:scale-105 transition-transform duration-500" />
                       : <div className="w-full h-40 flex items-center justify-center text-4xl" style={{ background: `${pc}10` }}>📦</div>}
@@ -402,7 +402,7 @@ export default function ShopPage() {
           ) : (
             <div className="space-y-2.5">
               {filtered.map(p => (
-                <div key={p.id} className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all flex items-center gap-3 p-3">
+                <div key={p.id} className="premium-card flex items-center gap-3 p-3">
                   <div className="flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden cursor-pointer" onClick={() => setQuickView(p)}>
                     {p.imageUrl ? <img src={p.imageUrl} alt={p.name} className="w-full h-full object-contain bg-white p-2" /> : <div className="w-full h-full flex items-center justify-center text-2xl" style={{ background: `${pc}10` }}>📦</div>}
                   </div>

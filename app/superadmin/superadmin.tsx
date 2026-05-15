@@ -519,7 +519,7 @@ export default function SuperAdminPage() {
   const byType: Record<string,number> = {};
   filteredEvents.filter(e => e.type !== 'subscription').forEach(e => { byType[e.type] = (byType[e.type] || 0) + computeCost(e); });
 
-  const planCounts = { FREE: 0, STARTER: 0, PRO: 0 };
+  const planCounts = { FREE: 0, STARTER: 0, STANDARD: 0, PRO: 0 };
   shops.forEach(s => { if (s.planId in planCounts) planCounts[s.planId as keyof typeof planCounts]++; });
 
   const filteredShops = shops.filter(s =>
@@ -600,7 +600,7 @@ export default function SuperAdminPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {[
             { label: 'Total boutiques',  value: shops.length,                        icon: Store,      color: 'text-indigo-400' },
-            { label: 'Plans payants',    value: planCounts.STARTER+planCounts.PRO,   icon: Crown,      color: 'text-amber-400' },
+            { label: 'Plans payants',    value: planCounts.STARTER + planCounts.STANDARD + planCounts.PRO,   icon: Crown,      color: 'text-amber-400' },
             { label: 'Cout API ce mois', value: fmtUSD(totalCostUSD),                icon: Zap,        color: 'text-red-400' },
             { label: 'Revenus ce mois',  value: fmtRevXAF(totalRevXAF),              icon: TrendingUp, color: 'text-emerald-400' },
           ].map(kpi => (
@@ -659,11 +659,12 @@ export default function SuperAdminPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
-                { id: 'FREE',    label: 'Free',    count: planCounts.FREE,    color: '#6b7280' },
-                { id: 'STARTER', label: 'Starter', count: planCounts.STARTER, color: PLANS.STARTER.color },
-                { id: 'PRO',     label: 'Pro',     count: planCounts.PRO,     color: PLANS.PRO.color },
+                { id: 'FREE',     label: 'Free',     count: planCounts.FREE,     color: '#6b7280' },
+                { id: 'STARTER',  label: 'Starter',  count: planCounts.STARTER,  color: PLANS.STARTER.color },
+                { id: 'STANDARD', label: 'Standard', count: planCounts.STANDARD, color: PLANS.STANDARD.color },
+                { id: 'PRO',      label: 'Pro',      count: planCounts.PRO,      color: PLANS.PRO.color },
               ].map(p => (
                 <div key={p.id} className="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center">
                   <p className="text-2xl font-bold" style={{ color: p.color }}>{p.count}</p>
@@ -713,7 +714,7 @@ export default function SuperAdminPage() {
                         </p>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        {(['STARTER','PRO'] as const).map(planId => (
+                        {(['STARTER','STANDARD','PRO'] as const).map(planId => (
                           <div key={planId} className="flex items-center">
                             {shop.planId === planId && !expired ? (
                               <span className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg font-medium"

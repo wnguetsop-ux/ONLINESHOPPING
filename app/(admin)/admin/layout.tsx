@@ -1,231 +1,248 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  Home, Package, ShoppingCart, Settings, LogOut, Menu, X,
-  Store, Crown, ExternalLink, Shield, Users, MessageCircle, Wrench, BarChart3
+  BarChart3,
+  Crown,
+  ExternalLink,
+  Home,
+  Inbox,
+  LogOut,
+  Menu,
+  MessageCircle,
+  Package,
+  Settings,
+  ShoppingBag,
+  Store,
+  Users,
+  X,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { useI18n } from '@/hooks/useI18n';
-import { PINManager } from '@/lib/pin';
-import PINSetup from '@/components/PINSetup';
-import PINUnlock from '@/components/PINUnlock';
+
+const BOTTOM_NAV = [
+  { href: '/admin/inbox', icon: Inbox, label: 'Inbox' },
+  { href: '/admin/orders', icon: ShoppingBag, label: 'Commandes' },
+  { href: '/admin/clients', icon: Users, label: 'Clients' },
+  { href: '/admin/products', icon: Package, label: 'Produits' },
+  { href: '/admin/settings', icon: Settings, label: 'Reglages' },
+];
+
+const SIDEBAR_MAIN = [
+  { href: '/admin/dashboard', icon: Home, label: 'Tableau de bord' },
+  { href: '/admin/inbox', icon: Inbox, label: 'Inbox' },
+  { href: '/admin/orders', icon: ShoppingBag, label: 'Commandes' },
+  { href: '/admin/clients', icon: Users, label: 'Clients' },
+  { href: '/admin/products', icon: Package, label: 'Produits' },
+  { href: '/admin/whatsapp', icon: MessageCircle, label: 'WhatsApp' },
+];
+
+const SIDEBAR_TOOLS = [
+  { href: '/admin/stats', icon: BarChart3, label: 'Statistiques' },
+  { href: '/admin/subscription', icon: Crown, label: 'Abonnement' },
+  { href: '/admin/settings', icon: Settings, label: 'Parametres' },
+];
+
+function PlanBadge({ planId }: { planId?: string }) {
+  const classes = {
+    PRO: 'bg-purple-100 text-purple-700 border-purple-200',
+    STANDARD: 'bg-[#E2F7CB] text-[#128C7E] border-[#BBF7D0]',
+    STARTER: 'bg-blue-100 text-blue-700 border-blue-200',
+    FREE: 'bg-slate-100 text-slate-500 border-slate-200',
+  }[planId || 'FREE'] ?? 'bg-slate-100 text-slate-500 border-slate-200';
+
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold ${classes}`}>
+      <Crown className="h-2.5 w-2.5" />
+      {planId || 'FREE'}
+    </span>
+  );
+}
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, admin, shop, loading, logout } = useAuth();
-  const { t } = useI18n();
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [pinState, setPinState] = useState<'none' | 'setup' | 'locked'>('none');
-  const [pinChecked, setPinChecked] = useState(false);
-  const [toolsOpen, setToolsOpen] = useState(false);
-
-  // Menu principal simplifié — 6 items max
-  const navItems = [
-    { label: 'Accueil',    href: '/admin/dashboard', icon: Home },
-    { label: 'Commandes',  href: '/admin/orders',    icon: ShoppingCart },
-    { label: 'Clients',    href: '/admin/clients',   icon: Users },
-    { label: 'Produits',   href: '/admin/products',  icon: Package },
-    { label: 'WhatsApp',   href: '/admin/whatsapp',  icon: MessageCircle },
-    { label: 'Paramètres', href: '/admin/settings',  icon: Settings },
-  ];
-
-  // Outils secondaires dans un sous-menu
-  const toolItems = [
-    { label: 'Statistiques', href: '/admin/stats',        icon: BarChart3 },
-    { label: 'Abonnement',   href: '/admin/subscription', icon: Crown },
-  ];
 
   useEffect(() => {
-    if (!loading && !user) { router.push('/login'); return; }
-    if (!loading && user && !pinChecked) {
-      setPinChecked(true);
-      if (PINManager.hasPin()) {
-        if (!PINManager.isSessionActive()) setPinState('locked');
-      } else {
-        const offerKey = 'sm_pin_offered_' + user.uid;
-        if (!sessionStorage.getItem(offerKey)) {
-          sessionStorage.setItem(offerKey, '1');
-          setPinState('setup');
-        }
-      }
+    if (!loading && !user) {
+      router.push('/login');
     }
-  }, [user, loading, pinChecked]);
+  }, [loading, router, user]);
 
   async function handleLogout() {
-    PINManager.clearSession();
     await logout();
   }
 
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="premium-mesh min-h-screen flex items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-wa border-t-transparent" />
+      </div>
+    );
+  }
+
   if (!user || !shop) return null;
 
-  const primaryColor = shop?.primaryColor || '#ec4899';
-  const allNavItems = [...navItems, ...toolItems];
-  const currentLabel = allNavItems.find(item => pathname === item.href)?.label || 'Admin';
+  const allItems = [...SIDEBAR_MAIN, ...SIDEBAR_TOOLS];
+  const pageLabel = allItems.find((item) => pathname === item.href)?.label || 'Admin';
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {pinState === 'setup' && <PINSetup primaryColor={primaryColor} onDone={() => setPinState('none')} />}
-      {pinState === 'locked' && (
-        <PINUnlock shopName={shop?.name} primaryColor={primaryColor}
-          onUnlocked={() => { PINManager.startSession(); setPinState('none'); }}
-          onSignOut={() => { PINManager.removePin(); handleLogout(); }} />
+    <div className="premium-mesh min-h-screen">
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
       )}
 
-      {sidebarOpen && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />}
-
-      {/* SIDEBAR */}
-      <aside className={`fixed top-0 left-0 z-50 h-full w-64 bg-white border-r border-gray-100 transform transition-transform duration-300 lg:translate-x-0 flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-
-        {/* Logo */}
-        <div className="flex items-center justify-between px-5 border-b border-gray-100"
-          style={{ paddingTop: 'max(1.25rem, calc(env(safe-area-inset-top, 0px) + 0.75rem))', height: 'calc(4rem + env(safe-area-inset-top, 0px))' }}>
+      <aside
+        className={`
+          fixed left-0 top-0 z-50 flex h-full w-64 flex-col border-r border-app-border bg-white/88 shadow-[24px_0_80px_rgba(15,23,42,0.06)] backdrop-blur-2xl
+          transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0
+        `}
+      >
+        <div className="sidebar-logo flex items-center justify-between border-b border-app-border bg-white/45 px-5">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center text-white">
-              <Store className="w-5 h-5" />
+            <div className="premium-icon flex h-9 w-9 items-center justify-center rounded-xl bg-wa text-white shadow-wa">
+              <Store className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <span className="font-bold text-gray-800 text-sm block truncate">ShopMaster</span>
-              <span className="text-[10px] text-orange-500 font-medium">POINT DE VENTE</span>
+              <span className="block truncate text-[13px] font-bold text-slate-800">MasterShopPro</span>
+              <span className="text-[9px] font-bold uppercase tracking-widest text-wa-dark">WhatsApp Back-office</span>
             </div>
           </div>
-          <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-gray-400 p-1"><X className="w-5 h-5" /></button>
+          <button onClick={() => setSidebarOpen(false)} className="btn-icon text-slate-400 hover:bg-slate-100 lg:hidden">
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
-        {/* Boutique */}
-        <div className="p-4 border-b border-gray-100">
-          <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-3">
-            <div className="flex items-center gap-3 mb-2">
-              {shop?.logo
-                ? <img src={shop.logo} alt="" className="w-9 h-9 rounded-lg object-cover" />
-                : <div className="w-9 h-9 rounded-lg bg-orange-500 flex items-center justify-center text-white font-bold text-sm">{shop?.name?.charAt(0) || 'S'}</div>}
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-800 text-sm truncate">{shop?.name}</p>
-                <p className="text-xs text-gray-500 truncate">/{shop?.slug}</p>
+        <div className="border-b border-app-border p-4">
+          <div className="premium-glow rounded-2xl border border-wa-border bg-wa-soft/90 p-3 shadow-[0_18px_45px_rgba(31,185,85,0.10)]">
+            <div className="mb-2.5 flex items-center gap-3">
+              {shop.logo ? (
+                <img src={shop.logo} alt="" className="h-9 w-9 rounded-xl object-cover" />
+              ) : (
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-wa text-sm font-bold text-white">
+                  {shop.name?.charAt(0) || 'S'}
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-slate-800">{shop.name}</p>
+                <p className="truncate text-xs text-slate-500">/{shop.slug}</p>
               </div>
             </div>
-            <Link href={`/${shop?.slug}`} target="_blank"
-              className="flex items-center justify-center gap-1.5 w-full py-1.5 text-xs font-medium text-orange-600 bg-white rounded-lg hover:bg-orange-50 transition-colors">
-              <ExternalLink className="w-3 h-3" />Voir ma boutique
+            <Link
+              href={`/${shop.slug}`}
+              target="_blank"
+              className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-wa-border bg-white py-1.5 text-xs font-semibold text-wa-dark transition-colors hover:bg-white/80"
+            >
+              <ExternalLink className="h-3 w-3" />
+              Voir le lien client
             </Link>
           </div>
         </div>
 
-        {/* Navigation principale */}
-        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-          {navItems.map(item => {
-            const isActive = pathname === item.href;
+        <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+          {SIDEBAR_MAIN.map((item) => {
+            const active = pathname === item.href;
             return (
-              <Link key={item.href} href={item.href} onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${isActive ? 'text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}
-                style={isActive ? { backgroundColor: primaryColor } : {}}>
-                <item.icon className="w-4.5 h-4.5 w-5 h-5 flex-shrink-0" />
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setSidebarOpen(false)}
+                className={active ? 'sidebar-link-active' : 'sidebar-link'}
+              >
+                <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
                 {item.label}
-                {item.href === '/admin/whatsapp' && !isActive && (
-                  <span className="ml-auto text-[9px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">NEW</span>
+                {item.href === '/admin/whatsapp' && !active && (
+                  <span className="ml-auto rounded-full bg-wa px-1.5 py-0.5 text-[9px] font-bold text-white">
+                    IA
+                  </span>
                 )}
               </Link>
             );
           })}
 
-          {/* Séparateur + Outils */}
-          <div className="pt-2 mt-2 border-t border-gray-100">
-            <button onClick={() => setToolsOpen(!toolsOpen)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 transition-all">
-              <Wrench className="w-5 h-5 flex-shrink-0" />
-              Outils
-              <span className={`ml-auto text-gray-400 transition-transform text-xs ${toolsOpen ? 'rotate-180' : ''}`}>▼</span>
-            </button>
-            {toolsOpen && (
-              <div className="ml-4 space-y-0.5 mt-0.5">
-                {toolItems.map(item => {
-                  const isActive = pathname === item.href;
-                  return (
-                    <Link key={item.href} href={item.href} onClick={() => setSidebarOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all ${isActive ? 'text-white' : 'text-gray-500 hover:bg-gray-50'}`}
-                      style={isActive ? { backgroundColor: primaryColor } : {}}>
-                      <item.icon className="w-4 h-4 flex-shrink-0" />
-                      {item.label}
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
+          <div className="mt-1 space-y-0.5 border-t border-app-border pt-2">
+            <p className="px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">Outils</p>
+            {SIDEBAR_TOOLS.map((item) => {
+              const active = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setSidebarOpen(false)}
+                  className={active ? 'sidebar-link-active' : 'sidebar-link'}
+                >
+                  <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
+                  {item.label}
+                </Link>
+              );
+            })}
           </div>
         </nav>
 
-        {/* Footer */}
-        <div className="p-3 border-t border-gray-100"
-          style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))' }}>
-          <div className="flex items-center gap-3 mb-2 px-2">
-            <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-semibold text-sm">
+        <div className="border-t border-app-border bg-white/45 p-3" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))' }}>
+          <div className="mb-3 flex items-center gap-2.5 px-2">
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-wa-border bg-wa-soft text-sm font-bold text-wa-dark">
               {admin?.name?.charAt(0) || 'A'}
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-gray-800 text-xs truncate">{admin?.name || 'Admin'}</p>
-              <p className="text-[10px] text-gray-400 truncate">{admin?.email}</p>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-semibold text-slate-800">{admin?.name || 'Admin'}</p>
+              <PlanBadge planId={shop.planId} />
             </div>
           </div>
-          <button onClick={() => setPinState('setup')}
-            className="w-full flex items-center justify-center gap-2 py-2 text-xs font-medium text-gray-500 hover:bg-gray-50 rounded-lg mb-1">
-            <Shield className="w-3.5 h-3.5" style={{ color: primaryColor }} />
-            {PINManager.hasPin() ? 'Modifier le PIN' : 'Créer un PIN'}
-          </button>
-          <button onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg text-xs font-medium">
-            <LogOut className="w-3.5 h-3.5" />Déconnexion
+          <button
+            onClick={() => void handleLogout()}
+            className="sidebar-link w-full text-xs text-red-500 hover:bg-red-50"
+          >
+            <LogOut className="h-4 w-4" />
+            Deconnexion
           </button>
         </div>
       </aside>
 
-      {/* MAIN */}
       <div className="lg:pl-64">
-        <header className="bg-white border-b border-gray-100 flex items-center px-4 lg:px-6 sticky top-0 z-30"
-          style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0px))', height: 'calc(4rem + env(safe-area-inset-top, 0px))' }}>
-          <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-gray-600 mr-4 p-2 hover:bg-gray-100 rounded-lg">
-            <Menu className="w-6 h-6" />
+        <header className="admin-header sticky top-0 z-30 flex items-center border-b border-app-border bg-white/82 px-4 shadow-[0_16px_50px_rgba(15,23,42,0.04)] backdrop-blur-2xl lg:px-6">
+          <button onClick={() => setSidebarOpen(true)} className="btn-icon mr-2 text-slate-600 hover:bg-slate-100 lg:hidden">
+            <Menu className="h-5 w-5" />
           </button>
-          <h1 className="text-lg font-semibold text-gray-800">{currentLabel}</h1>
-          <div className="ml-auto flex items-center gap-2">
-            <span className={`badge ${shop?.planId === 'PRO' ? 'bg-purple-100 text-purple-700' : shop?.planId === 'STARTER' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
-              <Crown className="w-3 h-3 mr-1" />{shop?.planId || 'FREE'}
-            </span>
+          <h1 className="text-base font-bold text-slate-800">{pageLabel}</h1>
+          <div className="ml-auto flex items-center gap-3">
+            <PlanBadge planId={shop.planId} />
+            <div className="hidden items-center gap-1.5 rounded-full border border-wa-border bg-wa-soft px-2.5 py-1 text-[11px] font-semibold text-wa-dark sm:flex">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-wa opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-wa" />
+              </span>
+              Connecte
+            </div>
           </div>
         </header>
-        <main className="p-4 lg:p-6">{children}</main>
+
+        <main className="page-enter mb-bar-safe p-4 lg:mb-0 lg:p-6">{children}</main>
       </div>
 
-      {/* BOTTOM NAV MOBILE */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-30 flex"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-        {[
-          { href: '/admin/dashboard', icon: Home,          label: 'Accueil' },
-          { href: '/admin/orders',    icon: ShoppingCart,  label: 'Commandes' },
-          { href: '/admin/clients',   icon: Users,         label: 'Clients' },
-          { href: '/admin/products',  icon: Package,       label: 'Produits' },
-          { href: '/admin/settings',  icon: Settings,      label: 'Réglages' },
-        ].map(item => {
-          const isActive = pathname === item.href;
+      <nav className="bottom-nav fixed bottom-0 left-0 right-0 z-30 flex border-t border-app-border bg-white/90 shadow-[0_-18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl lg:hidden">
+        {BOTTOM_NAV.map((item) => {
+          const active = pathname === item.href;
           return (
-            <Link key={item.href} href={item.href}
-              className="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 transition-colors"
-              style={isActive ? { color: primaryColor } : { color: '#9ca3af' }}>
-              <item.icon className="w-5 h-5" />
-              <span className="text-[10px] font-semibold">{item.label}</span>
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-2 transition-colors ${
+                active ? 'text-wa-dark' : 'text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              <item.icon className={`h-5 w-5 ${active ? 'stroke-[2.5]' : ''}`} />
+              <span className={`text-[9px] ${active ? 'font-bold' : 'font-medium'}`}>{item.label}</span>
+              {active && <span className="mt-0.5 h-1 w-1 rounded-full bg-wa" />}
             </Link>
           );
         })}
       </nav>
-
-      {/* Padding bottom pour la bottom nav sur mobile */}
-      <div className="lg:hidden h-16" />
     </div>
   );
 }

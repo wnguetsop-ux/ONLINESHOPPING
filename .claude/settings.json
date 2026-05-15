@@ -1,0 +1,19 @@
+{
+  "project": "MasterShopPro",
+  "primaryWorkspace": "C:/Users/Utente/Desktop/TEST VENTE/shopmaster-v2",
+  "instructionFiles": [
+    "CLAUDE.md"
+  ],
+  "preferredSkills": [
+    ".claude/skills/mastershop-product/SKILL.md",
+    ".claude/skills/mastershop-design/SKILL.md",
+    ".claude/skills/mastershop-ux/SKILL.md",
+    ".claude/skills/mastershop-safety/SKILL.md",
+    ".claude/skills/aidesigner-frontend/SKILL.md"
+  ],
+  "notes": {
+    "productPromise": "Vous vendez sur WhatsApp. MasterShopPro organise le reste.",
+    "designRule": "Improve before removing",
+    "outboundPolicy": "No automatic WhatsApp sending by default"
+  }
+}

@@ -18,7 +18,7 @@ export default function StatsPage() {
   const chartsInit    = useRef(false);
   const chartInstances = useRef<any[]>([]);
 
-  const primaryColor = shop?.primaryColor || '#ec4899';
+  const primaryColor = '#25D366';
 
   useEffect(() => {
     if (!shop?.id) return;

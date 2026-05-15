@@ -20,14 +20,14 @@ const APP_VERSION = '2.0.0';
 const APP_BUILD   = '2026.02';
 const WHATSAPP_SUPPORT = '393299639430';
 const EMAIL_SUPPORT    = 'wnguetsop@gmail.com';
-const WEBSITE_URL      = 'https://shopmaster.app';
+const WEBSITE_URL      = 'https://www.mastershoppro.com';
 const CHANGELOG = [
-  { version: '2.0.0', date: 'Fev 2026', highlights: ['Acces PIN rapide', 'Scanner code-barres USB/camera', 'Connexion Google', 'Analyse produit par IA (Gemini + GPT-4o)', 'Numero de telephone international', 'Commandes manuelles avec selection produit', 'Mobile Money + Stripe', 'Archives commandes par date'] },
+  { version: '2.0.0', date: 'Fev 2026', highlights: ['Scanner code-barres USB/camera', 'Connexion Google', 'Analyse produit par IA (Gemini + GPT-4o)', 'Numero de telephone international', 'Commandes manuelles avec selection produit', 'Mobile Money + Stripe', 'Archives commandes par date'] },
   { version: '1.5.0', date: 'Jan 2026', highlights: ['Photo produit avec recadrage', 'Recus imprimables thermiques', 'Logo boutique', 'Commandes manuelles', 'SuperAdmin panel'] },
   { version: '1.0.0', date: 'Dec 2025', highlights: ['Lancement initial', 'Gestion produits & commandes', 'Boutique en ligne publique', '21 pays africains', 'Livraison & retrait'] },
 ];
 
-const COLORS = ['#ec4899','#f43f5e','#f97316','#eab308','#22c55e','#14b8a6','#3b82f6','#8b5cf6','#a855f7','#64748b'];
+const COLORS = ['#25D366','#f43f5e','#f97316','#eab308','#22c55e','#14b8a6','#3b82f6','#8b5cf6','#a855f7','#64748b'];
 const CURRENCIES = [
   { code: 'XAF', label: 'Franc CFA CEMAC (XAF) - Cameroun, Gabon, Congo...' },
   { code: 'XOF', label: 'Franc CFA UEMOA (XOF) - Cote d\'Ivoire, Senegal, Mali...' },
@@ -56,6 +56,26 @@ const TEMPLATE_META: Record<string, { label: string; emoji: string; vars: string
   payment_reminder: { label: 'Rappel paiement',    emoji: '💰', vars: ['{{nom}}', '{{reference}}', '{{reste}}', '{{boutique}}'] },
   order_ready:      { label: 'Commande prête',      emoji: '📦', vars: ['{{nom}}', '{{reference}}', '{{boutique}}'] },
   send_receipt:     { label: 'Envoi reçu',          emoji: '🧾', vars: ['{{nom}}', '{{reference}}', '{{total}}', '{{boutique}}'] },
+};
+
+const REAL_TEMPLATES = {
+  contact: 'Bonjour {{nom}}, ici {{boutique}}. Je reviens vers vous au sujet de votre demande.',
+  confirm_order:
+    'Bonjour {{nom}},\n\nVotre commande *#{{reference}}* est bien confirmee.\nTotal : *{{total}}*\n\nMerci.\n{{boutique}}',
+  payment_reminder:
+    'Bonjour {{nom}},\n\nPetit rappel pour la commande *#{{reference}}*.\nReste a payer : *{{reste}}*\n\nMerci.\n{{boutique}}',
+  order_ready:
+    'Bonjour {{nom}},\n\nVotre commande *#{{reference}}* est prete.\nVous pouvez passer la recuperer.\n\n{{boutique}}',
+  send_receipt:
+    'Bonjour {{nom}},\n\nVoici le recapitulatif de la commande *#{{reference}}*.\nTotal : *{{total}}*\nReste : *{{reste}}*\n\n{{boutique}}',
+};
+
+const REAL_TEMPLATE_META: Record<string, { label: string; emoji: string; vars: string[] }> = {
+  contact: { label: 'Contact simple', emoji: '💬', vars: ['{{nom}}', '{{boutique}}'] },
+  confirm_order: { label: 'Confirmation commande', emoji: '✅', vars: ['{{nom}}', '{{reference}}', '{{total}}', '{{boutique}}'] },
+  payment_reminder: { label: 'Rappel paiement', emoji: '💰', vars: ['{{nom}}', '{{reference}}', '{{reste}}', '{{boutique}}'] },
+  order_ready: { label: 'Commande prete', emoji: '📦', vars: ['{{nom}}', '{{reference}}', '{{boutique}}'] },
+  send_receipt: { label: 'Envoi recu', emoji: '🧾', vars: ['{{nom}}', '{{reference}}', '{{total}}', '{{reste}}', '{{boutique}}'] },
 };
 
 const STORAGE_KEY = 'sm_wa_templates';
@@ -99,6 +119,7 @@ export default function SettingsPage() {
   const { shop, admin, refreshShop, logout } = useAuth();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState('');
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -108,24 +129,45 @@ export default function SettingsPage() {
   const [updateStatus, setUpdateStatus] = useState<'idle'|'checking'|'latest'|'available'>('idle');
 
   // ── TEMPLATES STATE ──────────────────────────────────────────────────────
-  const [templates, setTemplates] = useState<Record<string, string>>(DEFAULT_TEMPLATES);
+  const [templates, setTemplates] = useState<Record<string, string>>(REAL_TEMPLATES);
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
   const [templateDraft, setTemplateDraft] = useState('');
   const [templatesSaved, setTemplatesSaved] = useState(false);
+  const [templateSaving, setTemplateSaving] = useState(false);
+  const [templateError, setTemplateError] = useState('');
 
-  // Charger les templates depuis localStorage
+  // Charger les templates depuis Firestore ou le cache local
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) setTemplates({ ...DEFAULT_TEMPLATES, ...JSON.parse(saved) });
+      const parsed = saved ? JSON.parse(saved) : {};
+      setTemplates({
+        ...REAL_TEMPLATES,
+        ...parsed,
+        ...(shop?.whatsappTemplates || {}),
+      });
     } catch {}
-  }, []);
+  }, [shop?.id, shop?.updatedAt, shop?.whatsappTemplates]);
 
-  function saveTemplates(updated: Record<string, string>) {
-    setTemplates(updated);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    setTemplatesSaved(true);
-    setTimeout(() => setTemplatesSaved(false), 2500);
+  async function persistTemplates(updated: Record<string, string>) {
+    setTemplateSaving(true);
+    setTemplateError('');
+
+    try {
+      setTemplates(updated);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+
+      if (shop?.id) {
+        await updateShop(shop.id, { whatsappTemplates: updated } as any);
+      }
+
+      setTemplatesSaved(true);
+      setTimeout(() => setTemplatesSaved(false), 2500);
+    } catch (error) {
+      setTemplateError(error instanceof Error ? error.message : 'Impossible de sauvegarder les templates.');
+    } finally {
+      setTemplateSaving(false);
+    }
   }
 
   function startEdit(key: string) {
@@ -133,20 +175,20 @@ export default function SettingsPage() {
     setTemplateDraft(templates[key]);
   }
 
-  function saveTemplate(key: string) {
+  async function saveTemplate(key: string) {
     const updated = { ...templates, [key]: templateDraft };
-    saveTemplates(updated);
+    await persistTemplates(updated);
     setEditingTemplate(null);
   }
 
-  function resetTemplate(key: string) {
-    const updated = { ...templates, [key]: DEFAULT_TEMPLATES[key as keyof typeof DEFAULT_TEMPLATES] };
-    saveTemplates(updated);
+  async function resetTemplate(key: string) {
+    const updated = { ...templates, [key]: REAL_TEMPLATES[key as keyof typeof REAL_TEMPLATES] };
+    await persistTemplates(updated);
     setEditingTemplate(null);
   }
 
   const [form, setForm] = useState({
-    name: '', description: '', slogan: '', primaryColor: '#ec4899',
+    name: '', description: '', slogan: '', primaryColor: '#25D366',
     whatsapp: '', phone: '', email: '', address: '', city: '',
     country: 'Cameroun', currency: 'XAF',
     deliveryFee: 1000, freeDeliveryAbove: 0,
@@ -158,7 +200,7 @@ export default function SettingsPage() {
     if (shop) {
       setForm({
         name: shop.name || '', description: shop.description || '',
-        slogan: shop.slogan || '', primaryColor: shop.primaryColor || '#ec4899',
+        slogan: shop.slogan || '', primaryColor: shop.primaryColor || '#25D366',
         whatsapp: shop.whatsapp || '', phone: shop.phone || '',
         email: shop.email || '', address: shop.address || '',
         city: shop.city || '', country: shop.country || 'Cameroun',
@@ -213,14 +255,18 @@ export default function SettingsPage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault(); if (!shop?.id) return;
     setSaving(true);
+    setSaveError('');
     try {
       let logo = form.logo;
       if (logoFile) logo = await uploadLogo();
-      await updateShop(shop.id, { ...form, logo } as any);
+      await updateShop(shop.id, { ...form, logo, whatsappTemplates: templates } as any);
       await refreshShop();
       setSaved(true); setTimeout(() => setSaved(false), 3000);
-    } catch { alert('Erreur lors de la sauvegarde'); }
-    setSaving(false);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Erreur lors de la sauvegarde');
+    } finally {
+      setSaving(false);
+    }
   }
 
   function copyToClipboard(text: string, key: string) {
@@ -230,7 +276,7 @@ export default function SettingsPage() {
 
   async function shareApp() {
     const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/${shop?.slug}`;
-    const msg = ` Decouvrez ma boutique *${shop?.name}* sur ShopMaster !\n\nCommandez en ligne ici : ${url}`;
+    const msg = ` Decouvrez ma boutique *${shop?.name}* sur MasterShopPro !\n\nCommandez en ligne ici : ${url}`;
     if (typeof navigator !== 'undefined' && navigator.share) {
       try { await navigator.share({ title: shop?.name, text: msg, url }); } catch {}
     } else { copyToClipboard(url, 'share'); }
@@ -247,13 +293,13 @@ export default function SettingsPage() {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url;
-    a.download = `shopmaster-${shop.slug}-${new Date().toISOString().slice(0,10)}.json`;
+    a.download = `mastershoppro-${shop.slug}-${new Date().toISOString().slice(0,10)}.json`;
     a.click(); URL.revokeObjectURL(url);
   }
 
   const primaryColor = form.primaryColor;
   const currentCountry = AFRICAN_COUNTRIES.find(c => c.name === form.country);
-  const shopUrl = typeof window !== 'undefined' ? `${window.location.origin}/${shop?.slug}` : `https://shopmaster.app/${shop?.slug}`;
+  const shopUrl = typeof window !== 'undefined' ? `${window.location.origin}/${shop?.slug}` : `https://www.mastershoppro.com/${shop?.slug}`;
   const currentPlan = PLANS[shop?.planId || 'FREE'];
 
   return (
@@ -327,14 +373,14 @@ export default function SettingsPage() {
       <Section icon={MapPin} title="Contact & Localisation" color={primaryColor}>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Pays *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Pays de la boutique *</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xl">{currentCountry?.flag || ''}</span>
               <select value={form.country} onChange={e => handleCountryChange(e.target.value)} className="select pl-10">
                 {AFRICAN_COUNTRIES.map(c => <option key={c.code} value={c.name}>{c.flag} {c.name}</option>)}
               </select>
             </div>
-            {currentCountry && <p className="text-xs text-gray-400 mt-1">Indicatif: {currentCountry.phone}  Devise: {currentCountry.currency}</p>}
+            {currentCountry && <p className="text-xs text-gray-400 mt-1">Indicatif: {currentCountry.phone}  Devise: {currentCountry.currency}  Afrique et diaspora incluses.</p>}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <PhoneInput label="WhatsApp *" required value={form.whatsapp} onChange={v => setForm({ ...form, whatsapp: v })} defaultCountry={currentCountry?.code || 'CM'} />
@@ -409,7 +455,8 @@ export default function SettingsPage() {
       {/* Save button */}
       <div className="flex justify-end gap-4">
         {saved && <span className="flex items-center gap-2 text-emerald-600 font-medium text-sm"><Check className="w-5 h-5" />Sauvegarde !</span>}
-        <button type="submit" form="main-form" onClick={handleSave} disabled={saving || uploadingLogo}
+        {saveError && <span className="flex items-center gap-2 text-red-600 font-medium text-sm max-w-xs text-right"><AlertCircle className="w-4 h-4" />{saveError}</span>}
+        <button type="submit" form="main-form" disabled={saving || uploadingLogo}
           className="btn-primary flex items-center gap-2 px-8" style={{ backgroundColor: primaryColor }}>
           {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
           {saving ? 'Sauvegarde...' : 'Sauvegarder'}
@@ -429,7 +476,7 @@ export default function SettingsPage() {
             <p className="mt-1.5 text-green-600">Ces variables sont remplacées automatiquement par les vraies valeurs lors de l'envoi.</p>
           </div>
 
-          {Object.entries(TEMPLATE_META).map(([key, meta]) => (
+          {Object.entries(REAL_TEMPLATE_META).map(([key, meta]) => (
             <div key={key} className="border border-gray-100 rounded-xl overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3 bg-gray-50">
                 <div className="flex items-center gap-2">
@@ -443,7 +490,7 @@ export default function SettingsPage() {
                         className="flex items-center gap-1 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-100 transition-colors">
                         <Edit3 className="w-3 h-3" />Modifier
                       </button>
-                      <button onClick={() => resetTemplate(key)}
+                      <button onClick={() => void resetTemplate(key)}
                         className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-400 hover:bg-gray-100 transition-colors">
                         Reset
                       </button>
@@ -465,8 +512,9 @@ export default function SettingsPage() {
                       className="px-4 py-2 border border-gray-200 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-50">
                       Annuler
                     </button>
-                    <button onClick={() => saveTemplate(key)}
-                      className="px-4 py-2 rounded-xl text-xs font-semibold text-white hover:opacity-90"
+                    <button onClick={() => void saveTemplate(key)}
+                      disabled={templateSaving}
+                      className="px-4 py-2 rounded-xl text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60"
                       style={{ backgroundColor: '#25D366' }}>
                       <Check className="w-3.5 h-3.5 inline mr-1" />Sauvegarder
                     </button>
@@ -486,7 +534,18 @@ export default function SettingsPage() {
             </div>
           )}
 
+          {templateError && (
+            <div className="flex items-center gap-2 text-red-600 text-sm font-medium">
+              <AlertCircle className="w-4 h-4" />{templateError}
+            </div>
+          )}
+
           <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700">
+            <p className="font-bold mb-1">Note utile</p>
+            <p>Les templates sont enregistres pour la boutique et reutilises dans les actions WhatsApp.</p>
+          </div>
+
+          <div className="hidden bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700">
             <p className="font-bold mb-1">💡 Note</p>
             <p>Les templates sont sauvegardés sur cet appareil. Ils seront utilisés automatiquement dans les pages Commandes et Clients.</p>
           </div>
@@ -508,7 +567,7 @@ export default function SettingsPage() {
           <div className="grid grid-cols-2 gap-2 mt-3">
             <ActionRow icon={Share2} label="Partager le lien" sub="Via les apps installees" color="#f97316" onClick={shareApp} />
             <ActionRow icon={MessageCircle} label="Partager sur WhatsApp" color="#25D366"
-              href={`https://wa.me/?text=${encodeURIComponent(` Decouvrez *${shop?.name}* sur ShopMaster !\n${shopUrl}`)}`} external />
+              href={`https://wa.me/?text=${encodeURIComponent(` Decouvrez *${shop?.name}* sur MasterShopPro !\n${shopUrl}`)}`} external />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <ActionRow icon={Smartphone} label="Installer l'app" sub="Ajouter a l'ecran d'accueil" color="#3b82f6"
@@ -560,7 +619,7 @@ export default function SettingsPage() {
         <div className="space-y-1">
           <ActionRow icon={Download} label="Exporter mes donnees" sub="Telecharger un fichier JSON" color="#8b5cf6" onClick={downloadData} />
           <ActionRow icon={Mail} label="Demander la suppression du compte" sub="Envoi d'une demande par email" color="#ef4444"
-            href={`mailto:${EMAIL_SUPPORT}?subject=Suppression compte ShopMaster&body=Boutique: ${shop?.name}%0AEmail: ${admin?.email}`} external danger />
+            href={`mailto:${EMAIL_SUPPORT}?subject=Suppression compte MasterShopPro&body=Boutique: ${shop?.name}%0AEmail: ${admin?.email}`} external danger />
         </div>
       </Section>
 
@@ -568,9 +627,9 @@ export default function SettingsPage() {
       <Section icon={HelpCircle} title="Aide & Support" color="#22c55e">
         <div className="space-y-1">
           <ActionRow icon={MessageCircle} label="Contacter le support" sub="Reponse en moins de 24h" color="#25D366"
-            href={`https://wa.me/${WHATSAPP_SUPPORT}?text=${encodeURIComponent(`Bonjour ShopMaster Support!\n\nBoutique: ${shop?.name}\nSlug: ${shop?.slug}\n\nMon probleme: `)}`} external />
+            href={`https://wa.me/${WHATSAPP_SUPPORT}?text=${encodeURIComponent(`Bonjour MasterShopPro Support!\n\nBoutique: ${shop?.name}\nSlug: ${shop?.slug}\n\nMon probleme: `)}`} external />
           <ActionRow icon={Mail} label="Envoyer un email" sub={EMAIL_SUPPORT} color="#3b82f6"
-            href={`mailto:${EMAIL_SUPPORT}?subject=Support ShopMaster - ${shop?.name}`} external />
+            href={`mailto:${EMAIL_SUPPORT}?subject=Support MasterShopPro - ${shop?.name}`} external />
           <div className="mt-3 border border-gray-100 rounded-2xl overflow-hidden">
             <p className="text-xs font-bold text-gray-500 px-4 pt-3 pb-2 bg-gray-50 uppercase tracking-wider">Questions frequentes</p>
             {[
@@ -647,7 +706,7 @@ export default function SettingsPage() {
                 <FileText className="w-5 h-5 text-amber-600" />
               </div>
               <div>
-                <p className="font-bold text-amber-800">ShopMaster Licence Commerciale</p>
+              <p className="font-bold text-amber-800">MasterShopPro Licence Commerciale</p>
                 <p className="text-xs text-amber-600 mt-0.5">Plan: <strong>{currentPlan.name}</strong>  Boutique: <strong>{shop?.slug}</strong></p>
                 {shop?.planExpiry && (
                   <p className="text-xs text-amber-500 mt-0.5">
@@ -659,12 +718,12 @@ export default function SettingsPage() {
           </div>
           <div className="space-y-1">
             <ActionRow icon={ExternalLink} label="Voir les CGU completes" color="#f59e0b"
-              href={`https://wa.me/${WHATSAPP_SUPPORT}?text=${encodeURIComponent('Bonjour, je souhaite recevoir les CGU completes de ShopMaster.')}`} external />
+              href={`https://wa.me/${WHATSAPP_SUPPORT}?text=${encodeURIComponent('Bonjour, je souhaite recevoir les CGU completes de MasterShopPro.')}`} external />
             <ActionRow icon={Mail} label="Licence & facturation" sub="Pour toute question sur votre abonnement" color="#f97316"
-              href={`mailto:${EMAIL_SUPPORT}?subject=Licence ShopMaster - ${shop?.slug}`} external />
+              href={`mailto:${EMAIL_SUPPORT}?subject=Licence MasterShopPro - ${shop?.slug}`} external />
           </div>
           <div className="text-xs text-gray-400 px-2 leading-relaxed">
-            ShopMaster utilise des librairies open-source : React, Next.js, Firebase, Tailwind CSS, Lucide Icons.
+            MasterShopPro utilise des librairies open-source : React, Next.js, Firebase, Tailwind CSS, Lucide Icons.
           </div>
         </div>
       </Section>
@@ -676,7 +735,7 @@ export default function SettingsPage() {
             {[
               { label: 'Donnees chiffrees', status: true, desc: 'Firebase SSL/TLS' },
               { label: 'Auth securisee', status: true, desc: 'Firebase Auth' },
-              { label: 'Acces PIN', status: false, desc: 'Configurable dans sidebar' },
+              { label: 'Acces direct', status: true, desc: 'Connexion classique sans code supplementaire' },
               { label: 'Sauvegarde auto', status: true, desc: 'Firestore en temps reel' },
             ].map(item => (
               <div key={item.label} className={`rounded-xl p-3 border ${item.status ? 'border-emerald-100 bg-emerald-50' : 'border-amber-100 bg-amber-50'}`}>
@@ -690,7 +749,7 @@ export default function SettingsPage() {
           </div>
           <div className="space-y-1">
             <ActionRow icon={Shield} label="Politique de confidentialite" color="#6366f1"
-              href={`https://wa.me/${WHATSAPP_SUPPORT}?text=${encodeURIComponent('Bonjour, je souhaite consulter la politique de confidentialite de ShopMaster.')}`} external />
+              href={`https://wa.me/${WHATSAPP_SUPPORT}?text=${encodeURIComponent('Bonjour, je souhaite consulter la politique de confidentialite de MasterShopPro.')}`} external />
             <ActionRow icon={Lock} label="Modifier mon mot de passe" sub="Reinitialisation par email" color="#8b5cf6"
               href={`mailto:${EMAIL_SUPPORT}?subject=Reinitialisation mot de passe&body=Email: ${admin?.email}`} external />
           </div>
@@ -702,8 +761,8 @@ export default function SettingsPage() {
       </Section>
 
       <div className="text-center py-4 space-y-1">
-        <p className="text-xs text-gray-400 font-medium">ShopMaster v{APP_VERSION}  Build {APP_BUILD}</p>
-        <p className="text-xs text-gray-300"> 2025-2026 ShopMaster. Tous droits reserves.</p>
+        <p className="text-xs text-gray-400 font-medium">MasterShopPro v{APP_VERSION}  Build {APP_BUILD}</p>
+        <p className="text-xs text-gray-300"> 2025-2026 MasterShopPro. Tous droits reserves.</p>
         <p className="text-xs text-gray-300">Fait avec  pour les commercants africains</p>
       </div>
     </div>

@@ -1,7 +1,7 @@
 {
-  "name": "Mastershop — Gestion de boutique",
-  "short_name": "Mastershop",
-  "description": "Gérez vos ventes, stock et bénéfices en FCFA depuis votre téléphone. Fonctionne sans internet.",
+  "name": "MasterShopPro - Gestion WhatsApp",
+  "short_name": "MasterShopPro",
+  "description": "Organisez vos commandes, vos produits et votre boutique partageable depuis votre telephone Android.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -71,21 +71,21 @@
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Mastershop Dashboard"
+      "label": "MasterShopPro Dashboard"
     },
     {
       "src": "/icons/screenshot-mobile.png",
       "sizes": "750x1334",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Mastershop Mobile"
+      "label": "MasterShopPro Mobile"
     }
   ],
   "shortcuts": [
     {
       "name": "Tableau de bord",
       "short_name": "Dashboard",
-      "description": "Accéder au tableau de bord",
+      "description": "Acceder au tableau de bord",
       "url": "/admin/dashboard",
       "icons": [
         {
@@ -97,7 +97,7 @@
     {
       "name": "Produits",
       "short_name": "Produits",
-      "description": "Gérer les produits",
+      "description": "Gerer les produits",
       "url": "/admin/products",
       "icons": [
         {

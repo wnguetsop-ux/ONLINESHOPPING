@@ -5,21 +5,21 @@ import './globals.css';
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  weight: ['400', '600', '700', '800'],
+  weight: ['400', '500', '600', '700', '800'],
   display: 'swap',
   variable: '--font-jakarta',
 });
 
 export const metadata: Metadata = {
-  title: 'Mastershop - Gerez vos ventes et benefices en FCFA depuis votre telephone',
-  description: 'Application de gestion de boutique pour commercants africains.',
+  title: 'MasterShopPro - Commandes, clients et boutique WhatsApp',
+  description: 'Application Android pour organiser vos ventes WhatsApp, vos produits et votre boutique partageable.',
   manifest: '/manifest.json',
-  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'Mastershop' },
+  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'MasterShopPro' },
   openGraph: {
-    title: 'Mastershop - Gerez votre boutique depuis votre telephone',
-    description: 'Ventes, stock, recus, benefices en FCFA - tout depuis votre telephone Android.',
+    title: 'MasterShopPro - Commandes, clients et boutique WhatsApp',
+    description: 'Une app Android pour organiser vos ventes WhatsApp, vos produits et votre boutique en ligne.',
     url: 'https://www.mastershoppro.com',
-    siteName: 'Mastershop',
+    siteName: 'MasterShopPro',
     locale: 'fr_FR',
     type: 'website',
     images: [{ url: 'https://www.mastershoppro.com/icons/og-image.png', width: 1200, height: 630 }],
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#16a34a',
+  themeColor: '#25D366',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
@@ -44,10 +44,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="Mastershop" />
+        <meta name="apple-mobile-web-app-title" content="MasterShopPro" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="format-detection" content="telephone=no" />
-        <meta name="facebook-domain-verification" content="REMPLACE_PAR_TON_CODE_FACEBOOK" />
         <script
           id="meta-pixel"
           dangerouslySetInnerHTML={{ __html: `

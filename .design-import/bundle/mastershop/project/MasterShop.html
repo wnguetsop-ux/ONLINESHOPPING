@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>MasterShop — SaaS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  /*EDITMODE-BEGIN*/
+  /* placeholder block to keep marker present */
+  /*EDITMODE-END*/
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#0a0a10;color:#e9e9ee;font-family:"Geist","Inter",system-ui,sans-serif;-webkit-font-smoothing:antialiased;font-feature-settings:"ss01","cv11";}
+  :root{
+    --bg-0:#08080d;
+    --bg-1:#0d0d14;
+    --bg-2:#13131c;
+    --bg-3:#1a1a26;
+    --line:rgba(255,255,255,0.06);
+    --line-2:rgba(255,255,255,0.10);
+    --line-3:rgba(255,255,255,0.16);
+    --text:#ececf1;
+    --text-2:#a8a8b3;
+    --text-3:#6b6b78;
+    --text-4:#42424e;
+    --accent:#a78bfa; /* violet 400 */
+    --accent-2:#7c3aed; /* violet 600 */
+    --accent-3:#6366f1; /* indigo 500 */
+    --accent-glow:rgba(167,139,250,0.35);
+    --success:#34d399;
+    --warn:#fbbf24;
+    --danger:#fb7185;
+    --info:#60a5fa;
+    --radius:14px;
+    --radius-sm:10px;
+    --radius-lg:20px;
+    --shadow-1:0 1px 0 rgba(255,255,255,0.04) inset, 0 1px 2px rgba(0,0,0,0.4);
+    --shadow-2:0 24px 60px -20px rgba(0,0,0,0.6), 0 8px 20px -8px rgba(0,0,0,0.5);
+    --shadow-glow:0 0 0 1px rgba(167,139,250,0.30), 0 12px 40px -8px rgba(124,58,237,0.45);
+  }
+  body[data-theme="emerald"]{
+    --accent:#6ee7b7;--accent-2:#10b981;--accent-3:#0ea5a4;
+    --accent-glow:rgba(110,231,183,0.30);
+    --shadow-glow:0 0 0 1px rgba(110,231,183,0.30), 0 12px 40px -8px rgba(16,185,129,0.45);
+  }
+  body[data-theme="sunset"]{
+    --accent:#fdba74;--accent-2:#f97316;--accent-3:#ef4444;
+    --accent-glow:rgba(253,186,116,0.30);
+    --shadow-glow:0 0 0 1px rgba(253,186,116,0.30), 0 12px 40px -8px rgba(249,115,22,0.45);
+  }
+  body[data-density="compact"]{
+    --pad-1:10px;--pad-2:14px;--pad-3:18px;
+  }
+  body[data-density="comfortable"]{
+    --pad-1:14px;--pad-2:20px;--pad-3:28px;
+  }
+  body{ --pad-1:12px;--pad-2:16px;--pad-3:22px;}
+
+  /* type */
+  h1,h2,h3,h4{margin:0;letter-spacing:-0.02em;font-weight:600}
+  .mono{font-family:"Geist Mono",ui-monospace,monospace;font-feature-settings:"tnum","ss01"}
+  .serif{font-family:"Instrument Serif",serif;font-weight:400;font-style:italic;letter-spacing:-0.01em}
+
+  /* scrollbars */
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.06);border-radius:10px;border:2px solid transparent;background-clip:padding-box}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.12);background-clip:padding-box}
+
+  /* buttons */
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:10px;font:500 13px/1 "Geist",sans-serif;border:1px solid var(--line-2);background:var(--bg-2);color:var(--text);cursor:pointer;transition:transform .15s ease,background .15s ease,border-color .15s ease,box-shadow .2s ease;white-space:nowrap}
+  .btn:hover{background:var(--bg-3);border-color:var(--line-3);transform:translateY(-1px)}
+  .btn:active{transform:translateY(0)}
+  .btn-primary{background:linear-gradient(180deg,var(--accent),var(--accent-2));color:#0b0612;border-color:transparent;font-weight:600;box-shadow:var(--shadow-glow)}
+  .btn-primary:hover{filter:brightness(1.08);transform:translateY(-1px)}
+  .btn-ghost{background:transparent;border-color:transparent;color:var(--text-2)}
+  .btn-ghost:hover{background:var(--bg-2);color:var(--text)}
+  .btn-icon{width:34px;height:34px;padding:0;justify-content:center}
+
+  /* chip / badge */
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font:500 11px/1 "Geist",sans-serif;background:var(--bg-2);border:1px solid var(--line-2);color:var(--text-2)}
+  .chip .dot{width:6px;height:6px;border-radius:999px;background:currentColor}
+  .chip-success{color:var(--success);background:color-mix(in oklab, var(--success) 12%, transparent);border-color:color-mix(in oklab, var(--success) 25%, transparent)}
+  .chip-warn{color:var(--warn);background:color-mix(in oklab, var(--warn) 12%, transparent);border-color:color-mix(in oklab, var(--warn) 25%, transparent)}
+  .chip-danger{color:var(--danger);background:color-mix(in oklab, var(--danger) 12%, transparent);border-color:color-mix(in oklab, var(--danger) 25%, transparent)}
+  .chip-info{color:var(--info);background:color-mix(in oklab, var(--info) 12%, transparent);border-color:color-mix(in oklab, var(--info) 25%, transparent)}
+  .chip-accent{color:var(--accent);background:color-mix(in oklab, var(--accent) 14%, transparent);border-color:color-mix(in oklab, var(--accent) 30%, transparent)}
+
+  /* card */
+  .card{background:var(--bg-1);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-1)}
+
+  /* inputs */
+  .input{width:100%;background:var(--bg-2);border:1px solid var(--line-2);color:var(--text);font:14px/1.4 "Geist",sans-serif;padding:10px 12px;border-radius:10px;outline:none;transition:border-color .15s, box-shadow .15s}
+  .input:focus{border-color:color-mix(in oklab, var(--accent) 60%, var(--line-3));box-shadow:0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent)}
+
+  /* utility animations */
+  @keyframes fadein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes fadein-msg{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+  @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+  @keyframes pulse-glow{0%,100%{box-shadow:0 0 0 0 var(--accent-glow)}50%{box-shadow:0 0 0 8px transparent}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes blip{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.5);opacity:1}}
+  @keyframes typing{0%{transform:translateY(0)}50%{transform:translateY(-4px)}100%{transform:translateY(0)}}
+  @keyframes slide-in-right{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+  @keyframes slide-in-up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+  /* root layout */
+  #root{height:100vh;width:100vw;display:flex;overflow:hidden;background:radial-gradient(1200px 800px at 70% -10%, color-mix(in oklab, var(--accent) 12%, transparent), transparent 60%), var(--bg-0)}
+
+  /* page transitions */
+  .page-anim{animation:fadein .35s cubic-bezier(.2,.8,.2,1) both}
+
+  /* Loader */
+  #loader{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:var(--bg-0);transition:opacity .5s ease,visibility .5s}
+  #loader.hide{opacity:0;visibility:hidden;pointer-events:none}
+  .loader-mark{width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:grid;place-items:center;color:#0b0612;font-weight:700;font-size:26px;box-shadow:var(--shadow-glow);animation:pulse-glow 1.6s ease-in-out infinite}
+</style>
+</head>
+<body data-theme="violet" data-density="default">
+
+<div id="loader">
+  <div class="loader-mark">M</div>
+</div>
+
+<div id="root"></div>
+
+<!-- React + Babel -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="src/icons.jsx"></script>
+<script type="text/babel" src="src/data.jsx"></script>
+<script type="text/babel" src="src/shared.jsx"></script>
+<script type="text/babel" src="src/sidebar.jsx"></script>
+<script type="text/babel" src="src/view-dashboard.jsx"></script>
+<script type="text/babel" src="src/view-inbox.jsx"></script>
+<script type="text/babel" src="src/view-commandes.jsx"></script>
+<script type="text/babel" src="src/view-produits.jsx"></script>
+<script type="text/babel" src="src/view-clients.jsx"></script>
+<script type="text/babel" src="src/view-boutique.jsx"></script>
+<script type="text/babel" src="src/app.jsx"></script>
+
+</body>
+</html>

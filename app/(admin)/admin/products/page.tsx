@@ -5,7 +5,7 @@ import {
   Plus, Search, Edit, Trash2, Package, Loader2, X, Star, Camera, Sparkles,
   AlertTriangle, Crown, Image as ImageIcon, StopCircle, ZoomIn, ZoomOut,
   RotateCw, Check, Wand2, Sun, Contrast, Zap, Move, SlidersHorizontal,
-  RefreshCw, Eye,
+  RefreshCw, Eye, Copy, Download, Share2, FileText,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useI18n } from '@/hooks/useI18n';
@@ -13,9 +13,19 @@ import { getProducts, getCategories, createProduct, updateProduct, deleteProduct
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
 import { Product, Category, PLANS } from '@/lib/types';
-import { formatPrice, calculateMargin } from '@/lib/utils';
+import { formatPrice, calculateMargin, getWhatsAppLink } from '@/lib/utils';
 
 type PhotoMode = 'none' | 'camera' | 'crop' | 'done';
+
+type ProductBrochureCopy = {
+  headline: string;
+  subheadline: string;
+  badge: string;
+  bullets: string[];
+  cta: string;
+  whatsappCaption: string;
+  source?: string;
+};
 
 interface StudioSettings {
   brightness: number; contrast: number; saturation: number;
@@ -90,6 +100,178 @@ function StudioSlider({ label, icon: Icon, value, min, max, onChange, color='#16
   );
 }
 
+function defaultBrochure(product: Product, shopName = 'MasterShopPro', currency = 'FCFA'): ProductBrochureCopy {
+  const price = product.sellingPrice > 0 ? `${product.sellingPrice.toLocaleString('fr-FR')} ${currency}` : 'Prix disponible';
+  return {
+    headline: `${product.name} pret a commander`,
+    subheadline: product.description || `Un produit clair, bien presente, facile a commander chez ${shopName}.`,
+    badge: product.stock > 0 ? 'Disponible maintenant' : 'A verifier',
+    bullets: ['Prix clair', 'Commande WhatsApp simple', 'Boutique professionnelle'],
+    cta: `Commander a ${price}`,
+    whatsappCaption: `Bonjour, je suis interesse(e) par ${product.name}. Est-ce encore disponible ?\n\nPrix: ${price}\nBoutique: ${shopName}`,
+    source: 'local',
+  };
+}
+
+function wrapCanvasText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number, maxLines = 4) {
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let line = '';
+  for (const word of words) {
+    const test = line ? `${line} ${word}` : word;
+    if (ctx.measureText(test).width > maxWidth && line) {
+      lines.push(line);
+      line = word;
+      if (lines.length >= maxLines) break;
+    } else {
+      line = test;
+    }
+  }
+  if (line && lines.length < maxLines) lines.push(line);
+  lines.forEach((l, idx) => ctx.fillText(l, x, y + idx * lineHeight));
+  return y + lines.length * lineHeight;
+}
+
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+}
+
+function drawCanvasPill(ctx: CanvasRenderingContext2D, x: number, y: number, text: string, bg: string, fg = '#ffffff') {
+  ctx.font = '800 24px Arial';
+  const width = Math.min(420, Math.max(150, ctx.measureText(text).width + 52));
+  ctx.fillStyle = bg;
+  roundRect(ctx, x, y, width, 48, 24);
+  ctx.fill();
+  ctx.fillStyle = fg;
+  ctx.fillText(text, x + 26, y + 31);
+  return width;
+}
+
+function drawCanvasCard(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, title: string, color = '#0645a8') {
+  ctx.fillStyle = '#ffffff';
+  roundRect(ctx, x, y, width, height, 18);
+  ctx.fill();
+  ctx.strokeStyle = '#b9d3ff';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.fillStyle = color;
+  roundRect(ctx, x, y, width, 44, 18);
+  ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 21px Arial';
+  ctx.fillText(title.toUpperCase().slice(0, 32), x + 22, y + 30);
+}
+
+function loadCanvasImage(src: string) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+function getSpecRows(product: Product) {
+  const rows = (product.specifications || '')
+    .split(/\n|;/)
+    .map((row) => row.trim())
+    .filter(Boolean)
+    .map((row) => {
+      const [label, ...rest] = row.split(/:|-/);
+      return {
+        label: (label || 'Detail').trim(),
+        value: rest.join(' ').trim() || row,
+      };
+    });
+
+  return rows.length ? rows.slice(0, 8) : [
+    { label: 'Categorie', value: product.category || 'Produit boutique' },
+    { label: 'Marque', value: product.brand || 'A confirmer' },
+    { label: 'Disponibilite', value: product.stock > 0 ? 'En stock' : 'A confirmer' },
+    { label: 'Commande', value: 'WhatsApp / boutique en ligne' },
+  ];
+}
+
+function getShopWhatsappNumber(shop: { whatsapp?: string; phone?: string } | null | undefined) {
+  return (shop?.whatsapp || shop?.phone || '').trim();
+}
+
+function getProductStrengths(product: Product, copy?: ProductBrochureCopy | null) {
+  const strengths: string[] = [];
+  const specs = getSpecRows(product)
+    .filter((row) => row.value && !/non renseigne|a confirmer/i.test(row.value))
+    .slice(0, 3)
+    .map((row) => `${row.label}: ${row.value}`);
+
+  if (product.brand) strengths.push(`Marque: ${product.brand}`);
+  if (product.category) strengths.push(`Categorie: ${product.category}`);
+  strengths.push(product.stock > 0 ? `Disponible: ${product.stock} en stock` : 'Disponibilite a confirmer');
+  strengths.push(...specs);
+  if (copy?.bullets?.length) strengths.push(...copy.bullets);
+
+  return Array.from(new Set(strengths.map((item) => item.trim()).filter(Boolean))).slice(0, 5);
+}
+
+async function compressDataUrlToDataUrl(src: string, maxSize = 900, quality = 0.76): Promise<string> {
+  const img = await loadCanvasImage(src);
+  const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(img.width * scale));
+  canvas.height = Math.max(1, Math.round(img.height * scale));
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return src;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL('image/jpeg', quality);
+}
+
+async function compressFileToDataUrl(file: File, maxSize = 760, quality = 0.72): Promise<string> {
+  const source = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  const img = await loadCanvasImage(source);
+  const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(img.width * scale));
+  canvas.height = Math.max(1, Math.round(img.height * scale));
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return source;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL('image/jpeg', quality);
+}
+
+async function imageUrlToDataUrl(src: string): Promise<{ data: string; mimeType: string }> {
+  const res = await fetch(src);
+  if (!res.ok) throw new Error('Image introuvable');
+  const blob = await res.blob();
+  const mimeType = blob.type || 'image/jpeg';
+  const data = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+  return { data, mimeType };
+}
+
 const WA_SUPPORT = '393299639430';
 const AFRICA_COUNTRIES = new Set(['SN','CI','CM','ML','BF','GN','TG','BJ','NE','CD','CG','GA','MG','MU','TZ','KE','GH','NG','RW','ET','MZ','ZA','AO','ZM','ZW','UG','BI','MW','SO','SD','TD','CF','GW','SL','LR','GM','CV','ST','GQ','DJ','ER','SS','KM','LS','BW','NA','SZ']);
 const toEur = (fcfa: number) => (fcfa / 655).toFixed(2);
@@ -118,7 +300,7 @@ function CreditsModal({ credits, shopName, shopId, onClose }: { credits: number;
     const isEur = zone==='diaspora';
     const price = isEur?`${toEur(pack.price)}`:`${pack.price.toLocaleString()} FCFA`;
     const payLine = method==='stripe'?'Stripe (carte bancaire) - paiement effectue':method==='wire'?'Virement SEPA':method==='whatsapp'?'A discuter':'Mobile Money (Wave / Orange / MTN)';
-    const msg = `Bonjour\n\nJe veux activer le *${pack.name}* pour Studio Photo IA Mastershop.\n\nBoutique : ${shopName}\nMontant : ${price}\nPaiement : ${payLine}\n\nMerci d'activer mes *${pack.credits} credits* !`;
+    const msg = `Bonjour\n\nJe veux activer le *${pack.name}* pour Studio Photo IA MasterShopPro.\n\nBoutique : ${shopName}\nMontant : ${price}\nPaiement : ${payLine}\n\nMerci d'activer mes *${pack.credits} credits* !`;
     window.open(`https://wa.me/${WA_SUPPORT}?text=${encodeURIComponent(msg)}`,'_blank');
   }
 
@@ -176,7 +358,7 @@ function CreditsModal({ credits, shopName, shopId, onClose }: { credits: number;
                       {showWire&&(
                         <div className="p-4 pt-0 bg-gray-50 space-y-2">
                           <div className="bg-white rounded-xl p-3 border border-gray-200 font-mono text-xs space-y-1.5">
-                            <div className="flex justify-between"><span className="text-gray-400">Beneficiaire</span><span className="font-bold text-gray-800">Mastershop Pro</span></div>
+                            <div className="flex justify-between"><span className="text-gray-400">Beneficiaire</span><span className="font-bold text-gray-800">MasterShopPro</span></div>
                             <div className="flex justify-between"><span className="text-gray-400">IBAN</span><span className="font-bold text-gray-800 text-[10px]">IT60 X054 2811 1010 0000 0123 456</span></div>
                             <div className="flex justify-between"><span className="text-gray-400">BIC/SWIFT</span><span className="font-bold text-gray-800">SELBIT2BXXX</span></div>
                             <div className="flex justify-between"><span className="text-gray-400">Motif</span><span className="font-bold text-gray-800">STUDIO-{selectedPack.credits}</span></div>
@@ -251,6 +433,14 @@ export default function ProductsPage() {
   const [applyingStudio, setApplyingStudio] = useState(false);
   const [studioCredits, setStudioCredits] = useState<number>(0);
   const [aiAnalysis, setAiAnalysis] = useState<any>(null);
+  const [brochureProduct, setBrochureProduct] = useState<Product | null>(null);
+  const [brochureCopy, setBrochureCopy] = useState<ProductBrochureCopy | null>(null);
+  const [brochureLoading, setBrochureLoading] = useState(false);
+  const [brochureError, setBrochureError] = useState('');
+  const [brochureCopied, setBrochureCopied] = useState(false);
+  const [proImageUrl, setProImageUrl] = useState('');
+  const [proImageLoading, setProImageLoading] = useState(false);
+  const [brochurePreviewUrl, setBrochurePreviewUrl] = useState('');
   const [newCat, setNewCat] = useState({ name:'', color:'#16a34a' });
 
   const [form, setForm] = useState({
@@ -410,8 +600,21 @@ export default function ProductsPage() {
   async function uploadPhoto(): Promise<string> {
     if (!photoFile||!shop?.id) return form.imageUrl;
     setUploadingPhoto(true);
-    try { const r=ref(storage,`shops/${shop.id}/products/${Date.now()}.jpg`); await uploadBytes(r,photoFile); return await getDownloadURL(r); }
-    catch { return form.imageUrl; } finally { setUploadingPhoto(false); }
+    try {
+      const extension = photoFile.type.includes('png') ? 'png' : 'jpg';
+      const r=ref(storage,`shops/${shop.id}/products/${Date.now()}.${extension}`);
+      await uploadBytes(r,photoFile,{ contentType: photoFile.type || 'image/jpeg' });
+      return await getDownloadURL(r);
+    }
+    catch (error) {
+      console.warn('[Products] Firebase Storage indisponible, fallback image compressee:', error);
+      try {
+        return await compressFileToDataUrl(photoFile);
+      } catch (fallbackError) {
+        console.error('[Products] Impossible de sauvegarder la photo:', fallbackError);
+        throw new Error("La photo n'a pas pu etre sauvegardee. Reessaie avec une image plus legere.");
+      }
+    } finally { setUploadingPhoto(false); }
   }
 
   // Upload une photo supplémentaire depuis un input file
@@ -420,18 +623,29 @@ export default function ProductsPage() {
     setUploadingExtra(true);
     try {
       const r = ref(storage, `shops/${shop.id}/products/extra-${Date.now()}-${idx}.jpg`);
-      await uploadBytes(r, file);
+      await uploadBytes(r, file, { contentType: file.type || 'image/jpeg' });
       const url = await getDownloadURL(r);
       setExtraPhotos(prev => { const next = [...prev]; next[idx] = url; return next; });
-    } catch (e) { console.error('upload extra photo', e); }
+    } catch (e) {
+      console.warn('[Products] Upload photo supplementaire indisponible, fallback local:', e);
+      try {
+        const dataUrl = await compressFileToDataUrl(file, 640, 0.68);
+        setExtraPhotos(prev => { const next = [...prev]; next[idx] = dataUrl; return next; });
+      } catch (fallbackError) {
+        console.error('upload extra photo', fallbackError);
+        alert("Cette photo n'a pas pu etre ajoutee. Essaie une image plus legere.");
+      }
+    }
     setUploadingExtra(false);
   }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault(); if (!shop?.id) return; setSaving(true);
+    const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+    const shouldOpenBrochure = submitter?.value === 'brochure';
     try {
       let imageUrl=form.imageUrl||'';
-      if (photoFile) { try { imageUrl=await uploadPhoto(); } catch {} }
+      if (photoFile) imageUrl=await uploadPhoto();
       const data: Record<string,any>={
         name:form.name.trim(), category:form.category,
         costPrice:parseFloat(form.costPrice)||0, sellingPrice:parseFloat(form.sellingPrice)||0,
@@ -444,18 +658,556 @@ export default function ProductsPage() {
       if (form.brand.trim()) data.brand=form.brand.trim();
       if (form.sku.trim()) data.sku=form.sku.trim();
       if (form.barcode.trim()) data.barcode=form.barcode.trim();
+      let savedId = editing?.id || '';
       if (editing?.id) await updateProduct(editing.id,data);
-      else await createProduct(shop.id, data as any);
+      else savedId = await createProduct(shop.id, data as any);
+      const savedProduct = {
+        ...(editing || {}),
+        ...data,
+        id: savedId,
+        shopId: shop.id,
+        createdAt: editing?.createdAt || new Date().toISOString(),
+      } as Product;
       await loadData(); setShowModal(false); resetPhoto();
+      if (shouldOpenBrochure) {
+        setTimeout(() => openBrochure(savedProduct), 120);
+      }
     } catch(err:any){ alert('Erreur : '+(err?.message||String(err))); }
     setSaving(false);
   }
   async function handleDelete(id: string) { if (!confirm('Supprimer ce produit ?')) return; await deleteProduct(id); await loadData(); }
   async function handleAddCat(e: React.FormEvent) { e.preventDefault(); if (!shop?.id||!newCat.name.trim()) return; await createCategory(shop.id,newCat); setNewCat({name:'',color:'#16a34a'}); await loadData(); setShowCatModal(false); }
 
+  async function openBrochure(product: Product) {
+    const initial = defaultBrochure(product, shop?.name || 'MasterShopPro', shop?.currency || 'FCFA');
+    setBrochureProduct(product);
+    setBrochureCopy(initial);
+    setBrochureError('');
+    setBrochureCopied(false);
+    setProImageUrl('');
+    if (brochurePreviewUrl) URL.revokeObjectURL(brochurePreviewUrl);
+    setBrochurePreviewUrl('');
+    await generateBrochure(product, initial);
+  }
+
+  async function generateBrochure(product: Product, fallback = defaultBrochure(product, shop?.name || 'MasterShopPro', shop?.currency || 'FCFA')) {
+    setBrochureLoading(true);
+    setBrochureError('');
+    try {
+      const res = await fetch('/api/product-brochure', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productName: product.name,
+          description: product.description || '',
+          category: product.category || '',
+          brand: product.brand || '',
+          price: product.sellingPrice || 0,
+          currency: shop?.currency || 'FCFA',
+          shopName: shop?.name || 'MasterShopPro',
+          stock: product.stock,
+        }),
+      });
+      if (!res.ok) throw new Error('generation_failed');
+      const data = await res.json();
+      setBrochureCopy({ ...fallback, ...data, bullets: data.bullets?.length ? data.bullets : fallback.bullets });
+    } catch {
+      setBrochureCopy(fallback);
+      setBrochureError("L'IA n'a pas repondu. J'ai prepare une brochure locale utilisable.");
+    } finally {
+      setBrochureLoading(false);
+    }
+  }
+
+  async function copyBrochureText() {
+    if (!brochureCopy) return;
+    await navigator.clipboard.writeText(brochureCopy.whatsappCaption);
+    setBrochureCopied(true);
+    setTimeout(() => setBrochureCopied(false), 1800);
+  }
+
+  async function generateProfessionalProductImage() {
+    if (!brochureProduct) return '';
+    setProImageLoading(true);
+    setBrochureError('');
+    try {
+      const referenceImages = brochureProduct.imageUrl
+        ? [await imageUrlToDataUrl(proxySrc(brochureProduct.imageUrl))]
+        : [];
+      const res = await fetch('/api/generate-visual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          preset: 'product-spotlight',
+          brandName: shop?.name || 'MasterShopPro',
+          aspectRatio: '4:5',
+          imageSize: '1K',
+          quality: 'fast',
+          referenceImages,
+          description: `Create a premium but realistic ecommerce product photo for "${brochureProduct.name}" using the reference image as the strict source of truth.
+The final image must show the exact same product: same object, same shape, same color, same visible logo or label if present, same quantity, same packaging and same main details.
+Do not invent a different product, different model, different brand, different color, extra accessories, fake labels, fake text, or unrealistic features.
+Only improve lighting, background cleanliness, centering, sharpness, shadows and perceived value.
+If a detail is unclear, preserve it rather than replacing it.
+Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realistic shadow, mobile-first visual.`,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.image) {
+        if (data?.code === 'GEMINI_IMAGE_ACCESS_DENIED' || res.status === 403) {
+          throw new Error(
+            "Image pro IA bloquee par Google pour cette cle API. Tu peux quand meme utiliser le texte IA, l'image actuelle et la fiche PDF."
+          );
+        }
+        throw new Error(data.error || 'Generation image impossible');
+      }
+      setProImageUrl(data.image);
+      await refreshBrochurePreview(data.image);
+      return data.image as string;
+    } catch (error: any) {
+      console.error('[Brochure] Image pro IA impossible:', error);
+      setBrochureError(error?.message || "L'image pro IA n'a pas pu etre generee. La brochure simple reste disponible.");
+      return '';
+    } finally {
+      setProImageLoading(false);
+    }
+  }
+
+  function printProductSheet() {
+    if (!brochureProduct || !brochureCopy) return;
+    const img = proImageUrl || brochureProduct.imageUrl || '';
+    const price = brochureProduct.sellingPrice > 0 ? `${brochureProduct.sellingPrice.toLocaleString('fr-FR')} ${shop?.currency || 'FCFA'}` : 'Prix disponible en boutique';
+    const specs = (brochureProduct.specifications || 'Caracteristiques a completer').replace(/\n/g, '<br/>');
+    const win = window.open('', '_blank', 'width=900,height=1200');
+    if (!win) {
+      alert('Autorise les popups pour generer la fiche PDF.');
+      return;
+    }
+    win.document.write(`
+      <html>
+        <head>
+          <title>Fiche produit - ${brochureProduct.name}</title>
+          <style>
+            body{font-family:Arial,sans-serif;margin:0;background:#f1f5f9;color:#0f172a}
+            .page{max-width:820px;margin:28px auto;background:white;border-radius:28px;overflow:hidden;box-shadow:0 20px 60px rgba(15,23,42,.12)}
+            .hero{background:linear-gradient(135deg,#052e25,#0f766e);color:white;padding:28px 34px}
+            .brand{font-size:13px;text-transform:uppercase;letter-spacing:.18em;opacity:.8;font-weight:800}
+            h1{font-size:40px;line-height:1.05;margin:16px 0 8px}
+            .sub{font-size:17px;line-height:1.55;opacity:.92}
+            .media{background:#f8fafc;padding:28px;text-align:center}
+            .media img{max-width:100%;max-height:430px;object-fit:contain;border-radius:24px}
+            .content{padding:30px 34px;display:grid;gap:22px}
+            .price{font-size:30px;font-weight:900;color:#047857}
+            .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+            .card{border:1px solid #e2e8f0;border-radius:20px;padding:18px;background:#f8fafc}
+            .label{font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:#64748b;font-weight:900;margin-bottom:10px}
+            .bullet{font-weight:800;margin:8px 0}
+            .cta{background:#052e25;color:white;border-radius:20px;padding:20px;font-weight:900;text-align:center}
+            @media print{body{background:white}.page{margin:0;box-shadow:none;border-radius:0}.no-print{display:none}}
+          </style>
+        </head>
+        <body>
+          <div class="page">
+            <div class="hero">
+              <div class="brand">${shop?.name || 'MasterShopPro'} · fiche produit</div>
+              <h1>${brochureCopy.headline}</h1>
+              <div class="sub">${brochureCopy.subheadline}</div>
+            </div>
+            <div class="media">${img ? `<img src="${img}" />` : ''}</div>
+            <div class="content">
+              <div class="price">${price}</div>
+              <div class="grid">
+                <div class="card">
+                  <div class="label">Points forts</div>
+                  ${brochureCopy.bullets.map((b)=>`<div class="bullet">✓ ${b}</div>`).join('')}
+                </div>
+                <div class="card">
+                  <div class="label">Caracteristiques</div>
+                  <div>${specs}</div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="label">Message client</div>
+                <div>${brochureCopy.whatsappCaption.replace(/\n/g, '<br/>')}</div>
+              </div>
+              <div class="cta">${brochureCopy.cta}</div>
+            </div>
+          </div>
+          <script>setTimeout(()=>window.print(),500)</script>
+        </body>
+      </html>
+    `);
+    win.document.close();
+  }
+
+  async function persistProfessionalImageToProduct() {
+    if (!brochureProduct?.id || !proImageUrl || !shop?.id) return '';
+    let finalUrl = proImageUrl;
+    const previousImages = brochureProduct.images || [];
+    try {
+      if (proImageUrl.startsWith('data:')) {
+        const blob = await fetch(proImageUrl).then((res) => res.blob());
+        const r = ref(storage, `shops/${shop.id}/products/pro-${brochureProduct.id}-${Date.now()}.png`);
+        await uploadBytes(r, blob, { contentType: blob.type || 'image/png' });
+        finalUrl = await getDownloadURL(r);
+      }
+    } catch (error) {
+      console.error('[Brochure] Sauvegarde image pro impossible:', error);
+      try {
+        finalUrl = proImageUrl.startsWith('data:')
+          ? await compressDataUrlToDataUrl(proImageUrl)
+          : proImageUrl;
+      } catch (fallbackError) {
+        console.error('[Brochure] Fallback sauvegarde image pro impossible:', fallbackError);
+        setBrochureError("L'image pro est prete, mais la sauvegarde dans la boutique a echoue. Tu peux quand meme telecharger la brochure.");
+        return '';
+      }
+    }
+
+    const nextImages = [finalUrl, ...previousImages.filter((image) => image && image !== finalUrl)].slice(0, 6);
+    await updateProduct(brochureProduct.id, {
+      imageUrl: finalUrl,
+      images: nextImages,
+    });
+    setBrochureProduct({ ...brochureProduct, imageUrl: finalUrl, images: nextImages });
+    setProImageUrl(finalUrl);
+    await loadData();
+    return finalUrl;
+  }
+
+  async function saveProfessionalImageToProduct() {
+    if (!brochureProduct?.id || !proImageUrl || !shop?.id) return '';
+    setProImageLoading(true);
+    try {
+      const url = await persistProfessionalImageToProduct();
+      if (url) setBrochureError('Photo pro enregistree dans la boutique en ligne.');
+      return url;
+    } catch (error) {
+      console.error('[Brochure] Mise a jour produit impossible:', error);
+      setBrochureError("La photo pro est prete, mais la boutique n'a pas accepte la sauvegarde. Reessaie ou recharge la page.");
+      return '';
+    } finally {
+      setProImageLoading(false);
+    }
+  }
+
+  async function publishProductOnline() {
+    if (!brochureProduct?.id) return;
+    try {
+      let imageUrl = brochureProduct.imageUrl || '';
+      if (proImageUrl) {
+        imageUrl = await persistProfessionalImageToProduct() || imageUrl;
+      }
+      const nextImages = imageUrl
+        ? [imageUrl, ...(brochureProduct.images || []).filter((image) => image && image !== imageUrl)].slice(0, 6)
+        : brochureProduct.images;
+      await updateProduct(brochureProduct.id, {
+        isActive: true,
+        ...(imageUrl ? { imageUrl, images: nextImages } : {}),
+      });
+      setBrochureProduct({ ...brochureProduct, isActive: true, imageUrl, images: nextImages });
+      await loadData();
+      setBrochureError('Produit publie dans la boutique en ligne.');
+    } catch (error) {
+      console.error('[Brochure] Publication produit impossible:', error);
+      setBrochureError("Le produit n'a pas pu etre publie avec la photo pro. Reessaie apres quelques secondes.");
+    }
+  }
+
+  async function renderCommercialBrochureBlob(imageOverride = '') {
+    if (!brochureProduct || !brochureCopy) return;
+      const whatsappNumber = getShopWhatsappNumber(shop);
+      const canvas = document.createElement('canvas');
+      canvas.width = 1080;
+      canvas.height = 1920;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas indisponible');
+
+      const width = canvas.width;
+      const height = canvas.height;
+      const currency = shop?.currency || 'FCFA';
+      const price = brochureProduct.sellingPrice > 0
+        ? `${brochureProduct.sellingPrice.toLocaleString('fr-FR')} ${currency}`
+        : 'Prix a confirmer';
+      const availability = brochureProduct.stock > 0
+        ? `${brochureProduct.stock} disponible${brochureProduct.stock > 1 ? 's' : ''}`
+        : 'Disponibilite a confirmer';
+      const detailRows = [
+        { label: 'Categorie', value: brochureProduct.category || 'Produit boutique' },
+        { label: 'Marque', value: brochureProduct.brand || 'Non renseignee' },
+        { label: 'Stock', value: availability },
+        { label: 'Reference', value: brochureProduct.sku || 'Non renseignee' },
+        { label: 'Code-barres', value: brochureProduct.barcode || 'Non renseigne' },
+        { label: 'Unite', value: brochureProduct.unit || 'Piece' },
+        { label: 'Poids', value: brochureProduct.weight || 'Non renseigne' },
+      ];
+      const specRows = getSpecRows(brochureProduct);
+      const productStrengths = getProductStrengths(brochureProduct, brochureCopy);
+
+      function sectionTitle(text: string, x: number, y: number, color = '#0645a8') {
+        ctx.fillStyle = color;
+        roundRect(ctx, x, y, Math.min(470, Math.max(230, ctx.measureText(text).width + 54)), 48, 18);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '900 22px Arial';
+        ctx.fillText(text.toUpperCase(), x + 24, y + 31);
+      }
+
+      function drawSoftCard(x: number, y: number, w: number, h: number, stroke = '#d8e6ff') {
+        ctx.fillStyle = '#ffffff';
+        roundRect(ctx, x, y, w, h, 26);
+        ctx.fill();
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      function drawRows(rows: { label: string; value: string }[], x: number, y: number, labelW: number, valueW: number, rowH: number) {
+        rows.forEach((row, idx) => {
+          const top = y + idx * rowH;
+          ctx.fillStyle = '#eff6ff';
+          roundRect(ctx, x, top - 24, 34, 34, 12);
+          ctx.fill();
+          ctx.fillStyle = '#0645a8';
+          ctx.font = '900 15px Arial';
+          ctx.fillText(String(idx + 1), x + (idx + 1 > 9 ? 9 : 12), top - 2);
+          ctx.fillStyle = '#0645a8';
+          ctx.font = '900 21px Arial';
+          wrapCanvasText(ctx, row.label, x + 50, top - 7, labelW, 24, 1);
+          ctx.fillStyle = '#111827';
+          ctx.font = '800 20px Arial';
+          wrapCanvasText(ctx, row.value || 'Non renseigne', x + 50 + labelW + 22, top - 7, valueW, 24, 2);
+          ctx.strokeStyle = '#e3ecff';
+          ctx.beginPath();
+          ctx.moveTo(x + 50, top + 30);
+          ctx.lineTo(x + labelW + valueW + 90, top + 30);
+          ctx.stroke();
+        });
+      }
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, width, height);
+      const heroGradient = ctx.createLinearGradient(0, 0, width, 620);
+      heroGradient.addColorStop(0, '#f8fbff');
+      heroGradient.addColorStop(1, '#eaf4ff');
+      ctx.fillStyle = heroGradient;
+      ctx.fillRect(0, 0, width, 620);
+
+      ctx.fillStyle = '#0645a8';
+      roundRect(ctx, -18, 0, 310, 56, 0);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '900 24px Arial';
+      ctx.fillText('FICHE PRODUIT', 28, 37);
+
+      ctx.fillStyle = '#dbeafe';
+      ctx.beginPath(); ctx.arc(855, 270, 280, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#bfdbfe';
+      ctx.beginPath(); ctx.arc(970, 480, 170, 0, Math.PI * 2); ctx.fill();
+
+      ctx.fillStyle = '#061433';
+      ctx.font = '900 42px Arial';
+      wrapCanvasText(ctx, shop?.name || 'MasterShopPro', 52, 126, 520, 48, 1);
+      drawCanvasPill(ctx, 52, 172, brochureCopy.badge || 'Produit disponible', '#ff5a0a');
+
+      ctx.fillStyle = '#ffffff';
+      roundRect(ctx, 52, 238, 536, 326, 30);
+      ctx.fill();
+      ctx.strokeStyle = '#d8e6ff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = '#0645a8';
+      ctx.font = '900 18px Arial';
+      ctx.fillText('NOM DU PRODUIT', 86, 292);
+      ctx.fillStyle = '#061433';
+      const titleLength = brochureProduct.name.length;
+      ctx.font = titleLength > 38 ? '900 40px Arial' : titleLength > 24 ? '900 46px Arial' : '900 54px Arial';
+      wrapCanvasText(ctx, brochureProduct.name.toUpperCase(), 86, 356, 460, titleLength > 38 ? 46 : 54, 4);
+
+      const imageForBrochure = imageOverride || proImageUrl || brochureProduct.imageUrl;
+      if (imageForBrochure) {
+        try {
+          const img = await loadCanvasImage(imageForBrochure.startsWith('data:') ? imageForBrochure : proxySrc(imageForBrochure));
+          const scale = Math.min(390 / img.width, 390 / img.height);
+          const w = img.width * scale;
+          const h = img.height * scale;
+          ctx.drawImage(img, 812 - w / 2, 342 - h / 2, w, h);
+        } catch {
+          ctx.fillStyle = '#dbeafe';
+          roundRect(ctx, 620, 150, 360, 320, 34);
+          ctx.fill();
+          ctx.fillStyle = '#0645a8';
+          ctx.font = '800 44px Arial';
+          ctx.fillText('PRODUIT', 690, 320);
+        }
+      }
+
+      drawSoftCard(52, 650, 976, 138, '#ffd1b5');
+      ctx.fillStyle = '#fff7ed';
+      roundRect(ctx, 76, 678, 290, 86, 20);
+      ctx.fill();
+      ctx.fillStyle = '#ff5a0a';
+      ctx.font = '900 20px Arial';
+      ctx.fillText('PRIX DE VENTE', 106, 708);
+      ctx.font = price.length > 17 ? '900 44px Arial' : '900 58px Arial';
+      wrapCanvasText(ctx, price, 106, price.length > 17 ? 752 : 758, 235, 46, 1);
+      ctx.fillStyle = '#101828';
+      ctx.font = '900 26px Arial';
+      wrapCanvasText(ctx, availability, 420, 706, 250, 30, 2);
+      ctx.fillStyle = '#475467';
+      ctx.font = '800 22px Arial';
+      wrapCanvasText(ctx, `Commande: ${whatsappNumber || 'via la boutique'}`, 704, 706, 280, 30, 2);
+
+      drawSoftCard(52, 820, 976, 228);
+      sectionTitle('Description complete', 76, 846, '#0645a8');
+      ctx.fillStyle = '#101828';
+      ctx.font = '800 26px Arial';
+      wrapCanvasText(
+        ctx,
+        brochureProduct.description || brochureCopy.subheadline || 'Ajoute une description dans la fiche produit pour rendre la brochure plus convaincante.',
+        82,
+        930,
+        910,
+        34,
+        6
+      );
+
+      drawSoftCard(52, 1080, 468, 430);
+      sectionTitle('Infos produit', 76, 1106, '#ff5a0a');
+      drawRows(detailRows, 82, 1190, 150, 190, 42);
+
+      drawSoftCard(552, 1080, 476, 430);
+      sectionTitle('Caracteristiques', 576, 1106, '#0645a8');
+      drawRows(specRows.slice(0, 8), 582, 1190, 145, 190, 42);
+
+      drawSoftCard(52, 1540, 476, 230);
+      sectionTitle('Points forts', 76, 1566, '#0645a8');
+      productStrengths.slice(0, 4).forEach((bullet, idx) => {
+        const y = 1634 + idx * 44;
+        ctx.fillStyle = '#16a34a';
+        ctx.beginPath(); ctx.arc(94, y - 7, 11, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '900 14px Arial';
+        ctx.fillText('✓', 89, y - 2);
+        ctx.fillStyle = '#101828';
+        ctx.font = '800 18px Arial';
+        wrapCanvasText(ctx, bullet, 120, y - 16, 350, 21, 2);
+      });
+
+      drawSoftCard(552, 1540, 476, 230, '#bbf7d0');
+      sectionTitle('Commander', 576, 1566, '#16a34a');
+      ctx.fillStyle = '#111827';
+      ctx.font = '900 24px Arial';
+      ctx.fillText('WhatsApp', 582, 1634);
+      ctx.fillStyle = '#16a34a';
+      ctx.font = whatsappNumber.length > 18 ? '900 21px Arial' : '900 24px Arial';
+      wrapCanvasText(ctx, whatsappNumber || 'Numero disponible sur la boutique', 582, 1668, 390, 28, 2);
+      ctx.fillStyle = '#111827';
+      ctx.font = '800 19px Arial';
+      wrapCanvasText(ctx, brochureCopy.cta || 'Contactez la boutique pour commander.', 582, 1728, 390, 25, 1);
+
+      ctx.fillStyle = '#0645a8';
+      roundRect(ctx, 96, 1802, 888, 84, 30);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '900 38px Arial';
+      ctx.fillText('Commandez cette fiche maintenant', 178, 1855);
+      ctx.fillStyle = '#ff8a00';
+      ctx.beginPath(); ctx.arc(920, 1844, 28, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '900 38px Arial';
+      ctx.fillText('›', 912, 1856);
+
+      ctx.fillStyle = '#052a66';
+      ctx.fillRect(0, 1874, width, 46);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '700 18px Arial';
+      ctx.fillText('Fiche produit generee avec MasterShopPro - prete a partager sur WhatsApp', 240, 1904);
+
+      return await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Export image impossible')), 'image/png');
+      });
+  }
+
+  async function refreshBrochurePreview(imageOverride = '') {
+    if (!brochureProduct || !brochureCopy) return '';
+    const blob = await renderCommercialBrochureBlob(imageOverride);
+    if (!blob) return '';
+    const url = URL.createObjectURL(blob);
+    setBrochurePreviewUrl((previous) => {
+      if (previous) URL.revokeObjectURL(previous);
+      return url;
+    });
+    return url;
+  }
+
+  async function generateCompleteBrochure() {
+    if (!brochureProduct) return;
+    setBrochureLoading(true);
+    setBrochureError('');
+    try {
+      let imageForPreview = proImageUrl;
+      if (!imageForPreview && brochureProduct.imageUrl) {
+        imageForPreview = await generateProfessionalProductImage();
+      }
+      await refreshBrochurePreview(imageForPreview);
+      setBrochureError('Brochure prete avec la photo pro. Tu peux partager ou telecharger.');
+    } catch (error) {
+      console.error('[Brochure] Generation complete impossible:', error);
+      setBrochureError("La brochure n'a pas pu etre preparee automatiquement. Essaie Telecharger.");
+    } finally {
+      setBrochureLoading(false);
+    }
+  }
+
+  async function downloadBrochure() {
+    if (!brochureProduct || !brochureCopy) return;
+    try {
+        const blob = await renderCommercialBrochureBlob();
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = `brochure-${brochureProduct.name.toLowerCase().replace(/[^a-z0-9]+/gi, '-')}.png`;
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      console.error('[Brochure] Telechargement impossible:', error);
+      alert("Le telechargement a bloque sur ce navigateur. Reessaie apres avoir sauvegarde la photo du produit, ou copie le message WhatsApp.");
+    }
+  }
+
+  async function shareBrochure() {
+    if (!brochureProduct || !brochureCopy) return;
+    try {
+      const blob = await renderCommercialBrochureBlob();
+      if (!blob) return;
+      const file = new File([blob], `brochure-${brochureProduct.name}.png`, { type: 'image/png' });
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({
+          title: brochureProduct.name,
+          text: brochureCopy.whatsappCaption,
+          files: [file],
+        });
+      } else {
+        await navigator.clipboard.writeText(brochureCopy.whatsappCaption);
+        await downloadBrochure();
+        alert('Brochure telechargee et message copie. Tu peux maintenant partager sur WhatsApp.');
+      }
+    } catch (error) {
+      console.error('[Brochure] Partage impossible:', error);
+      alert("Partage direct indisponible sur ce navigateur. J'ai garde le telechargement PNG disponible.");
+    }
+  }
+
   const margin=calculateMargin(parseFloat(form.costPrice)||0, parseFloat(form.sellingPrice)||0);
   const filtered=products.filter(p=>(p.name.toLowerCase().includes(search.toLowerCase())||p.category.toLowerCase().includes(search.toLowerCase()))&&(!catFilter||p.category===catFilter));
-  const pc=shop?.primaryColor||'#16a34a';
+  const activeProducts = products.filter((product) => product.isActive).length;
+  const lowStockProducts = products.filter((product) => product.stock <= (product.minStock || 5)).length;
+  const sellableStockValue = products.reduce((total, product) => total + (product.sellingPrice || 0) * Math.max(product.stock || 0, 0), 0);
+  const pc='#25D366';
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="w-12 h-12 border-4 border-t-transparent rounded-full animate-spin" style={{borderColor:pc}}/></div>;
 
@@ -474,26 +1226,58 @@ export default function ProductsPage() {
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div><h1 className="text-2xl font-bold text-gray-800">Produits</h1><p className="text-gray-500 text-sm">{products.length} produit{products.length!==1?'s':''}{limits?.plan?.maxProducts!==-1&&` / ${limits?.plan?.maxProducts} max`}</p></div>
-        <div className="flex gap-2">
-          <button onClick={()=>setShowCatModal(true)} className="btn-outline text-sm">+ Categorie</button>
-          <button onClick={openAdd} className="btn-primary flex items-center gap-2" style={{backgroundColor:pc}}><Plus className="w-5 h-5"/>Nouveau</button>
+      <div className="rounded-[2rem] overflow-hidden shadow-sm border border-emerald-100 bg-white">
+        <div className="p-5 sm:p-6 text-white" style={{background:'linear-gradient(135deg,#052e25,#0f766e 58%,#25D366)'}}>
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+            <div className="max-w-2xl">
+              <p className="text-emerald-100 text-xs font-black tracking-[0.22em] uppercase">Source principale de vente</p>
+              <h1 className="text-3xl sm:text-4xl font-black mt-2">Produits</h1>
+              <p className="text-emerald-50 mt-2 text-sm sm:text-base leading-relaxed">
+                Ajoute un produit, laisse l'IA remplir la fiche, genere une brochure et partage directement sur WhatsApp.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              {shop?.slug&&(
+                <Link href={`/${shop.slug}`} target="_blank" className="px-4 py-3 rounded-2xl bg-white/15 text-white font-extrabold text-sm border border-white/20 hover:bg-white/25 text-center">
+                  Voir la boutique
+                </Link>
+              )}
+              <button onClick={openAdd} className="px-5 py-3 rounded-2xl bg-white text-emerald-800 font-black text-sm shadow-lg flex items-center justify-center gap-2">
+                <Plus className="w-5 h-5"/>
+                Nouveau produit
+              </button>
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 divide-x divide-emerald-100">
+          <div className="p-4">
+            <p className="text-[11px] uppercase tracking-wide text-gray-400 font-black">Visibles</p>
+            <p className="text-xl font-black text-gray-950">{activeProducts}</p>
+          </div>
+          <div className="p-4">
+            <p className="text-[11px] uppercase tracking-wide text-gray-400 font-black">Alertes stock</p>
+            <p className={`text-xl font-black ${lowStockProducts ? 'text-orange-600' : 'text-gray-950'}`}>{lowStockProducts}</p>
+          </div>
+          <div className="p-4">
+            <p className="text-[11px] uppercase tracking-wide text-gray-400 font-black">Valeur stock</p>
+            <p className="text-xl font-black text-gray-950">{formatPrice(sellableStockValue, shop?.currency)}</p>
+          </div>
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col sm:flex-row gap-3 bg-white border border-gray-100 rounded-3xl p-3 shadow-sm">
         <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"/><input type="text" placeholder="Rechercher..." value={search} onChange={e=>setSearch(e.target.value)} className="input pl-10"/></div>
         <select value={catFilter} onChange={e=>setCatFilter(e.target.value)} className="select w-full sm:w-48"><option value="">Toutes categories</option>{categories.map(c=><option key={c.id} value={c.name}>{c.name}</option>)}</select>
+        <button onClick={()=>setShowCatModal(true)} className="btn-outline text-sm whitespace-nowrap">Categories</button>
       </div>
 
       {filtered.length>0?(
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(product=>(
-            <div key={product.id} className={`card hover:shadow-md transition-shadow ${!product.isActive?'opacity-60':''}`}>
-              <div className="mb-3 -mx-6 -mt-6 rounded-t-xl overflow-hidden bg-white" style={{aspectRatio:'1'}}>
+            <div key={product.id} className={`rounded-[1.75rem] border bg-white shadow-sm hover:shadow-xl transition-all overflow-hidden ${!product.isActive?'opacity-70 border-gray-100':'border-emerald-100'}`}>
+              <div className="relative bg-gradient-to-br from-gray-50 to-emerald-50" style={{aspectRatio:'1'}}>
                 {product.imageUrl
-                  ? <img src={product.imageUrl} alt={product.name} className="w-full h-full object-contain p-2"/>
+                  ? <img src={product.imageUrl} alt={product.name} className="w-full h-full object-contain p-4"/>
                   : <div className="w-full h-full flex items-center justify-center"><Package className="w-12 h-12 text-gray-300"/></div>}
                 {/* Indicateur multi-photos */}
                 {(product as any).images?.length > 0 && (
@@ -501,20 +1285,57 @@ export default function ProductsPage() {
                     +{(product as any).images.length} photo{(product as any).images.length > 1 ? 's' : ''}
                   </div>
                 )}
-              </div>
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2"><h3 className="font-semibold text-gray-800 truncate">{product.name}</h3>{product.isFeatured&&<Star className="w-4 h-4 text-amber-500 fill-amber-500 flex-shrink-0"/>}</div>
-                  <p className="text-sm text-gray-500">{product.category}{product.brand&&` · ${product.brand}`}</p>
-                </div>
-                <div className="flex gap-1">
-                  <button onClick={()=>openEdit(product)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-blue-500"><Edit className="w-4 h-4"/></button>
-                  <button onClick={()=>handleDelete(product.id!)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4"/></button>
+                <div className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-black ${product.isActive ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                  {product.isActive ? 'En ligne' : 'Masque'}
                 </div>
               </div>
-              <div className="flex justify-between items-end">
-                <div><p className="text-lg font-bold" style={{color:pc}}>{formatPrice(product.sellingPrice,shop?.currency)}</p><p className="text-xs text-gray-400">Cout: {formatPrice(product.costPrice,shop?.currency)}</p></div>
-                <div className={`px-3 py-1 rounded-full text-sm font-medium ${product.stock<=(product.minStock||5)?'bg-red-100 text-red-700':'bg-emerald-100 text-emerald-700'}`}>Stock: {product.stock}</div>
+              <div className="p-4">
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2"><h3 className="font-black text-gray-900 truncate">{product.name}</h3>{product.isFeatured&&<Star className="w-4 h-4 text-amber-500 fill-amber-500 flex-shrink-0"/>}</div>
+                    <p className="text-sm text-gray-500 truncate">{product.category}{product.brand&&` · ${product.brand}`}</p>
+                  </div>
+                  <button onClick={()=>openEdit(product)} className="p-2 hover:bg-gray-100 rounded-xl text-gray-400 hover:text-blue-500"><Edit className="w-4 h-4"/></button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div className="rounded-2xl bg-emerald-50 px-3 py-2">
+                    <p className="text-[10px] uppercase text-emerald-600 font-black">Prix</p>
+                    <p className="text-lg font-black text-emerald-700">{formatPrice(product.sellingPrice,shop?.currency)}</p>
+                  </div>
+                  <div className={`rounded-2xl px-3 py-2 ${product.stock<=(product.minStock||5)?'bg-red-50':'bg-gray-50'}`}>
+                    <p className={`text-[10px] uppercase font-black ${product.stock<=(product.minStock||5)?'text-red-500':'text-gray-400'}`}>Stock</p>
+                    <p className={`text-lg font-black ${product.stock<=(product.minStock||5)?'text-red-700':'text-gray-900'}`}>{product.stock}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-[1fr,auto] gap-2">
+                  <button
+                    onClick={() => openBrochure(product)}
+                    className="py-3 rounded-2xl text-sm font-extrabold text-white flex items-center justify-center gap-2 shadow-sm hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all"
+                    style={{background:'linear-gradient(135deg,#0f766e,#25D366)'}}
+                  >
+                    <Sparkles className="w-4 h-4"/>
+                    Fiche + partage
+                  </button>
+                  {shop?.whatsapp ? (
+                    <a
+                      href={getWhatsAppLink(shop.whatsapp, `Bonjour, je veux partager ce produit: ${product.name}\nPrix: ${formatPrice(product.sellingPrice, shop?.currency)}`)}
+                      target="_blank"
+                      className="w-12 h-12 rounded-2xl bg-green-50 text-green-700 border border-green-100 flex items-center justify-center hover:bg-green-100"
+                      title="Partager sur WhatsApp"
+                    >
+                      <Share2 className="w-4 h-4"/>
+                    </a>
+                  ) : (
+                    <button onClick={()=>handleDelete(product.id!)} className="w-12 h-12 rounded-2xl bg-red-50 text-red-500 border border-red-100 flex items-center justify-center hover:bg-red-100" title="Supprimer">
+                      <Trash2 className="w-4 h-4"/>
+                    </button>
+                  )}
+                </div>
+                {shop?.whatsapp&&(
+                  <button onClick={()=>handleDelete(product.id!)} className="mt-2 text-xs text-gray-400 hover:text-red-500 font-bold">
+                    Supprimer
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -532,6 +1353,10 @@ export default function ProductsPage() {
               <button onClick={()=>{setShowModal(false);stopCam();}} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5"/></button>
             </div>
             <form onSubmit={handleSave} className="p-4 space-y-4">
+              <div className="rounded-2xl bg-emerald-50 border border-emerald-100 p-4">
+                <p className="text-sm font-black text-emerald-900">Parcours simple</p>
+                <p className="text-xs text-emerald-700 mt-1">Photo du produit → l'IA remplit la fiche → tu sauvegardes → tu generes la brochure a partager.</p>
+              </div>
 
               {/* PHOTO PRINCIPALE */}
               <div>
@@ -626,7 +1451,9 @@ export default function ProductsPage() {
 
               {/* ── PHOTOS SUPPLÉMENTAIRES ── */}
               {(photoMode==='done'||form.imageUrl) && (
-                <div className="space-y-2">
+                <details className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
+                  <summary className="cursor-pointer text-sm font-bold text-gray-700">Photos supplementaires</summary>
+                  <div className="space-y-2 mt-3">
                   <div className="flex items-center gap-2">
                     <label className="block text-sm font-medium text-gray-700">Photos supplémentaires</label>
                     <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">jusqu'à 2 photos</span>
@@ -668,7 +1495,8 @@ export default function ProductsPage() {
                   {extraPhotos.length > 0 && (
                     <p className="text-xs text-emerald-600 font-medium">✓ {extraPhotos.length} photo{extraPhotos.length > 1 ? 's' : ''} supplémentaire{extraPhotos.length > 1 ? 's' : ''} ajoutée{extraPhotos.length > 1 ? 's' : ''}</p>
                   )}
-                </div>
+                  </div>
+                </details>
               )}
 
               {isAnalyzing&&photoMode==='done'&&(
@@ -686,29 +1514,192 @@ export default function ProductsPage() {
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Marque</label><input type="text" value={form.brand} onChange={e=>setForm({...form,brand:e.target.value})} className="input" placeholder="Samsung, Nike..."/></div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">SKU</label><input type="text" value={form.sku} onChange={e=>setForm({...form,sku:e.target.value})} className="input font-mono text-sm" placeholder="REF-001"/></div>
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Code-barres</label><input type="text" value={form.barcode} onChange={e=>setForm({...form,barcode:e.target.value})} className="input font-mono text-sm" placeholder="0123456789" inputMode="numeric"/></div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Prix d'achat *</label><input type="number" required min="0" value={form.costPrice} onChange={e=>setForm({...form,costPrice:e.target.value})} className="input"/></div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Prix de vente *</label><input type="number" required min="0" value={form.sellingPrice} onChange={e=>setForm({...form,sellingPrice:e.target.value})} className="input"/>{margin>0&&<p className={`text-xs mt-1 font-medium ${margin>=20?'text-emerald-600':'text-amber-600'}`}>Marge: {margin}%</p>}</div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Stock *</label><input type="number" required min="0" value={form.stock} onChange={e=>setForm({...form,stock:e.target.value})} className="input"/></div>
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Stock min. alerte</label><input type="number" min="0" value={form.minStock} onChange={e=>setForm({...form,minStock:e.target.value})} className="input"/></div>
               </div>
-              <div className="flex gap-6">
-                <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.isActive} onChange={e=>setForm({...form,isActive:e.target.checked})} className="w-5 h-5 rounded"/><span className="text-sm">Actif (visible)</span></label>
-                <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.isFeatured} onChange={e=>setForm({...form,isFeatured:e.target.checked})} className="w-5 h-5 rounded"/><span className="text-sm">Mis en avant</span></label>
-              </div>
+              <details className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
+                <summary className="cursor-pointer text-sm font-bold text-gray-700">Options avancees</summary>
+                <div className="mt-3 space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">SKU</label><input type="text" value={form.sku} onChange={e=>setForm({...form,sku:e.target.value})} className="input font-mono text-sm" placeholder="REF-001"/></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Code-barres</label><input type="text" value={form.barcode} onChange={e=>setForm({...form,barcode:e.target.value})} className="input font-mono text-sm" placeholder="0123456789" inputMode="numeric"/></div>
+                  </div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Stock min. alerte</label><input type="number" min="0" value={form.minStock} onChange={e=>setForm({...form,minStock:e.target.value})} className="input"/></div>
+                  <div className="flex gap-6">
+                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.isActive} onChange={e=>setForm({...form,isActive:e.target.checked})} className="w-5 h-5 rounded"/><span className="text-sm">Actif (visible)</span></label>
+                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.isFeatured} onChange={e=>setForm({...form,isFeatured:e.target.checked})} className="w-5 h-5 rounded"/><span className="text-sm">Mis en avant</span></label>
+                  </div>
+                </div>
+              </details>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={()=>{setShowModal(false);stopCam();}} className="btn-secondary flex-1">Annuler</button>
+                <button
+                  type="submit"
+                  name="afterSave"
+                  value="brochure"
+                  disabled={saving||uploadingPhoto||uploadingExtra||photoMode==='crop'}
+                  className="flex-1 py-3 rounded-2xl bg-emerald-50 text-emerald-800 border border-emerald-200 font-extrabold text-sm flex items-center justify-center gap-2 hover:bg-emerald-100 disabled:opacity-60"
+                >
+                  <FileText className="w-4 h-4"/>
+                  Sauvegarder + brochure
+                </button>
                 <button type="submit" disabled={saving||uploadingPhoto||uploadingExtra||photoMode==='crop'} className="btn-primary flex-1 flex items-center justify-center gap-2" style={{backgroundColor:pc}}>
                   {(saving||uploadingPhoto||uploadingExtra)&&<Loader2 className="w-5 h-5 animate-spin"/>}
                   {photoMode==='crop'?"Confirmez d'abord le cadrage":uploadingPhoto||uploadingExtra?'Upload...':saving?'Sauvegarde...':'Sauvegarder'}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* =========== STUDIO BROCHURE PRODUIT =========== */}
+      {brochureProduct&&brochureCopy&&(
+        <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-[65] p-0 sm:p-4 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-5xl rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl max-h-[96vh] flex flex-col">
+            <div className="px-5 py-4 flex items-center justify-between" style={{background:'linear-gradient(135deg,#052e25,#0f766e)'}}>
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 bg-white/15 rounded-2xl flex items-center justify-center"><Sparkles className="w-5 h-5 text-emerald-200"/></div>
+                <div>
+                  <p className="font-extrabold text-white text-lg">Brochure produit</p>
+                  <p className="text-emerald-100 text-xs">Photo, prix, arguments et partage en un seul endroit</p>
+                </div>
+              </div>
+              <button onClick={()=>setBrochureProduct(null)} className="w-9 h-9 bg-white/15 rounded-full flex items-center justify-center hover:bg-white/25"><X className="w-4 h-4 text-white"/></button>
+            </div>
+
+            <div className="overflow-y-auto p-4 sm:p-6 grid lg:grid-cols-[430px,1fr] gap-6 bg-slate-50">
+              <div className="space-y-4">
+                <div className="rounded-[2rem] bg-white shadow-xl border border-emerald-100 overflow-hidden">
+                  <div className="p-4" style={{background:'linear-gradient(135deg,#052e25,#0f766e)'}}>
+                    <div className="flex items-center justify-between text-white">
+                      <span className="text-sm font-extrabold">{shop?.name || 'MasterShopPro'}</span>
+                      <span className="text-[11px] font-bold bg-white/15 px-3 py-1 rounded-full">WhatsApp ready</span>
+                    </div>
+                  </div>
+                  <div className="p-5 space-y-4">
+                    <div className="rounded-3xl bg-slate-50 overflow-hidden border border-slate-100" style={{aspectRatio: brochurePreviewUrl ? '1080 / 1920' : '1'}}>
+                      {brochurePreviewUrl ? (
+                        <img src={brochurePreviewUrl} alt={`Brochure ${brochureProduct.name}`} className="w-full h-full object-contain bg-white"/>
+                      ) : proImageLoading ? (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-emerald-700">
+                          <Loader2 className="w-10 h-10 animate-spin mb-3"/>
+                          <p className="text-sm font-extrabold">Creation image pro...</p>
+                          <p className="text-xs text-slate-400 mt-1">On garde le produit semblable</p>
+                        </div>
+                      ) : (proImageUrl || brochureProduct.imageUrl)
+                        ? <img src={proImageUrl || brochureProduct.imageUrl} alt={brochureProduct.name} className="w-full h-full object-contain p-4"/>
+                        : <div className="w-full h-full flex items-center justify-center"><Package className="w-16 h-16 text-slate-300"/></div>}
+                    </div>
+                    <div className="inline-flex px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-extrabold border border-emerald-100">
+                      {brochureCopy.badge}
+                    </div>
+                    <div>
+                      <h3 className="text-3xl font-black text-slate-950 leading-tight">{brochureCopy.headline}</h3>
+                      <p className="text-sm text-slate-500 mt-2 leading-relaxed">{brochureCopy.subheadline}</p>
+                    </div>
+                    <div className="grid gap-2">
+                      {getProductStrengths(brochureProduct, brochureCopy).slice(0,3).map((bullet, idx)=>(
+                        <div key={`${bullet}-${idx}`} className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                          <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px]">✓</span>
+                          {bullet}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="rounded-2xl bg-slate-950 text-white px-4 py-3 flex items-center justify-between">
+                      <span className="text-sm font-extrabold">{brochureCopy.cta}</span>
+                      <Share2 className="w-4 h-4 text-emerald-300"/>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <button onClick={downloadBrochure} className="py-3.5 rounded-2xl text-white font-extrabold flex items-center justify-center gap-2 shadow-lg hover:-translate-y-0.5 transition-all" style={{background:'linear-gradient(135deg,#0f766e,#25D366)'}}>
+                    <Download className="w-4 h-4"/>
+                    Telecharger
+                  </button>
+                  <button onClick={printProductSheet} className="py-3.5 rounded-2xl bg-white border border-slate-200 text-slate-900 font-extrabold flex items-center justify-center gap-2 shadow-sm hover:bg-slate-50">
+                    <FileText className="w-4 h-4"/>
+                    PDF
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-600">Produit</p>
+                      <h2 className="text-2xl font-black text-slate-950 mt-1">{brochureProduct.name}</h2>
+                      <p className="text-sm text-slate-500">{brochureProduct.category} · {formatPrice(brochureProduct.sellingPrice, shop?.currency)}</p>
+                    </div>
+                    {brochureLoading&&<div className="flex items-center gap-2 text-sm font-bold text-emerald-700 bg-emerald-50 px-3 py-2 rounded-2xl"><Loader2 className="w-4 h-4 animate-spin"/>IA...</div>}
+                  </div>
+                  {brochureError&&<p className="mt-3 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded-2xl px-3 py-2">{brochureError}</p>}
+                  <div className="grid sm:grid-cols-2 gap-3 mt-5">
+                    <button onClick={generateProfessionalProductImage} disabled={proImageLoading || !brochureProduct.imageUrl} className="py-3 rounded-2xl bg-violet-50 text-violet-800 font-extrabold text-sm border border-violet-100 hover:bg-violet-100 flex items-center justify-center gap-2 disabled:opacity-60">
+                      {proImageLoading?<Loader2 className="w-4 h-4 animate-spin"/>:<Sparkles className="w-4 h-4"/>}
+                      Generer photo pro
+                    </button>
+                    <button onClick={generateCompleteBrochure} disabled={brochureLoading || proImageLoading} className="py-3 rounded-2xl bg-emerald-50 text-emerald-800 font-extrabold text-sm border border-emerald-100 hover:bg-emerald-100 flex items-center justify-center gap-2 disabled:opacity-60">
+                      {brochureLoading?<Loader2 className="w-4 h-4 animate-spin"/>:<Wand2 className="w-4 h-4"/>}
+                      Generer brochure
+                    </button>
+                    <button onClick={shareBrochure} className="py-3 rounded-2xl bg-slate-950 text-white font-extrabold text-sm flex items-center justify-center gap-2 hover:bg-slate-800">
+                      <Share2 className="w-4 h-4"/>
+                      Partager brochure
+                    </button>
+                    <button onClick={publishProductOnline} className="py-3 rounded-2xl bg-blue-50 text-blue-800 font-extrabold text-sm border border-blue-100 hover:bg-blue-100 flex items-center justify-center gap-2">
+                      <Package className="w-4 h-4"/>
+                      Mettre en boutique
+                    </button>
+                    {proImageUrl&&(
+                      <button onClick={saveProfessionalImageToProduct} disabled={proImageLoading} className="py-3 rounded-2xl bg-orange-50 text-orange-800 font-extrabold text-sm border border-orange-100 hover:bg-orange-100 flex items-center justify-center gap-2 disabled:opacity-60">
+                        {proImageLoading?<Loader2 className="w-4 h-4 animate-spin"/>:<Download className="w-4 h-4"/>}
+                        Enregistrer photo pro
+                      </button>
+                    )}
+                    <button onClick={copyBrochureText} className="py-3 rounded-2xl bg-white border border-slate-200 text-slate-900 font-extrabold text-sm flex items-center justify-center gap-2 hover:bg-slate-50">
+                      <Copy className="w-4 h-4"/>
+                      {brochureCopied?'Message copie !':'Copier message'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm">
+                  <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400 mb-3">Message WhatsApp pret</p>
+                  <textarea
+                    value={brochureCopy.whatsappCaption}
+                    onChange={e=>setBrochureCopy({...brochureCopy, whatsappCaption:e.target.value})}
+                    className="w-full min-h-[160px] rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <p className="mt-3 text-xs text-slate-500">Le client ne voit pas l'IA. Il voit un message propre, court et rassurant.</p>
+                </div>
+
+                <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm">
+                  <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400 mb-3">Caracteristiques partageables</p>
+                  <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 text-sm text-slate-700 whitespace-pre-line min-h-[90px]">
+                    {brochureProduct.specifications || 'Ajoute des caracteristiques dans la fiche produit pour enrichir la brochure PDF.'}
+                  </div>
+                  <p className="mt-3 text-xs text-slate-500">La fiche PDF regroupe image, prix, benefices, caracteristiques et message client.</p>
+                </div>
+
+                <div className="grid sm:grid-cols-3 gap-3">
+                  {[
+                    ['Statut WhatsApp', 'Format vertical 4:5 lisible sur mobile'],
+                    ['Facebook', 'Visuel propre pour post produit'],
+                    ['Catalogue', 'Prix, benefices et CTA au meme endroit'],
+                  ].map(([title, text])=>(
+                    <div key={title} className="bg-white rounded-3xl border border-slate-200 p-4">
+                      <p className="font-extrabold text-slate-900 text-sm">{title}</p>
+                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">{text}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

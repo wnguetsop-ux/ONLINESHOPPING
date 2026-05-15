@@ -30,8 +30,8 @@ export function computeDayInsights(
   }
 
   // 2. Montant à récupérer
-  const unpaid = orders.filter(o => ['PENDING','CONFIRMED','PROCESSING'].includes(o.status));
-  const totalUnpaid = unpaid.reduce((s: number, o: any) => s + (o.total || 0), 0);
+  const unpaid = orders.filter(o => ['PENDING','CONFIRMED','PROCESSING'].includes(o.status) && (o.balanceDue || 0) > 0);
+  const totalUnpaid = unpaid.reduce((s: number, o: any) => s + (o.balanceDue || 0), 0);
   if (totalUnpaid > 0) {
     const formatted = totalUnpaid.toLocaleString('fr-FR') + ' ' + currency;
     insights.push({
@@ -45,6 +45,7 @@ export function computeDayInsights(
   // 3. Clients à relancer (commandes non livrées depuis +2 jours)
   const toRelance = orders.filter(o =>
     ['PENDING','CONFIRMED','PROCESSING'].includes(o.status) &&
+    (o.balanceDue || 0) > 0 &&
     new Date(o.createdAt) < twoDaysAgo
   );
   if (toRelance.length > 0) {

@@ -1,10 +1,4 @@
-// lib/whatsapp.ts
-// Couche WhatsApp — Phase 1 (liens wa.me)
-// Prête pour API Meta officielle en Phase 2 sans refonte
-
 import { addCommLog } from './firestore';
-
-// ─── TYPES ────────────────────────────────────────────────────────────────────
 
 export type WhatsAppMessageType =
   | 'contact'
@@ -20,119 +14,136 @@ export interface WhatsAppPayload {
   orderId?: string;
   orderRef?: string;
   total?: number;
+  amountPaid?: number;
   reste?: number;
   currency?: string;
   shopName?: string;
+  templates?: Partial<Record<WhatsAppMessageType, string>>;
 }
 
-// ─── TEMPLATES ────────────────────────────────────────────────────────────────
+const TEMPLATE_STORAGE_KEY = 'sm_wa_templates';
 
 const TEMPLATES: Record<WhatsAppMessageType, string> = {
-  contact:
-    'Bonjour {{nom}}, je vous contacte depuis {{boutique}}. Comment puis-je vous aider ?',
-
+  contact: 'Bonjour {{nom}}, ici {{boutique}}. Je reviens vers vous au sujet de votre demande.',
   confirm_order:
-    'Bonjour {{nom}} 👋\n\nVotre commande *#{{reference}}* a bien été confirmée ✅\n\n💰 Total : *{{total}}*\n\nMerci pour votre confiance ! 🙏\n— {{boutique}}',
-
+    'Bonjour {{nom}},\n\nVotre commande *#{{reference}}* est bien confirmee.\nTotal : *{{total}}*\n{{ligne_paiement}}\n\nMerci.\n{{boutique}}',
   payment_reminder:
-    'Bonjour {{nom}} 👋\n\nNous vous rappelons qu\'il reste *{{reste}}* à régler pour votre commande *#{{reference}}*.\n\nMerci de procéder au paiement dès que possible 🙏\n— {{boutique}}',
-
+    'Bonjour {{nom}},\n\nPetit rappel pour la commande *#{{reference}}*.\nReste a payer : *{{reste}}*\n{{ligne_total}}\n\nMerci.\n{{boutique}}',
   order_ready:
-    'Bonjour {{nom}} 👋\n\nVotre commande *#{{reference}}* est prête ! 🎉\n\nVous pouvez venir la récupérer.\n\n— {{boutique}}',
-
+    'Bonjour {{nom}},\n\nVotre commande *#{{reference}}* est prete.\nVous pouvez passer la recuperer.\n\n{{boutique}}',
   send_receipt:
-    'Bonjour {{nom}} 👋\n\nVoici le résumé de votre commande *#{{reference}}* :\n\n💰 Total payé : *{{total}}*\n✅ Statut : Payée\n\nMerci pour votre confiance ! 🛍️\n— {{boutique}}',
+    'Bonjour {{nom}},\n\nVoici le recapitulatif de la commande *#{{reference}}*.\nTotal : *{{total}}*\nVerse : *{{verse}}*\nReste : *{{reste}}*\n\n{{boutique}}',
 };
 
-// ─── HELPERS ──────────────────────────────────────────────────────────────────
-
-// Remplace les variables {{nom}}, {{reference}}, etc. dans un template
 export function fillTemplate(template: string, vars: Record<string, string>): string {
   return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? '');
 }
 
-// Formate un numéro de téléphone pour wa.me (supprime espaces, +, tirets)
 export function formatPhoneForWhatsApp(phone: string): string {
   return phone.replace(/[\s\+\-\(\)]/g, '');
 }
 
-// Génère le lien wa.me avec message encodé
 export function buildWhatsAppLink(phone: string, message: string): string {
   const cleaned = formatPhoneForWhatsApp(phone);
   const encoded = encodeURIComponent(message);
   return `https://wa.me/${cleaned}?text=${encoded}`;
 }
 
-// Formate un montant avec devise
 function formatAmount(amount: number, currency = 'XAF'): string {
   return `${amount.toLocaleString('fr-FR')} ${currency}`;
 }
 
-// ─── ACTION PRINCIPALE ────────────────────────────────────────────────────────
+function loadLocalTemplates(): Partial<Record<WhatsAppMessageType, string>> {
+  if (typeof window === 'undefined') return {};
 
-// Ouvre WhatsApp + enregistre le log automatiquement
+  try {
+    const raw = window.localStorage.getItem(TEMPLATE_STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as Partial<Record<WhatsAppMessageType, string>>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function normalizeMessageForWhatsApp(message: string): string {
+  return message
+    .replace(/\r/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .trim();
+}
+
 export async function sendWhatsApp(
   type: WhatsAppMessageType,
   payload: WhatsAppPayload
 ): Promise<void> {
   const {
-    shopId, customerPhone, customerName,
-    orderId, orderRef, total, reste,
-    currency = 'XAF', shopName = 'la boutique',
+    shopId,
+    customerPhone,
+    customerName,
+    orderId,
+    orderRef,
+    total,
+    amountPaid,
+    reste,
+    currency = 'XAF',
+    shopName = 'la boutique',
+    templates,
   } = payload;
 
-  // Remplir le template
   const vars: Record<string, string> = {
-    nom:       customerName,
-    reference: orderRef   ?? '',
-    total:     total      ? formatAmount(total, currency) : '',
-    reste:     reste      ? formatAmount(reste, currency) : '',
-    boutique:  shopName,
+    nom: customerName,
+    reference: orderRef ?? '',
+    total: typeof total === 'number' ? formatAmount(total, currency) : '',
+    verse: typeof amountPaid === 'number' ? formatAmount(amountPaid, currency) : formatAmount(0, currency),
+    reste: typeof reste === 'number' ? formatAmount(reste, currency) : formatAmount(0, currency),
+    ligne_total: typeof total === 'number' ? `Montant commande : *${formatAmount(total, currency)}*` : '',
+    ligne_paiement:
+      typeof reste === 'number' && reste > 0
+        ? `Reste a payer : *${formatAmount(reste, currency)}*`
+        : 'Paiement enregistre : commande soldee.',
+    boutique: shopName,
   };
 
-  const message = fillTemplate(TEMPLATES[type], vars);
-  const link    = buildWhatsAppLink(customerPhone, message);
+  const selectedTemplate = templates?.[type] || loadLocalTemplates()[type] || TEMPLATES[type];
+  const message = normalizeMessageForWhatsApp(fillTemplate(selectedTemplate, vars));
+  const link = buildWhatsAppLink(customerPhone, message);
 
-  // Ouvrir WhatsApp
   window.open(link, '_blank');
 
-  // Enregistrer le log (fire & forget — ne bloque pas l'UI)
   try {
     await addCommLog({
       shopId,
-      orderId:      orderId      ?? null,
+      orderId: orderId ?? null,
       customerName,
       customerPhone,
       type,
       message,
-      status:    'opened',
+      status: 'opened',
       createdAt: new Date().toISOString(),
     });
-  } catch (e) {
-    console.warn('[WhatsApp] Log non enregistré :', e);
+  } catch (error) {
+    console.warn('[WhatsApp] Log non enregistre :', error);
   }
 }
 
-// ─── TEMPLATES CUSTOM ─────────────────────────────────────────────────────────
-
-// Permet d'envoyer un message libre (hors templates)
 export async function sendCustomWhatsApp(
   phone: string,
   message: string,
   logData: Omit<Parameters<typeof addCommLog>[0], 'message' | 'type' | 'status' | 'createdAt'>
 ): Promise<void> {
-  const link = buildWhatsAppLink(phone, message);
+  const cleanMessage = normalizeMessageForWhatsApp(message);
+  const link = buildWhatsAppLink(phone, cleanMessage);
   window.open(link, '_blank');
 
   try {
     await addCommLog({
       ...logData,
-      type:      'contact',
-      message,
-      status:    'opened',
+      type: 'contact',
+      message: cleanMessage,
+      status: 'opened',
       createdAt: new Date().toISOString(),
     });
-  } catch (e) {
-    console.warn('[WhatsApp] Log non enregistré :', e);
+  } catch (error) {
+    console.warn('[WhatsApp] Log non enregistre :', error);
   }
 }

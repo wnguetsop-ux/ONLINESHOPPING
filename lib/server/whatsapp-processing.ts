@@ -29,6 +29,14 @@ function messageDocId(merchantId: string, waMessageId?: string): string {
   return waMessageId ? `${sanitizeId(merchantId)}__${sanitizeId(waMessageId)}` : `${sanitizeId(merchantId)}__${Date.now()}`;
 }
 
+function getPhoneNumberIdFromPayload(rawPayload: any): string | null {
+  return (
+    rawPayload?.entry?.[0]?.changes?.[0]?.value?.metadata?.phone_number_id ||
+    rawPayload?.entry?.[0]?.changes?.[0]?.value?.statuses?.[0]?.recipient_id ||
+    null
+  );
+}
+
 function generateOrderNumber(): string {
   const now = new Date();
   return `WAC-${now.getFullYear().toString().slice(-2)}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
@@ -36,11 +44,10 @@ function generateOrderNumber(): string {
 
 async function detectMerchantFromPayload(rawPayload: any): Promise<MerchantWhatsappAccount | null> {
   const db = getFirebaseAdminDb();
-  const phoneNumberId =
-    rawPayload?.entry?.[0]?.changes?.[0]?.value?.metadata?.phone_number_id ||
-    rawPayload?.entry?.[0]?.changes?.[0]?.value?.statuses?.[0]?.recipient_id;
+  const phoneNumberId = getPhoneNumberIdFromPayload(rawPayload);
 
   if (!phoneNumberId) {
+    console.warn('[whatsapp-webhook] missing phone_number_id in payload');
     return null;
   }
 
@@ -52,6 +59,10 @@ async function detectMerchantFromPayload(rawPayload: any): Promise<MerchantWhats
 
   if (!snapshot.empty) {
     const document = snapshot.docs[0];
+    console.info('[whatsapp-webhook] merchant matched', {
+      merchantId: document.data().merchantId,
+      phoneNumberId: String(phoneNumberId),
+    });
     return { id: document.id, ...document.data() } as MerchantWhatsappAccount;
   }
 
@@ -60,6 +71,10 @@ async function detectMerchantFromPayload(rawPayload: any): Promise<MerchantWhats
   const envPhoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   const envMerchantId = process.env.WHATSAPP_DEFAULT_MERCHANT_ID;
   if (envPhoneNumberId && envMerchantId && String(phoneNumberId) === envPhoneNumberId) {
+    console.info('[whatsapp-webhook] merchant matched by env fallback', {
+      merchantId: envMerchantId,
+      phoneNumberId: envPhoneNumberId,
+    });
     return {
       merchantId: envMerchantId,
       phoneNumberId: envPhoneNumberId,
@@ -68,6 +83,9 @@ async function detectMerchantFromPayload(rawPayload: any): Promise<MerchantWhats
     } as MerchantWhatsappAccount;
   }
 
+  console.warn('[whatsapp-webhook] merchant not found for phone_number_id', {
+    phoneNumberId: String(phoneNumberId),
+  });
   return null;
 }
 
@@ -316,6 +334,10 @@ async function finalizeWebhookEvent(eventId: string, payload: Partial<RawWebhook
 }
 
 export async function processIncomingWhatsAppWebhook(rawPayload: unknown) {
+  console.info('[whatsapp-webhook] event received', {
+    phoneNumberId: getPhoneNumberIdFromPayload(rawPayload),
+    entries: Array.isArray((rawPayload as any)?.entry) ? (rawPayload as any).entry.length : 0,
+  });
   const account = await detectMerchantFromPayload(rawPayload);
   const merchantId = account?.merchantId || null;
   const rawEventId = await saveRawWebhookEvent(rawPayload, merchantId);

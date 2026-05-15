@@ -7,18 +7,28 @@ import {
   User, Phone, MapPin, ChevronLeft, Send, Check
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { getOrders, updateOrderStatus, createOrder, getProducts } from '@/lib/firestore';
+import { getOrders, updateOrderStatus, createOrder, getProducts, updateOrderPayment } from '@/lib/firestore';
 import { Order, Product } from '@/lib/types';
 import { formatPrice, formatDate, getWhatsAppLink } from '@/lib/utils';
 import { sendWhatsApp } from '@/lib/whatsapp';
+import { getPaymentProgress, getPaymentSnapshot, getPaymentStatusLabel, sanitizeMoney } from '@/lib/order-payment';
 import PhoneInput from '@/components/PhoneInput';
+import WhatsAppCommandCenter, { MessageCaptureDraft } from '@/components/orders/WhatsAppCommandCenter';
 
 const STATUS_CONFIG = {
-  PENDING:    { label: 'En attente',     color: 'bg-amber-100 text-amber-700',    dot: 'bg-amber-400',   icon: Clock },
-  CONFIRMED:  { label: 'Confirmee',      color: 'bg-blue-100 text-blue-700',      dot: 'bg-blue-400',    icon: CheckCircle },
-  PROCESSING: { label: 'En preparation', color: 'bg-purple-100 text-purple-700',  dot: 'bg-purple-400',  icon: Package },
-  DELIVERED:  { label: 'Livree',         color: 'bg-emerald-100 text-emerald-700',dot: 'bg-emerald-400', icon: Truck },
-  CANCELLED:  { label: 'Annulee',        color: 'bg-red-100 text-red-700',        dot: 'bg-red-400',     icon: X },
+  PENDING:    { label: 'En attente',      badge: 'badge-pending',    dot: 'bg-amber-400',   icon: Clock,        pulse: true  },
+  CONFIRMED:  { label: 'Confirmée',       badge: 'badge-confirmed',  dot: 'bg-blue-400',    icon: CheckCircle,  pulse: false },
+  PROCESSING: { label: 'En préparation',  badge: 'badge-processing', dot: 'bg-purple-400',  icon: Package,      pulse: false },
+  DELIVERED:  { label: 'Livrée',          badge: 'badge-delivered',  dot: 'bg-emerald-400', icon: Truck,        pulse: false },
+  CANCELLED:  { label: 'Annulée',         badge: 'badge-cancelled',  dot: 'bg-red-400',     icon: X,            pulse: false },
+};
+// Legacy color accessor for inline styles still using .color
+const STATUS_COLOR_LEGACY: Record<string, string> = {
+  PENDING:    'bg-amber-100 text-amber-700',
+  CONFIRMED:  'bg-blue-100 text-blue-700',
+  PROCESSING: 'bg-purple-100 text-purple-700',
+  DELIVERED:  'bg-emerald-100 text-emerald-700',
+  CANCELLED:  'bg-red-100 text-red-700',
 };
 
 interface ManualItem { productId: string; productName: string; quantity: number; unitPrice: number; costPrice: number; imageUrl?: string; }
@@ -43,7 +53,7 @@ function groupByDate(orders: Order[]) {
 }
 
 export default function OrdersPage() {
-  const { shop } = useAuth();
+  const { shop, admin } = useAuth();
   const [orders, setOrders]   = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,6 +70,8 @@ export default function OrdersPage() {
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
   const [productCatFilter, setProductCatFilter] = useState('');
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
+  const [paymentDraft, setPaymentDraft] = useState('');
+  const [savingPayment, setSavingPayment] = useState(false);
   const receiptRef = useRef<HTMLDivElement>(null);
 
   // ── Formulaire par étapes ──────────────────────────────────────────────
@@ -68,6 +80,7 @@ export default function OrdersPage() {
     customerName: '', customerPhone: '', customerAddress: '', notes: '',
     paymentMethod: 'CASH_ON_DELIVERY' as Order['paymentMethod'],
     deliveryMethod: 'PICKUP' as Order['deliveryMethod'],
+    amountPaid: '',
   });
   const [manualItems, setManualItems] = useState<ManualItem[]>([]);
   const [productSearch, setProductSearch] = useState('');
@@ -86,6 +99,9 @@ export default function OrdersPage() {
 
   useEffect(() => { if (shop?.id) loadData(); }, [shop?.id]);
   useEffect(() => () => { if (scanStream) scanStream.getTracks().forEach(t => t.stop()); }, [scanStream]);
+  useEffect(() => {
+    setPaymentDraft(selected ? String(selected.amountPaid || 0) : '');
+  }, [selected?.id, selected?.amountPaid]);
 
   async function loadData() {
     if (!shop?.id) return;
@@ -97,9 +113,19 @@ export default function OrdersPage() {
     setExpandedDates(defaults);
   }
 
+  async function openLinkedOrder(orderId: string) {
+    if (!shop?.id) return;
+    const refreshed = await getOrders(shop.id);
+    setOrders(refreshed);
+    const target = refreshed.find((order) => order.id === orderId);
+    if (target) {
+      setSelected(target);
+    }
+  }
+
   function openManual() {
     setStep('client');
-    setManualForm({ customerName: '', customerPhone: '', customerAddress: '', notes: '', paymentMethod: 'CASH_ON_DELIVERY', deliveryMethod: 'PICKUP' });
+    setManualForm({ customerName: '', customerPhone: '', customerAddress: '', notes: '', paymentMethod: 'CASH_ON_DELIVERY', deliveryMethod: 'PICKUP', amountPaid: '' });
     setManualItems([]);
     setProductSearch('');
     setProductCatFilter('');
@@ -116,10 +142,65 @@ export default function OrdersPage() {
     setScanMode(null);
   }
 
+  function applyCapturedDraft(draft: MessageCaptureDraft) {
+    openManual();
+
+    const matchedItems = draft.analysis.extractedOrderSignals
+      .map(signal => {
+        const product = products.find(p => p.name.toLowerCase() === signal.productName.toLowerCase());
+        if (!product?.id) return null;
+        return {
+          productId: product.id,
+          productName: product.name,
+          quantity: signal.quantity,
+          unitPrice: product.sellingPrice,
+          costPrice: product.costPrice,
+          imageUrl: product.imageUrl,
+        };
+      })
+      .filter(Boolean) as ManualItem[];
+
+    const deliveryMethod = draft.analysis.addressSignal ? 'DELIVERY' : 'PICKUP';
+    const paymentMethod = draft.analysis.paymentProofSignal ? 'MOBILE_MONEY' : 'CASH_ON_DELIVERY';
+
+    setManualForm({
+      customerName: draft.customerName || '',
+      customerPhone: '',
+      customerAddress: '',
+      notes: `Message client: ${draft.originalText}`,
+      paymentMethod,
+      deliveryMethod,
+      amountPaid: '',
+    });
+    setManualItems(matchedItems);
+
+    if ((draft.customerName || '').trim() && matchedItems.length > 0) {
+      setStep('summary');
+      return;
+    }
+
+    if ((draft.customerName || '').trim()) {
+      setStep('products');
+      return;
+    }
+
+    setStep('client');
+  }
+
   async function changeStatus(orderId: string, status: Order['status']) {
     await updateOrderStatus(orderId, status);
     await loadData();
     if (selected?.id === orderId) setSelected(prev => prev ? { ...prev, status } : null);
+  }
+
+  async function savePaymentProgress(order: Order, nextAmountPaid: number) {
+    if (!order.id) return;
+    setSavingPayment(true);
+    const snapshot = getPaymentSnapshot(order.total, nextAmountPaid, order.paymentStatus, order.status);
+    await updateOrderPayment(order.id, nextAmountPaid);
+    await loadData();
+    setSelected(prev => prev ? { ...prev, ...snapshot, amountPaid: snapshot.amountPaid, balanceDue: snapshot.balanceDue, paymentStatus: snapshot.paymentStatus } : null);
+    setSavingPayment(false);
   }
 
   async function waAction(type: 'confirm_order' | 'payment_reminder' | 'order_ready' | 'send_receipt' | 'contact', order: Order) {
@@ -128,7 +209,8 @@ export default function OrdersPage() {
       shopId: shop.id, shopName: shop.name,
       customerPhone: order.customerPhone, customerName: order.customerName,
       orderId: order.id, orderRef: order.orderNumber,
-      total: order.total, reste: order.total, currency: shop.currency,
+      total: order.total, amountPaid: order.amountPaid, reste: order.balanceDue, currency: shop.currency,
+      templates: shop.whatsappTemplates,
     });
   }
 
@@ -194,10 +276,10 @@ export default function OrdersPage() {
         paymentMethod: manualForm.paymentMethod,
         deliveryMethod: manualForm.deliveryMethod,
         deliveryFee,
+        amountPaid: sanitizeMoney(manualForm.amountPaid),
       });
-      await updateOrderStatus(orderId, 'CONFIRMED');
-      await updateOrderStatus(orderId, 'PROCESSING');
       await loadData();
+      const paymentSnapshot = getPaymentSnapshot(subtotal + deliveryFee, sanitizeMoney(manualForm.amountPaid));
       const previewOrder: any = {
         id: orderId,
         orderNumber: 'CMD-' + Date.now().toString().slice(-6),
@@ -207,9 +289,12 @@ export default function OrdersPage() {
         notes: manualForm.notes,
         items: manualItems.map(i => ({ productName: i.productName, quantity: i.quantity, unitPrice: i.unitPrice, total: i.unitPrice * i.quantity })),
         subtotal, deliveryFee, total: subtotal + deliveryFee,
+        amountPaid: paymentSnapshot.amountPaid,
+        balanceDue: paymentSnapshot.balanceDue,
+        paymentStatus: paymentSnapshot.paymentStatus,
         paymentMethod: manualForm.paymentMethod,
         deliveryMethod: manualForm.deliveryMethod,
-        status: 'PROCESSING',
+        status: 'PENDING',
         createdAt: new Date().toISOString(),
       };
       closeManual();
@@ -230,6 +315,7 @@ export default function OrdersPage() {
   const manualSubtotal = manualItems.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
   const manualDelivery = manualForm.deliveryMethod === 'DELIVERY' ? (shop?.deliveryFee || 0) : 0;
   const manualTotal = manualSubtotal + manualDelivery;
+  const manualPaymentSnapshot = getPaymentSnapshot(manualTotal, sanitizeMoney(manualForm.amountPaid));
   const availableProducts = products.filter(p => p.isActive && p.stock > 0);
   const productCategories = Array.from(new Set(availableProducts.map(p => p.category)));
   const displayedProducts = availableProducts.filter(p =>
@@ -250,7 +336,19 @@ export default function OrdersPage() {
     PROCESSING: orders.filter(o => o.status === 'PROCESSING').length,
     DELIVERED: orders.filter(o => o.status === 'DELIVERED').length,
   };
-  const todayRevenue = orders.filter(o => { const today = new Date(); today.setHours(0,0,0,0); return new Date(o.createdAt) >= today && o.status === 'DELIVERED'; }).reduce((s, o) => s + o.total, 0);
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayOrders = orders.filter(o => new Date(o.createdAt) >= todayStart);
+  const openOrders = orders.filter(o => !['DELIVERED', 'CANCELLED'].includes(o.status));
+  const unpaidActiveOrders = openOrders.filter(o => (o.balanceDue || 0) > 0);
+  const deliveryQueue = orders.filter(o => ['CONFIRMED', 'PROCESSING'].includes(o.status));
+  const todayRevenue = todayOrders.filter(o => o.status === 'DELIVERED').reduce((s, o) => s + o.total, 0);
+  const todayActionItems = [
+    { label: 'Nouvelles a verifier', value: stats.PENDING, tone: 'bg-amber-50 text-amber-700 border-amber-100' },
+    { label: 'Reste a encaisser', value: unpaidActiveOrders.length, tone: 'bg-orange-50 text-orange-700 border-orange-100' },
+    { label: 'A preparer / livrer', value: deliveryQueue.length, tone: 'bg-blue-50 text-blue-700 border-blue-100' },
+    { label: 'Commandes du jour', value: todayOrders.length, tone: 'bg-wa-soft text-wa-dark border-wa-border' },
+  ];
   const canGoProducts = manualForm.customerName.trim().length > 0;
   const canSave = manualItems.length > 0;
 
@@ -273,32 +371,64 @@ export default function OrdersPage() {
       `}</style>
 
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Commandes</h1>
-          <p className="text-gray-500 text-sm">{orders.length} commande{orders.length !== 1 ? 's' : ''} au total</p>
+      <div className="rounded-[28px] border border-slate-100 bg-white p-4 shadow-ios sm:p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="inline-flex items-center rounded-full bg-wa-soft px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-wa-dark">
+              Poste de travail WhatsApp
+            </p>
+            <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-slate-900">Commandes</h1>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
+              Ici on transforme les messages clients en commandes claires: qui a ecrit, quoi preparer, quoi encaisser, quoi livrer.
+            </p>
+          </div>
+          <button onClick={openManual} className="btn-wa">
+            <Plus className="w-5 h-5" />Enregistrer une vente
+          </button>
         </div>
-        <button onClick={() => setOrderMode('pick')} className="btn-primary flex items-center gap-2" style={{ backgroundColor: primaryColor }}>
-          <Plus className="w-5 h-5" />Nouvelle commande
-        </button>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          {todayActionItems.map((item) => (
+            <div key={item.label} className={`rounded-2xl border px-4 py-3 ${item.tone}`}>
+              <p className="text-2xl font-black leading-none">{item.value}</p>
+              <p className="mt-1 text-xs font-bold">{item.label}</p>
+            </div>
+          ))}
+        </div>
+        {openOrders.length === 0 && (
+          <p className="mt-3 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+            Tout est propre pour le moment. Quand un client ecrit, colle son message ci-dessous ou laisse WhatsApp le faire remonter apres connexion Meta.
+          </p>
+        )}
       </div>
+
+      {shop?.id && (
+        <WhatsAppCommandCenter
+          merchantId={shop.id}
+          adminUserId={admin?.uid}
+          products={products}
+          onUseDraft={applyCapturedDraft}
+          onOpenLinkedOrder={openLinkedOrder}
+        />
+      )}
 
       {/* KPI */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {(['PENDING','CONFIRMED','PROCESSING','DELIVERED'] as const).map(s => {
-          const cfg = STATUS_CONFIG[s]; const Icon = cfg.icon;
+          const cfg = STATUS_CONFIG[s];
           return (
             <button key={s} onClick={() => setStatusFilter(statusFilter === s ? '' : s)}
-              className={`stat-card text-left transition-all ${statusFilter === s ? 'ring-2 ring-offset-1' : ''}`}
-              style={statusFilter === s ? { outlineColor: primaryColor } : {}}>
-              <div className="flex items-center gap-2 mb-1"><div className={`w-2.5 h-2.5 rounded-full ${cfg.dot}`} /><span className="text-xs text-gray-500 font-medium">{cfg.label}</span></div>
-              <p className="text-2xl font-bold text-gray-800">{stats[s]}</p>
+              className={`stat-card text-left transition-all hover:shadow-ios ${statusFilter === s ? 'ring-2 ring-wa' : ''}`}>
+              <div className="flex items-center gap-2 mb-2">
+                <div className={`w-2.5 h-2.5 rounded-full ${cfg.dot} ${cfg.pulse ? 'animate-pulse' : ''}`} />
+                <span className="text-xs text-slate-500 font-semibold">{cfg.label}</span>
+              </div>
+              <p className="text-2xl font-black text-slate-900">{stats[s]}</p>
             </button>
           );
         })}
         <div className="stat-card col-span-2 lg:col-span-1">
-          <p className="text-xs text-gray-500 font-medium mb-1">Revenu aujourd'hui</p>
-          <p className="text-lg font-bold text-emerald-600">{formatPrice(todayRevenue, shop?.currency)}</p>
+          <p className="text-xs text-slate-500 font-semibold mb-2">Revenu aujourd'hui</p>
+          <p className="text-lg font-black text-wa-dark">{formatPrice(todayRevenue, shop?.currency)}</p>
         </div>
       </div>
 
@@ -325,14 +455,22 @@ export default function OrdersPage() {
         {hasFilters && <p className="text-xs text-gray-500">{filtered.length} résultat{filtered.length !== 1 ? 's' : ''}</p>}
       </div>
 
-      {/* Status pills */}
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      {/* Status filter pills */}
+      <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
         <button onClick={() => setStatusFilter('')}
-          className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold ${!statusFilter ? 'text-white' : 'bg-gray-100 text-gray-600'}`}
-          style={!statusFilter ? { backgroundColor: primaryColor } : {}}>Toutes ({orders.length})</button>
+          className={`flex-shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+            !statusFilter ? 'bg-slate-900 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+          }`}>
+          Toutes ({orders.length})
+        </button>
         {(Object.keys(STATUS_CONFIG) as Array<keyof typeof STATUS_CONFIG>).map(s => (
           <button key={s} onClick={() => setStatusFilter(statusFilter === s ? '' : s)}
-            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold ${statusFilter === s ? STATUS_CONFIG[s].color : 'bg-gray-100 text-gray-500'}`}>
+            className={`flex-shrink-0 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+              statusFilter === s
+                ? 'bg-slate-900 text-white'
+                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+            }`}>
+            <span className={`w-2 h-2 rounded-full ${STATUS_CONFIG[s].dot}`} />
             {STATUS_CONFIG[s].label} ({orders.filter(o => o.status === s).length})
           </button>
         ))}
@@ -343,8 +481,8 @@ export default function OrdersPage() {
         <div className="card text-center py-12">
           <ShoppingCart className="w-16 h-16 mx-auto text-gray-200 mb-3" />
           <p className="text-gray-500 font-medium mb-1">Aucune commande</p>
-          <p className="text-xs text-gray-400 mb-4">Les commandes en ligne apparaissent ici automatiquement</p>
-          <button onClick={() => setOrderMode('pick')} className="btn-primary inline-flex items-center gap-2" style={{ backgroundColor: primaryColor }}>
+          <p className="text-xs text-gray-400 mb-4">Collez un message client ou ajoutez une vente en quelques secondes.</p>
+          <button onClick={openManual} className="btn-primary inline-flex items-center gap-2" style={{ backgroundColor: primaryColor }}>
             <Plus className="w-4 h-4" />Enregistrer une commande
           </button>
         </div>
@@ -370,26 +508,49 @@ export default function OrdersPage() {
                   <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                 </button>
                 {isExpanded && (
-                  <div className="border-t border-gray-50 divide-y divide-gray-50">
+                  <div className="divide-y divide-app-border">
                     {dayOrders.map(order => {
-                      const cfg = STATUS_CONFIG[order.status]; const StatusIcon = cfg.icon;
+                      const cfg = STATUS_CONFIG[order.status];
                       return (
                         <div key={order.id} onClick={() => setSelected(order)}
-                          className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors">
+                          className={`flex items-center justify-between px-4 py-3.5 cursor-pointer border-l-4 transition-all hover:bg-slate-50 hover:shadow-sm ${
+                            order.status === 'PENDING'
+                              ? 'border-l-amber-400 bg-amber-50/30'
+                              : order.status === 'CONFIRMED'
+                                ? 'border-l-blue-400 bg-white'
+                                : order.status === 'PROCESSING'
+                                  ? 'border-l-purple-400 bg-white'
+                                  : order.status === 'DELIVERED'
+                                    ? 'border-l-emerald-400 bg-white'
+                                    : 'border-l-red-300 bg-white'
+                          }`}>
                           <div className="flex items-center gap-3">
-                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${cfg.color.split(' ')[0]}`}><StatusIcon className={`w-4 h-4 ${cfg.color.split(' ')[1]}`} /></div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <p className="font-semibold text-gray-800 text-sm">{order.customerName}</p>
-                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${cfg.color}`}>{cfg.label}</span>
+                            {/* Customer avatar */}
+                            <div className="relative w-10 h-10 flex-shrink-0">
+                              <div className="w-10 h-10 rounded-full bg-wa-soft text-wa-dark flex items-center justify-center font-bold text-sm border border-wa-border">
+                                {order.customerName?.charAt(0).toUpperCase() || '?'}
                               </div>
-                              <p className="text-xs text-gray-400">{order.orderNumber} · {new Date(order.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
+                              <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${cfg.dot} ${cfg.pulse ? 'animate-pulse' : ''}`} />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <p className="font-bold text-slate-800 text-[14px]">{order.customerName}</p>
+                                <span className={`badge text-[9px] ${cfg.badge}`}>{cfg.label}</span>
+                              </div>
+                              <p className="text-xs text-slate-400">{order.orderNumber} · {new Date(order.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
+                              {(order.balanceDue || 0) > 0 && (
+                                <p className="text-[11px] text-amber-600 font-bold mt-0.5">
+                                  Reste: {formatPrice(order.balanceDue, shop?.currency)}
+                                </p>
+                              )}
                             </div>
                           </div>
-                          <div className="text-right flex flex-col items-end gap-1">
-                            <p className="font-bold text-gray-800 text-sm">{formatPrice(order.total, shop?.currency)}</p>
+                          <div className="text-right flex flex-col items-end gap-1.5">
+                            <p className="font-black text-slate-900 text-sm">{formatPrice(order.total, shop?.currency)}</p>
                             <button onClick={e => { e.stopPropagation(); setShowReceipt(order); }}
-                              className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-gray-600"><Printer className="w-3 h-3" />Reçu</button>
+                              className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-slate-600 font-medium">
+                              <Printer className="w-3 h-3" />Reçu
+                            </button>
                           </div>
                         </div>
                       );
@@ -407,25 +568,17 @@ export default function OrdersPage() {
         <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 backdrop-blur-sm">
           <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-sm shadow-2xl slide-up">
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mt-3 mb-4 sm:hidden" />
-            <div className="px-6 pb-2 text-center">
-              <h2 className="text-lg font-black text-gray-800">Quelle commande enregistrer ?</h2>
-              <p className="text-sm text-gray-400 mt-1">Choisissez la source de la commande</p>
+              <div className="px-6 pb-2 text-center">
+                <h2 className="text-lg font-black text-gray-800">Quelle commande enregistrer ?</h2>
+              <p className="text-sm text-gray-400 mt-1">Le chemin rapide sert aux ventes WhatsApp et boutique.</p>
             </div>
             <div className="p-4 space-y-3">
-              <button onClick={() => setOrderMode(null)}
-                className="w-full flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-100 hover:border-blue-200 hover:bg-blue-50 transition-all text-left group">
-                <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center flex-shrink-0 text-2xl group-hover:scale-105 transition-transform">🛒</div>
-                <div>
-                  <p className="font-bold text-gray-800 text-sm">Commande en ligne</p>
-                  <p className="text-xs text-gray-400 mt-0.5">Déjà dans la liste — cliquez dessus pour confirmer</p>
-                </div>
-              </button>
               <button onClick={openManual}
-                className="w-full flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-100 hover:border-green-200 hover:bg-green-50 transition-all text-left group">
+                className="w-full flex items-center gap-4 p-4 rounded-2xl border-2 border-green-100 bg-green-50 hover:border-green-200 transition-all text-left group">
                 <div className="w-12 h-12 bg-green-100 rounded-2xl flex items-center justify-center flex-shrink-0 text-2xl group-hover:scale-105 transition-transform">💬</div>
                 <div>
-                  <p className="font-bold text-gray-800 text-sm">WhatsApp / En personne</p>
-                  <p className="text-xs text-gray-400 mt-0.5">Enregistrer manuellement une commande reçue</p>
+                  <p className="font-bold text-gray-800 text-sm">Créer une commande maintenant</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Client, produits, paiement, livraison. Simple et direct.</p>
                 </div>
               </button>
             </div>
@@ -536,6 +689,23 @@ export default function OrdersPage() {
                       value={manualForm.notes}
                       onChange={e => setManualForm({ ...manualForm, notes: e.target.value })}
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                      💰 Montant deja verse
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      className="input text-sm"
+                      placeholder="0"
+                      value={manualForm.amountPaid}
+                      onChange={e => setManualForm({ ...manualForm, amountPaid: e.target.value })}
+                    />
+                    <p className="text-[11px] text-gray-400 mt-2">
+                      Optionnel. Pratique si le client a deja laisse un acompte.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -702,6 +872,16 @@ export default function OrdersPage() {
                   <div className="flex justify-between font-black text-xl" style={{ color: primaryColor }}>
                     <span>Total</span><span>{formatPrice(manualTotal, shop?.currency)}</span>
                   </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <div className="rounded-xl bg-white/80 border border-white p-3">
+                      <p className="text-[11px] uppercase tracking-wide text-gray-400 font-bold mb-1">Deja verse</p>
+                      <p className="font-black text-emerald-600">{formatPrice(manualPaymentSnapshot.amountPaid, shop?.currency)}</p>
+                    </div>
+                    <div className="rounded-xl bg-white/80 border border-white p-3">
+                      <p className="text-[11px] uppercase tracking-wide text-gray-400 font-bold mb-1">Reste a payer</p>
+                      <p className="font-black text-orange-600">{formatPrice(manualPaymentSnapshot.balanceDue, shop?.currency)}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -734,7 +914,7 @@ export default function OrdersPage() {
                   className="w-full py-4 rounded-2xl text-white font-black text-base flex items-center justify-center gap-3 disabled:opacity-40 transition-all hover:opacity-90"
                   style={{ backgroundColor: '#16a34a' }}>
                   {savingManual ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
-                  {savingManual ? 'Enregistrement...' : 'Confirmer la commande'}
+                  {savingManual ? 'Enregistrement...' : 'Enregistrer la commande'}
                 </button>
               )}
             </div>
@@ -745,25 +925,160 @@ export default function OrdersPage() {
       {/* == ORDER DETAIL ================================================== */}
       {selected && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-2xl">
             <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white z-10">
-              <div><h2 className="text-base font-bold">{selected.orderNumber}</h2><p className="text-xs text-gray-400">{new Date(selected.createdAt).toLocaleString('fr-FR')}</p></div>
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-400">Commande</p>
+                <h2 className="text-base font-black text-gray-900">{selected.orderNumber}</h2>
+                <p className="text-xs text-gray-400">{new Date(selected.createdAt).toLocaleString('fr-FR')}</p>
+              </div>
               <div className="flex items-center gap-2">
                 <button onClick={() => setShowReceipt(selected)} className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 rounded-lg text-sm"><Printer className="w-4 h-4" />Imprimer</button>
                 <button onClick={() => setSelected(null)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
               </div>
             </div>
-            <div className="p-4 space-y-4">
-              <div className={`p-3 rounded-xl ${STATUS_CONFIG[selected.status].color.split(' ')[0]}`}>
-                <p className={`font-medium text-sm ${STATUS_CONFIG[selected.status].color.split(' ')[1]}`}>Statut : {STATUS_CONFIG[selected.status].label}</p>
+            <div className="p-4 sm:p-5 space-y-4">
+              <div className="rounded-2xl border border-gray-100 bg-gradient-to-br from-slate-50 to-white p-4 sm:p-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-400 mb-2">Client</p>
+                    <h3 className="text-lg font-black text-gray-900">{selected.customerName}</h3>
+                    {selected.customerPhone && <p className="text-sm text-gray-500 mt-1">{selected.customerPhone}</p>}
+                    {selected.customerAddress && <p className="text-sm text-gray-500 mt-1">{selected.customerAddress}</p>}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-bold ${STATUS_COLOR_LEGACY[selected.status]}`}>
+                      {STATUS_CONFIG[selected.status].label}
+                    </span>
+                    <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-bold ${
+                      selected.paymentStatus === 'PAID'
+                        ? 'bg-emerald-50 text-emerald-700'
+                        : selected.paymentStatus === 'PARTIALLY_PAID'
+                          ? 'bg-orange-50 text-orange-700'
+                          : 'bg-red-50 text-red-700'
+                    }`}>
+                      {getPaymentStatusLabel(selected.paymentStatus)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
+                  <div className="rounded-2xl bg-white border border-gray-100 p-4">
+                    <p className="text-[11px] uppercase tracking-wide text-gray-400 font-bold mb-1">Total</p>
+                    <p className="text-lg font-black text-gray-900">{formatPrice(selected.total, shop?.currency)}</p>
+                  </div>
+                  <div className="rounded-2xl bg-emerald-50 border border-emerald-100 p-4">
+                    <p className="text-[11px] uppercase tracking-wide text-emerald-500 font-bold mb-1">Deja verse</p>
+                    <p className="text-lg font-black text-emerald-700">{formatPrice(selected.amountPaid, shop?.currency)}</p>
+                  </div>
+                  <div className="rounded-2xl bg-orange-50 border border-orange-100 p-4">
+                    <p className="text-[11px] uppercase tracking-wide text-orange-500 font-bold mb-1">Reste a payer</p>
+                    <p className="text-lg font-black text-orange-700">{formatPrice(selected.balanceDue, shop?.currency)}</p>
+                  </div>
+                </div>
+
+                {selected.notes && (
+                  <div className="mt-4 rounded-2xl bg-white border border-gray-100 p-4">
+                    <p className="text-[11px] uppercase tracking-wide text-gray-400 font-bold mb-1">Note utile</p>
+                    <p className="text-sm text-gray-600 leading-relaxed">{selected.notes}</p>
+                  </div>
+                )}
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className={`hidden p-3 rounded-xl ${
+                selected.paymentStatus === 'PAID'
+                  ? 'bg-emerald-50 text-emerald-700'
+                  : selected.paymentStatus === 'PARTIALLY_PAID'
+                    ? 'bg-orange-50 text-orange-700'
+                    : 'bg-red-50 text-red-700'
+              }`}>
+                <p className="font-medium text-sm">Paiement : {getPaymentStatusLabel(selected.paymentStatus)}</p>
+              </div>
+              <div className="hidden flex flex-wrap gap-2">
                 {selected.status === 'PENDING' && (<><button onClick={() => changeStatus(selected.id!, 'CONFIRMED')} className="btn-primary text-sm" style={{ backgroundColor: primaryColor }}>✅ Confirmer</button><button onClick={() => changeStatus(selected.id!, 'CANCELLED')} className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm">✕ Annuler</button></>)}
                 {selected.status === 'CONFIRMED' && <button onClick={() => changeStatus(selected.id!, 'PROCESSING')} className="btn-primary text-sm" style={{ backgroundColor: primaryColor }}>📦 En préparation</button>}
                 {selected.status === 'PROCESSING' && <button onClick={() => changeStatus(selected.id!, 'DELIVERED')} className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-sm">✅ Livrée</button>}
               </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {selected.status === 'PENDING' && (
+                  <button onClick={() => changeStatus(selected.id!, 'CONFIRMED')} className="w-full rounded-2xl px-4 py-4 text-sm font-black text-white shadow-sm" style={{ backgroundColor: primaryColor }}>
+                    Confirmer la commande
+                  </button>
+                )}
+                {selected.status === 'CONFIRMED' && (
+                  <button onClick={() => changeStatus(selected.id!, 'PROCESSING')} className="w-full rounded-2xl px-4 py-4 text-sm font-black text-white shadow-sm" style={{ backgroundColor: primaryColor }}>
+                    Passer en preparation
+                  </button>
+                )}
+                {selected.status === 'PROCESSING' && (
+                  <button onClick={() => changeStatus(selected.id!, 'DELIVERED')} className="w-full rounded-2xl px-4 py-4 text-sm font-black text-white shadow-sm bg-emerald-600">
+                    Marquer comme livree
+                  </button>
+                )}
+                {selected.customerPhone && (
+                  <button
+                    onClick={() => waAction('contact', selected)}
+                    className="w-full rounded-2xl px-4 py-4 text-sm font-black text-green-700 bg-green-50 border border-green-100"
+                  >
+                    Repondre sur WhatsApp
+                  </button>
+                )}
+              </div>
+              <div className="bg-white border border-gray-100 rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Paiement</p>
+                    <p className="font-semibold text-gray-800 text-sm">Mettez juste a jour le montant deja verse</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setPaymentDraft(String(selected.total));
+                      void savePaymentProgress(selected, selected.total);
+                    }}
+                    disabled={savingPayment || selected.paymentStatus === 'PAID'}
+                    className="px-3 py-2 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 disabled:opacity-50"
+                  >
+                    Tout payer
+                  </button>
+                </div>
+                <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
+                  <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${getPaymentProgress(selected)}%` }} />
+                </div>
+                <div className="hidden grid grid-cols-3 gap-2 text-sm">
+                  <div className="rounded-xl bg-gray-50 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-gray-400 font-bold mb-1">Total</p>
+                    <p className="font-black text-gray-800">{formatPrice(selected.total, shop?.currency)}</p>
+                  </div>
+                  <div className="rounded-xl bg-emerald-50 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-emerald-500 font-bold mb-1">Verse</p>
+                    <p className="font-black text-emerald-700">{formatPrice(selected.amountPaid, shop?.currency)}</p>
+                  </div>
+                  <div className="rounded-xl bg-orange-50 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-orange-500 font-bold mb-1">Reste</p>
+                    <p className="font-black text-orange-700">{formatPrice(selected.balanceDue, shop?.currency)}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    max={selected.total}
+                    value={paymentDraft}
+                    onChange={e => setPaymentDraft(e.target.value)}
+                    className="input text-sm"
+                    placeholder="Montant verse"
+                  />
+                  <button
+                    onClick={() => void savePaymentProgress(selected, sanitizeMoney(paymentDraft))}
+                    disabled={savingPayment}
+                    className="px-4 py-2 rounded-xl text-sm font-bold text-white disabled:opacity-50"
+                    style={{ backgroundColor: primaryColor }}
+                  >
+                    {savingPayment ? '...' : 'Mettre a jour'}
+                  </button>
+                </div>
+              </div>
               {selected.customerPhone && (
-                <div className="bg-green-50 border border-green-100 rounded-xl p-3">
+                <div className="hidden bg-green-50 border border-green-100 rounded-xl p-3">
                   <p className="text-xs font-bold text-green-700 mb-2 flex items-center gap-1.5"><MessageCircle className="w-3.5 h-3.5" />Actions WhatsApp</p>
                   <div className="flex flex-wrap gap-2">
                     {[
@@ -772,7 +1087,7 @@ export default function OrdersPage() {
                       { type: 'order_ready' as const,      label: '📦 Prête' },
                       { type: 'payment_reminder' as const, label: '💰 Rappel' },
                       { type: 'send_receipt' as const,     label: '🧾 Reçu' },
-                    ].map(({ type, label }) => (
+                    ].filter(({ type }) => type !== 'payment_reminder' || selected.balanceDue > 0).map(({ type, label }) => (
                       <button key={type} onClick={() => waAction(type, selected)}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-green-200 rounded-lg text-xs font-semibold text-green-700 hover:bg-green-100 transition-colors">
                         {label}
@@ -781,14 +1096,14 @@ export default function OrdersPage() {
                   </div>
                 </div>
               )}
-              <div className="bg-gray-50 rounded-xl p-4">
+              <div className="hidden bg-gray-50 rounded-xl p-4">
                 <h3 className="font-semibold text-sm mb-2">Client</h3>
                 <p className="font-medium">{selected.customerName}</p>
                 {selected.customerPhone && <p className="text-sm text-gray-600 mt-1">{selected.customerPhone}</p>}
                 {selected.customerAddress && <p className="text-sm text-gray-600 mt-1">{selected.customerAddress}</p>}
                 {selected.notes && <p className="text-sm text-gray-500 mt-2 italic">{selected.notes}</p>}
               </div>
-              <div className="space-y-2">
+              <div className="hidden space-y-2">
                 {selected.items.map((item, i) => (
                   <div key={i} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
                     <div><p className="font-medium text-sm">{item.productName}</p><p className="text-xs text-gray-500">x{item.quantity} · {formatPrice(item.unitPrice, shop?.currency)}</p></div>
@@ -796,10 +1111,86 @@ export default function OrdersPage() {
                   </div>
                 ))}
               </div>
-              <div className="bg-gray-50 rounded-xl p-4 space-y-1.5">
+              <div className="bg-white border border-gray-100 rounded-2xl p-4">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div>
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Produits</p>
+                    <p className="text-sm text-gray-500">Ce que le client a commande</p>
+                  </div>
+                  <span className="text-xs font-bold text-gray-400">
+                    {selected.items.reduce((sum, item) => sum + item.quantity, 0)} article{selected.items.reduce((sum, item) => sum + item.quantity, 0) > 1 ? 's' : ''}
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  {selected.items.map((item, i) => (
+                    <div key={i} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
+                      <div>
+                        <p className="font-medium text-sm text-gray-900">{item.productName}</p>
+                        <p className="text-xs text-gray-500">x{item.quantity} · {formatPrice(item.unitPrice, shop?.currency)}</p>
+                      </div>
+                      <p className="font-semibold text-sm">{formatPrice(item.total, shop?.currency)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <details className="group rounded-2xl border border-gray-100 bg-gray-50/70">
+                <summary className="list-none cursor-pointer px-4 py-4 flex items-center justify-between">
+                  <div>
+                    <p className="font-bold text-sm text-gray-900">Voir les details avances</p>
+                    <p className="text-xs text-gray-500">WhatsApp, benefice, annulation et recapitulatif complet</p>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" />
+                </summary>
+                <div className="px-4 pb-4 space-y-4">
+                  {selected.customerPhone && (
+                    <div className="bg-green-50 border border-green-100 rounded-2xl p-4">
+                      <p className="text-xs font-bold text-green-700 mb-3 flex items-center gap-1.5">
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        Messages prepares
+                      </p>
+                      <p className="text-xs text-green-700/80 mb-3">Ces boutons ouvrent WhatsApp. Rien n est envoye automatiquement.</p>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          { type: 'confirm_order' as const, label: 'Confirmer' },
+                          { type: 'order_ready' as const, label: 'Commande prete' },
+                          { type: 'payment_reminder' as const, label: 'Rappel paiement' },
+                          { type: 'send_receipt' as const, label: 'Envoyer le recu' },
+                        ].filter(({ type }) => type !== 'payment_reminder' || selected.balanceDue > 0).map(({ type, label }) => (
+                          <button
+                            key={type}
+                            onClick={() => waAction(type, selected)}
+                            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-green-200 rounded-xl text-xs font-semibold text-green-700 hover:bg-green-100 transition-colors"
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-2">
+                    <div className="flex justify-between text-sm text-gray-600"><span>Sous-total</span><span>{formatPrice(selected.subtotal, shop?.currency)}</span></div>
+                    <div className="flex justify-between text-sm text-gray-600"><span>Livraison</span><span>{formatPrice(selected.deliveryFee, shop?.currency)}</span></div>
+                    <div className="flex justify-between font-bold pt-2 border-t" style={{ color: primaryColor }}><span>Total</span><span>{formatPrice(selected.total, shop?.currency)}</span></div>
+                    <div className="flex justify-between text-sm text-emerald-600 font-medium"><span>Deja verse</span><span>{formatPrice(selected.amountPaid, shop?.currency)}</span></div>
+                    <div className="flex justify-between text-sm text-orange-600 font-medium"><span>Reste a payer</span><span>{formatPrice(selected.balanceDue, shop?.currency)}</span></div>
+                    <div className="flex justify-between text-sm text-emerald-600 font-medium"><span>Benefice</span><span>+{formatPrice(selected.profit, shop?.currency)}</span></div>
+                  </div>
+                  {selected.status === 'PENDING' && (
+                    <button
+                      onClick={() => changeStatus(selected.id!, 'CANCELLED')}
+                      className="w-full rounded-2xl px-4 py-3 text-sm font-bold text-red-600 bg-red-50 border border-red-100"
+                    >
+                      Annuler cette commande
+                    </button>
+                  )}
+                </div>
+              </details>
+              <div className="hidden bg-gray-50 rounded-xl p-4 space-y-1.5">
                 <div className="flex justify-between text-sm text-gray-600"><span>Sous-total</span><span>{formatPrice(selected.subtotal, shop?.currency)}</span></div>
                 <div className="flex justify-between text-sm text-gray-600"><span>Livraison</span><span>{formatPrice(selected.deliveryFee, shop?.currency)}</span></div>
                 <div className="flex justify-between font-bold pt-2 border-t" style={{ color: primaryColor }}><span>Total</span><span>{formatPrice(selected.total, shop?.currency)}</span></div>
+                <div className="flex justify-between text-sm text-emerald-600 font-medium"><span>Deja verse</span><span>{formatPrice(selected.amountPaid, shop?.currency)}</span></div>
+                <div className="flex justify-between text-sm text-orange-600 font-medium"><span>Reste a payer</span><span>{formatPrice(selected.balanceDue, shop?.currency)}</span></div>
                 <div className="flex justify-between text-sm text-emerald-600 font-medium"><span>Bénéfice</span><span>+{formatPrice(selected.profit, shop?.currency)}</span></div>
               </div>
             </div>
@@ -831,6 +1222,7 @@ export default function OrdersPage() {
                 <div className="flex justify-between"><span className="font-bold">Client:</span><span>{showReceipt.customerName}</span></div>
                 {showReceipt.customerPhone && <div className="flex justify-between"><span className="font-bold">Tél:</span><span>{showReceipt.customerPhone}</span></div>}
                 <div className="flex justify-between"><span className="font-bold">Paiement:</span><span>{showReceipt.paymentMethod === 'MOBILE_MONEY' ? 'Mobile Money' : 'Espèces'}</span></div>
+                <div className="flex justify-between"><span className="font-bold">Statut:</span><span>{getPaymentStatusLabel(showReceipt.paymentStatus)}</span></div>
               </div>
               <div className="border-t border-dashed my-2" />
               {showReceipt.items.map((item, i) => (
@@ -843,8 +1235,10 @@ export default function OrdersPage() {
               <div className="flex justify-between"><span>Sous-total</span><span>{formatPrice(showReceipt.subtotal, shop?.currency)}</span></div>
               {showReceipt.deliveryFee > 0 && <div className="flex justify-between"><span>Livraison</span><span>{formatPrice(showReceipt.deliveryFee, shop?.currency)}</span></div>}
               <div className="flex justify-between font-bold text-sm mt-1"><span>TOTAL</span><span>{formatPrice(showReceipt.total, shop?.currency)}</span></div>
+              <div className="flex justify-between"><span>Verse</span><span>{formatPrice(showReceipt.amountPaid, shop?.currency)}</span></div>
+              <div className="flex justify-between"><span>Reste</span><span>{formatPrice(showReceipt.balanceDue, shop?.currency)}</span></div>
               <div className="border-t border-dashed my-2" />
-              <div className="text-center"><p>Merci pour votre achat !</p><p>Propulsé par ShopMaster</p></div>
+              <div className="text-center"><p>Merci pour votre achat !</p><p>Propulse par MasterShopPro</p></div>
             </div>
           </div>
         </div>
@@ -866,6 +1260,9 @@ export default function OrdersPage() {
                 <span className="text-gray-400 text-sm">·</span>
                 <span className="text-sm text-gray-500 font-semibold">{createdOrder.customerName}</span>
               </div>
+              <p className="text-xs text-gray-500 mt-3">
+                Verse: {formatPrice(createdOrder.amountPaid, shop?.currency)} · Reste: {formatPrice(createdOrder.balanceDue, shop?.currency)}
+              </p>
             </div>
 
             <div className="p-5 space-y-3">
@@ -905,11 +1302,11 @@ export default function OrdersPage() {
               <div className="grid grid-cols-2 gap-2 pt-1">
                 <button
                   onClick={async () => {
-                    if (createdOrder.id) { await updateOrderStatus(createdOrder.id, 'DELIVERED'); await loadData(); }
+                    if (createdOrder.id) { await updateOrderStatus(createdOrder.id, 'CONFIRMED'); await loadData(); }
                     setCreatedOrder(null);
                   }}
                   className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-700 font-bold text-sm hover:bg-emerald-100 transition-colors">
-                  <Check className="w-4 h-4" />Marquer livrée
+                  <Check className="w-4 h-4" />Marquer confirmee
                 </button>
                 <button onClick={() => { setShowReceipt(createdOrder as any); setCreatedOrder(null); }}
                   className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-gray-100 text-gray-700 font-bold text-sm hover:bg-gray-200 transition-colors">

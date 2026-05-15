@@ -1,265 +1,352 @@
 'use client';
-import { useState, useEffect } from 'react';
 
-const PLAY_URL  = 'https://www.mastershoppro.com/register';
-const DEMO_URL  = '/demo';
-const WA_NUM    = '393299639430';
-const YT_ID     = 'gKLc2s5CcBU';
+import Image from 'next/image';
+import Link from 'next/link';
+import { ArrowRight, CheckCircle2, MessageCircle, Package, ShoppingBag } from 'lucide-react';
+import Reveal from '@/components/marketing/Reveal';
+import { PLANS } from '@/lib/types';
 
-export default function LandingAds() {
-  const [scrolled, setScrolled]   = useState(false);
-  const [count,    setCount]      = useState(487);
-  const [showVideo, setShowVideo] = useState(false);
+const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.mastershoppro.app';
+const SIGNUP_URL = '/register';
 
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40);
-    window.addEventListener('scroll', onScroll);
-    const iv = setInterval(() => setCount(c => c + Math.floor(Math.random() * 2)), 9000);
-    return () => { window.removeEventListener('scroll', onScroll); clearInterval(iv); };
-  }, []);
+const BENEFITS = [
+  'Centraliser les demandes qui arrivent par chat',
+  'Suivre paiement, statut, client et stock au meme endroit',
+  'Transformer une discussion en commande sans changer WhatsApp',
+];
+
+const FAQS = [
+  {
+    q: 'Est-ce que MasterShopPro remplace WhatsApp ?',
+    a: 'Non. WhatsApp reste le canal de vente. MasterShopPro organise les commandes, clients, paiements et suivis derriere les discussions.',
+  },
+  {
+    q: 'Est-ce que je peux garder mon numero WhatsApp actuel ?',
+    a: 'Oui, c est le parcours cible. Si Meta demande une migration du numero, l app guide le commercant au lieu de lui demander de repartir de zero.',
+  },
+  {
+    q: 'Pourquoi utiliser MasterShopPro si WhatsApp a deja un catalogue ?',
+    a: 'Le catalogue aide a montrer les produits. MasterShopPro aide a gerer ce qui vient apres : commandes, paiements, statut, stock, historique client.',
+  },
+];
+
+function formatXaf(value: number) {
+  return `${value.toLocaleString('fr-FR')} FCFA`;
+}
+
+export default function LandingPage() {
+  const plans = [PLANS.FREE, PLANS.STARTER, PLANS.STANDARD, PLANS.PRO];
 
   return (
-    <div style={{ fontFamily: "'Plus Jakarta Sans','Nunito',system-ui,sans-serif", background: '#fff', color: '#111', minHeight: '100vh', overflowX: 'hidden' }}>
-      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
-      <style>{`
-        @keyframes pulse-green { 0%,100%{box-shadow:0 0 0 0 rgba(22,163,74,0.6),0 8px 32px rgba(22,163,74,0.4)} 50%{box-shadow:0 0 0 14px rgba(22,163,74,0),0 8px 32px rgba(22,163,74,0.4)} }
-        @keyframes shine { 0%{transform:translateX(-100%) skewX(-15deg)} 100%{transform:translateX(300%) skewX(-15deg)} }
-        @keyframes float {0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)}}
-        @keyframes ticker {0%{transform:translateX(0)} 100%{transform:translateX(-50%)}}
-        .pulse-cta { animation: pulse-green 2s ease-in-out infinite; }
-        .shine-btn { position:relative; overflow:hidden; }
-        .shine-btn::after { content:''; position:absolute; top:0; left:0; width:40%; height:100%; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent); animation: shine 2.5s ease-in-out infinite; }
-        .float { animation: float 4s ease-in-out infinite; }
-        .ticker-wrap { overflow:hidden; white-space:nowrap; }
-        .ticker { display:inline-block; animation: ticker 22s linear infinite; }
-      `}</style>
-
-      {/* VIDEO MODAL */}
-      {showVideo && (
-        <div onClick={() => setShowVideo(false)} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div style={{ position: 'relative', borderRadius: 24, overflow: 'hidden', background: '#000', width: '100%', maxWidth: 360 }} onClick={e => e.stopPropagation()}>
-            <div style={{ paddingTop: '177.78%', position: 'relative' }}>
-              <iframe style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }}
-                src={`https://www.youtube.com/embed/${YT_ID}?autoplay=1&rel=0&modestbranding=1&playsinline=1`}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
+    <div className="premium-mesh min-h-screen overflow-x-hidden text-slate-900">
+      <nav className="fixed inset-x-0 top-0 z-50 border-b border-app-border bg-white/88 shadow-[0_16px_45px_rgba(15,23,42,0.05)] backdrop-blur-2xl">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 lg:px-8">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="premium-icon flex h-10 w-10 items-center justify-center rounded-2xl bg-wa text-white shadow-wa">
+              <ShoppingBag className="h-5 w-5" />
             </div>
-            <button onClick={() => setShowVideo(false)} style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: '50%', width: 32, height: 32, color: '#fff', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
-          </div>
-        </div>
-      )}
-
-      {/* HEADER */}
-      <header style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, padding: '12px 20px', background: scrolled ? 'rgba(255,255,255,0.97)' : 'transparent', backdropFilter: scrolled ? 'blur(20px)' : 'none', borderBottom: scrolled ? '1px solid #f0f0f0' : 'none', transition: 'all 0.3s', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg,#f97316,#ea580c)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 14 }}>M</div>
-          <span style={{ fontWeight: 800, fontSize: 16 }}>Mastershop</span>
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <a href={DEMO_URL} style={{ padding: '7px 14px', borderRadius: 20, border: '1px solid #e5e7eb', fontSize: 12, fontWeight: 700, color: '#374151', textDecoration: 'none' }}>Demo</a>
-          <a href={PLAY_URL} style={{ padding: '7px 14px', borderRadius: 20, background: 'linear-gradient(135deg,#16a34a,#15803d)', fontSize: 12, fontWeight: 700, color: '#fff', textDecoration: 'none' }}>S'inscrire</a>
-        </div>
-      </header>
-
-      {/* ── HERO ─────────────────────────────────────────────────────── */}
-      <section style={{ padding: '100px 20px 60px', background: 'linear-gradient(180deg,#fff7ed 0%,#fff 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-
-        {/* Badge */}
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 20, padding: '6px 14px', marginBottom: 28, fontSize: 12, fontWeight: 700, color: '#92400e' }}>
-          <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#f97316', display: 'inline-block' }} />
-          {count.toLocaleString()} vendeurs WhatsApp actifs — Afrique & Diaspora
-        </div>
-
-        {/* Titre principal — UNE seule idée */}
-        <h1 style={{ fontSize: 'clamp(1.9rem,7vw,3.2rem)', fontWeight: 900, lineHeight: 1.15, marginBottom: 20, maxWidth: 640 }}>
-          Vous vendez sur WhatsApp ?<br />
-          <span style={{ color: '#ea580c' }}>Gérez vos commandes, paiements<br />et clients sans désordre.</span>
-        </h1>
-
-        {/* Sous-titre — clair, une phrase */}
-        <p style={{ fontSize: 'clamp(0.95rem,3vw,1.1rem)', color: '#4b5563', maxWidth: 500, margin: '0 0 8px', lineHeight: 1.7 }}>
-          MasterShopPro vous aide à suivre chaque commande, relancer les paiements et garder l'historique client — sans changer votre façon de vendre.
-        </p>
-
-        {/* Ligne de renfort */}
-        <p style={{ fontSize: 13, color: '#16a34a', fontWeight: 700, marginBottom: 32 }}>
-          Continuez à vendre sur WhatsApp. MasterShopPro organise le reste.
-        </p>
-
-        {/* Mini bénéfices hero — 3 max */}
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 36 }}>
-          {['✅ Commandes claires', '💰 Paiements suivis', '🔔 Relances en 1 clic'].map((b, i) => (
-            <span key={i} style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 20, padding: '6px 14px', fontSize: 12, fontWeight: 700, color: '#15803d' }}>{b}</span>
-          ))}
-        </div>
-
-        {/* CTAs */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, width: '100%', maxWidth: 380, marginBottom: 48 }}>
-          <a href={PLAY_URL} className="pulse-cta shine-btn"
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, background: 'linear-gradient(135deg,#16a34a,#15803d)', color: '#fff', textDecoration: 'none', padding: '20px 28px', borderRadius: 18, fontWeight: 800, fontSize: 17, width: '100%' }}>
-            <span style={{ fontSize: 20 }}>🛍️</span>
-            Créer ma boutique gratuitement
-          </a>
-          <p style={{ fontSize: 11, color: '#9ca3af', margin: 0 }}>✅ Gratuit · Sans carte bancaire · Fonctionne sur tous les téléphones</p>
-          <button onClick={() => setShowVideo(true)}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'transparent', color: '#374151', border: '2px solid #e5e7eb', cursor: 'pointer', padding: '13px 24px', borderRadius: 14, fontWeight: 700, fontSize: 14, width: '100%' }}>
-            <div style={{ width: 26, height: 26, background: '#f97316', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 10 }}>▶</div>
-            Voir comment ça marche (30 sec)
-          </button>
-          <a href={DEMO_URL} style={{ fontSize: 13, color: '#16a34a', fontWeight: 600, textDecoration: 'none' }}>→ Essayer la démo sans compte</a>
-        </div>
-
-        {/* Phone mockup */}
-        <div className="float" style={{ position: 'relative', width: 220 }}>
-          <div style={{ position: 'absolute', inset: 0, borderRadius: '3rem', background: 'radial-gradient(circle,rgba(249,115,22,0.25) 0%,rgba(52,211,153,0.15) 100%)', filter: 'blur(28px)', transform: 'scale(1.15)' }} />
-          <div style={{ position: 'relative', borderRadius: '2.6rem', border: '6px solid #1f2937', background: '#111', overflow: 'hidden', aspectRatio: '9/16' }}>
-            <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', width: 52, height: 13, background: '#000', borderRadius: 7, zIndex: 10 }} />
-            <iframe style={{ width: '100%', height: '100%', border: 'none', pointerEvents: 'none' }}
-              src={`https://www.youtube.com/embed/${YT_ID}?autoplay=1&mute=1&rel=0&playsinline=1&loop=1&playlist=${YT_ID}&controls=0&modestbranding=1`}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
-            <button onClick={() => setShowVideo(true)} style={{ position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 10, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.95)', border: 'none', borderRadius: 20, padding: '6px 12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-              <div style={{ width: 20, height: 20, background: '#f97316', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: '#fff' }}>▶</div>
-              <span style={{ fontSize: 11, fontWeight: 800, color: '#111' }}>Voir avec son</span>
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* TICKER */}
-      <div style={{ background: '#16a34a', padding: '10px 0' }}>
-        <div className="ticker-wrap">
-          <div className="ticker" style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>
-            {['✓ Commandes WhatsApp organisées','✓ Relances en 1 clic','✓ Historique clients','✓ Paiements suivis','✓ Sans internet','✓ Studio Photo IA','✓ Mobile Money','✓ Gratuit pour démarrer',
-              '✓ Commandes WhatsApp organisées','✓ Relances en 1 clic','✓ Historique clients','✓ Paiements suivis','✓ Sans internet','✓ Studio Photo IA','✓ Mobile Money','✓ Gratuit pour démarrer']
-              .map((t, i) => <span key={i} style={{ marginRight: 48 }}>{t}</span>)}
-          </div>
-        </div>
-      </div>
-
-      {/* ── SECTION WHATSAPP — preuve concrète ──────────────────────── */}
-      <section style={{ padding: '70px 20px', background: '#f0fdf4' }}>
-        <div style={{ maxWidth: 700, margin: '0 auto' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#dcfce7', border: '1px solid #86efac', borderRadius: 20, padding: '5px 12px', marginBottom: 16, fontSize: 11, fontWeight: 700, color: '#15803d' }}>
-            💬 Ce que MasterShopPro fait pour vous
-          </div>
-          <h2 style={{ fontSize: 'clamp(1.4rem,4vw,2rem)', fontWeight: 900, marginBottom: 8, maxWidth: 560 }}>
-            Fini le désordre dans vos DM WhatsApp
-          </h2>
-          <p style={{ color: '#6b7280', marginBottom: 32, fontSize: 14, maxWidth: 520 }}>
-            Chaque commande prise sur WhatsApp est enregistrée, suivie et relancée automatiquement depuis MasterShopPro.
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12 }}>
-            {[
-              { emoji: '📥', title: 'Commandes centralisées', desc: 'Toutes vos commandes WhatsApp en un seul endroit, classées et claires' },
-              { emoji: '💰', title: 'Suivi des paiements', desc: 'Voyez en temps réel qui a payé, qui doit encore payer, et combien' },
-              { emoji: '🔔', title: 'Relances en 1 clic', desc: 'Rappel paiement, confirmation de commande, commande prête — message automatique' },
-              { emoji: '👥', title: 'Historique clients', desc: 'Chaque client : ses commandes, ses achats, son dernier contact' },
-              { emoji: '🧾', title: 'Reçus sur WhatsApp', desc: 'Envoyez un reçu professionnel directement depuis l\'app' },
-              { emoji: '📋', title: 'Journal des échanges', desc: 'Retrouvez tout ce que vous avez envoyé à chaque client, avec la date' },
-            ].map((f, i) => (
-              <div key={i} style={{ background: '#fff', border: '1px solid #d1fae5', borderRadius: 16, padding: '18px' }}>
-                <span style={{ fontSize: 28, display: 'block', marginBottom: 10 }}>{f.emoji}</span>
-                <p style={{ fontWeight: 800, fontSize: 13, marginBottom: 4, color: '#111' }}>{f.title}</p>
-                <p style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.5, margin: 0 }}>{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── PROBLÈMES → SOLUTIONS ────────────────────────────────────── */}
-      <section style={{ padding: '70px 20px', background: '#f9fafb' }}>
-        <div style={{ maxWidth: 600, margin: '0 auto' }}>
-          <h2 style={{ fontSize: 'clamp(1.5rem,5vw,2.2rem)', fontWeight: 900, textAlign: 'center', marginBottom: 8 }}>Ça vous parle ? 👇</h2>
-          <p style={{ textAlign: 'center', color: '#6b7280', marginBottom: 32, fontSize: 14 }}>Ce sont les vrais problèmes des vendeurs WhatsApp</p>
-          {[
-            { pb: '😤 Vous notez les commandes dans un carnet ou dans votre tête', sol: 'Toutes vos commandes sont enregistrées, classées et suivies dans MasterShopPro' },
-            { pb: '💸 Vous oubliez de relancer les clients qui n\'ont pas encore payé', sol: 'Rappel paiement WhatsApp en 1 clic — message pré-rempli avec le montant exact' },
-            { pb: '🤷 Vous ne savez plus ce que chaque client a acheté par le passé', sol: 'Historique client complet : commandes, montants, dernier contact' },
-            { pb: '📸 Vos photos produits font amateur comparé aux vraies boutiques', sol: 'Studio Photo IA : fond blanc pro automatique en 1 clic, sans matériel' },
-          ].map((item, i) => (
-            <div key={i} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: '18px 20px', marginBottom: 10 }}>
-              <p style={{ fontSize: 14, color: '#9ca3af', marginBottom: 8 }}>{item.pb}</p>
-              <p style={{ fontSize: 14, fontWeight: 700, color: '#16a34a' }}>✅ {item.sol}</p>
+            <div>
+              <p className="text-base font-black tracking-tight">MasterShopPro</p>
+              <p className="text-[11px] font-semibold text-slate-400">Back-office des ventes WhatsApp</p>
             </div>
-          ))}
-        </div>
-      </section>
+          </Link>
 
-      {/* ── TÉMOIGNAGES ──────────────────────────────────────────────── */}
-      <section style={{ padding: '70px 20px', background: 'linear-gradient(160deg,#f0fdf4,#fffbeb)' }}>
-        <h2 style={{ fontSize: 'clamp(1.5rem,5vw,2.2rem)', fontWeight: 900, textAlign: 'center', marginBottom: 36 }}>
-          Ils vendent sur WhatsApp et gèrent tout avec MasterShopPro 🌍
-        </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(250px,1fr))', gap: 14, maxWidth: 900, margin: '0 auto' }}>
-          {[
-            { av: '👩🏾', name: 'Aminata K.', loc: 'Dakar · Tissus', text: 'Avant j\'oubliais toujours de relancer. Maintenant je clique sur un bouton et le message part. Plus aucun impayé !' },
-            { av: '👨🏿', name: 'Jean-Paul M.', loc: 'Abidjan · Épicerie', text: "Mes clients reçoivent leur reçu sur WhatsApp dès que je valide la commande. Ils adorent." },
-            { av: '👩🏽', name: 'Fatou D.', loc: 'Douala · Cosmétiques', text: 'Je vois tout l\'historique de chaque cliente. Je sais ce qu\'elle a acheté, quand, et combien elle a dépensé.' },
-            { av: '👨🏾', name: 'Moussa T.', loc: 'Bamako · Téléphonie', text: 'Fini le carnet. Toutes mes commandes WhatsApp sont dans MasterShopPro. Je gère 3 vendeurs sans confusion.' },
-          ].map((t, i) => (
-            <div key={i} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: '18px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                <span style={{ fontSize: 30 }}>{t.av}</span>
-                <div><p style={{ fontWeight: 700, fontSize: 13, margin: 0 }}>{t.name}</p><p style={{ fontSize: 11, color: '#9ca3af', margin: 0 }}>{t.loc}</p></div>
-                <div style={{ marginLeft: 'auto', color: '#f59e0b', fontSize: 11 }}>★★★★★</div>
-              </div>
-              <p style={{ fontSize: 13, color: '#4b5563', lineHeight: 1.6, fontStyle: 'italic', margin: 0 }}>"{t.text}"</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── FEATURES — ordre priorisé ────────────────────────────────── */}
-      <section style={{ padding: '70px 20px' }}>
-        <div style={{ maxWidth: 700, margin: '0 auto' }}>
-          <h2 style={{ fontSize: 'clamp(1.5rem,5vw,2.2rem)', fontWeight: 900, textAlign: 'center', marginBottom: 8 }}>
-            Tout ce dont un vendeur WhatsApp a besoin 📱
-          </h2>
-          <p style={{ textAlign: 'center', color: '#6b7280', marginBottom: 36, fontSize: 14 }}>Aucune formation. Opérationnel en 5 minutes.</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
-            {[
-              { icon: '💬', bg: '#dcfce7', bd: '#86efac', title: 'Gestion commandes WhatsApp', desc: 'Centralisez, suivez et confirmez chaque commande' },
-              { icon: '🔔', bg: '#fef3c7', bd: '#fde68a', title: 'Relances automatiques', desc: 'Rappel paiement, confirmation, prêt à retirer' },
-              { icon: '👥', bg: '#dbeafe', bd: '#93c5fd', title: 'Historique clients', desc: 'Achats, paiements, dernier contact par client' },
-              { icon: '🧾', bg: '#ffe4e6', bd: '#fecdd3', title: 'Reçus sur WhatsApp', desc: 'Envoi direct depuis l\'app en 1 clic' },
-              { icon: '🤖', bg: '#f3e8ff', bd: '#e9d5ff', title: 'Studio Photo IA', desc: 'Fond blanc pro automatique — photo prête en 1 clic' },
-              { icon: '📶', bg: '#fff7ed', bd: '#fed7aa', title: 'Hors connexion', desc: 'Continue de fonctionner sans internet ou en 2G' },
-            ].map((f, i) => (
-              <div key={i} style={{ background: f.bg, border: `2px solid ${f.bd}`, borderRadius: 16, padding: '16px' }}>
-                <span style={{ fontSize: 28, display: 'block', marginBottom: 8 }}>{f.icon}</span>
-                <p style={{ fontWeight: 800, fontSize: 12, marginBottom: 4 }}>{f.title}</p>
-                <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.5, margin: 0 }}>{f.desc}</p>
-              </div>
-            ))}
+          <div className="flex items-center gap-3">
+            <Link href="/login" className="hidden text-sm font-semibold text-slate-500 transition hover:text-slate-900 sm:inline-flex">
+              Connexion
+            </Link>
+            <Link href={SIGNUP_URL} className="btn-primary px-5 text-sm">
+              Organiser mes ventes
+            </Link>
           </div>
         </div>
-      </section>
+      </nav>
 
-      {/* ── CTA FINAL ────────────────────────────────────────────────── */}
-      <section style={{ padding: '70px 20px', background: 'linear-gradient(135deg,#1a1a2e 0%,#0f3460 100%)', textAlign: 'center' }}>
-        <p style={{ fontSize: 12, fontWeight: 700, color: '#4ade80', textTransform: 'uppercase', letterSpacing: 3, marginBottom: 16 }}>Prêt à organiser vos ventes ?</p>
-        <h2 style={{ fontSize: 'clamp(1.6rem,5vw,2.6rem)', fontWeight: 900, color: '#fff', maxWidth: 560, margin: '0 auto 12px', lineHeight: 1.2 }}>
-          Continuez à vendre sur WhatsApp.<br />
-          <span style={{ color: '#4ade80' }}>MasterShopPro organise le reste.</span>
-        </h2>
-        <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 40, fontSize: 14 }}>
-          Commandes · Paiements · Relances · Clients — Tout en 1 app · Gratuit pour démarrer
-        </p>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, maxWidth: 380, margin: '0 auto' }}>
-          <a href={PLAY_URL} className="pulse-cta shine-btn"
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, background: 'linear-gradient(135deg,#16a34a,#15803d)', color: '#fff', textDecoration: 'none', padding: '20px 28px', borderRadius: 18, fontWeight: 800, fontSize: 17, width: '100%' }}>
-            <span style={{ fontSize: 20 }}>🛍️</span>
-            Créer ma boutique gratuitement
-          </a>
-          <a href={`https://wa.me/${WA_NUM}?text=Bonjour, je veux essayer MasterShopPro`} target="_blank"
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'rgba(37,211,102,0.15)', border: '1px solid rgba(37,211,102,0.4)', color: '#4ade80', textDecoration: 'none', padding: '14px 24px', borderRadius: 14, fontWeight: 700, fontSize: 15, width: '100%' }}>
-            <span style={{ fontSize: 20 }}>💬</span>
-            Une question ? Écrivez-nous sur WhatsApp
-          </a>
-          <a href={DEMO_URL} style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, textDecoration: 'none', fontWeight: 600 }}>→ Essayer la démo sans compte</a>
+      <main>
+        <section className="relative overflow-hidden px-5 pb-20 pt-28 lg:px-8 lg:pb-24 lg:pt-36">
+          <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[36rem] bg-[radial-gradient(circle_at_top_left,rgba(37,211,102,0.18),transparent_44%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.12),transparent_38%),linear-gradient(180deg,#f8fffb_0%,#ffffff_70%)]" />
+          <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[1.02fr_0.98fr]">
+            <div>
+              <Reveal>
+                <div className="inline-flex items-center gap-2 rounded-full border border-[#bbf7d0] bg-[#f0fdf4] px-4 py-2 text-xs font-bold uppercase tracking-[0.22em] text-[#128C7E]">
+                  <MessageCircle className="h-4 w-4" />
+                  Pensé pour les vendeurs WhatsApp
+                </div>
+              </Reveal>
+
+              <Reveal delay={80}>
+                <h1 className="mt-6 max-w-3xl text-5xl font-black tracking-[-0.05em] text-slate-950 sm:text-6xl lg:text-7xl">
+                  WhatsApp vous aide a vendre.
+                  <span className="block text-[#25D366]">MasterShopPro vous aide a gerer.</span>
+                </h1>
+              </Reveal>
+
+              <Reveal delay={140}>
+                <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600 sm:text-xl">
+                  Gardez vos clients sur WhatsApp. Suivez les commandes, paiements, clients et stocks dans un tableau de bord clair.
+                </p>
+              </Reveal>
+
+              <Reveal delay={200}>
+                <div className="mt-8 grid gap-3 sm:grid-cols-1">
+                  {BENEFITS.map((item) => (
+                    <div key={item} className="premium-chip">
+                      <CheckCircle2 className="h-4 w-4 text-[#25D366]" />
+                      <span>{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </Reveal>
+
+              <Reveal delay={260}>
+                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                  <Link href={SIGNUP_URL} className="btn-primary px-7 text-base">
+                    Organiser mes ventes WhatsApp
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                  <a
+                    href={PLAY_STORE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-secondary px-7 text-base"
+                  >
+                    Telecharger sur Android
+                  </a>
+                </div>
+              </Reveal>
+
+              <Reveal delay={320}>
+                <div className="mt-6 flex flex-wrap items-center gap-4">
+                  <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer" className="inline-flex transition hover:-translate-y-0.5">
+                    <Image
+                      src="/google-play-badge.svg"
+                      alt="Get it on Google Play"
+                      width={180}
+                      height={54}
+                      className="h-[54px] w-auto"
+                    />
+                  </a>
+                  <span className="text-sm font-semibold text-slate-500">
+                    Android disponible maintenant
+                  </span>
+                </div>
+              </Reveal>
+            </div>
+
+            <Reveal delay={180}>
+              <div className="relative mx-auto max-w-2xl">
+                <div className="ambient-orb ambient-orb-green" />
+                <div className="ambient-orb ambient-orb-blue" />
+                <div className="grid gap-5 lg:grid-cols-[1.12fr_0.88fr]">
+                  <div className="media-frame media-hover overflow-hidden rounded-[32px]">
+                    <Image
+                      src="/generated/landing-seller-phone-1.png"
+                      alt="Commercant utilisant MasterShopPro pour organiser ses ventes WhatsApp"
+                      width={839}
+                      height={839}
+                      className="h-full w-full object-cover"
+                      priority
+                    />
+                  </div>
+                  <div className="flex flex-col gap-5">
+                    <div className="ambient-panel p-4">
+                      <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">Apercu operationnel</p>
+                      <h3 className="mt-1 text-lg font-black text-slate-900">Chat -> commande -> suivi</h3>
+                      <div className="mt-4 media-frame media-hover overflow-hidden rounded-[24px]">
+                        <Image
+                          src="/generated/landing-hero-1.png"
+                          alt="Inbox et commandes MasterShopPro"
+                          width={833}
+                          height={833}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    </div>
+                    <div className="ambient-panel p-4">
+                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Votre vraie valeur</p>
+                      <p className="mt-2 text-sm font-semibold leading-7 text-slate-600">
+                        Vous continuez a vendre dans WhatsApp, mais vous ne perdez plus le suivi derriere chaque discussion.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Reveal>
+          </div>
+        </section>
+
+        <section className="px-5 py-20 lg:px-8">
+          <div className="mx-auto max-w-6xl">
+            <Reveal>
+              <div className="mx-auto max-w-2xl text-center">
+                <p className="section-kicker justify-center">Apres le catalogue WhatsApp</p>
+                <h2 className="section-title">Le travail commence quand le client ecrit</h2>
+              </div>
+            </Reveal>
+
+            <div className="mt-10 grid gap-5 lg:grid-cols-3">
+              {[
+                {
+                  icon: MessageCircle,
+                  title: 'Prioriser les messages',
+                  text: 'Les demandes client deviennent une inbox de travail, pas un chat melange.',
+                },
+                {
+                  icon: Package,
+                  title: 'Creer une commande suivie',
+                  text: 'Une discussion peut devenir une commande avec statut, paiement et notes.',
+                },
+                {
+                  icon: CheckCircle2,
+                  title: 'Garder le controle',
+                  text: 'Retrouvez ce qui reste a payer, a preparer, a livrer ou a relancer.',
+                },
+              ].map((item, index) => (
+                <Reveal key={item.title} delay={index * 80}>
+                  <article className="premium-card p-6">
+                    <div className="icon-shell">
+                      <item.icon className="h-5 w-5" />
+                    </div>
+                    <h3 className="mt-4 text-xl font-black text-slate-950">{item.title}</h3>
+                    <p className="mt-2 text-sm leading-7 text-slate-600">{item.text}</p>
+                  </article>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-white/50 px-5 py-20 backdrop-blur lg:px-8">
+          <div className="mx-auto max-w-6xl">
+            <Reveal>
+              <div className="mx-auto max-w-2xl text-center">
+                <p className="section-kicker justify-center">Tarifs</p>
+                <h2 className="section-title">Des plans simples pour gerer vos ventes</h2>
+                <p className="section-copy mx-auto">
+                  Commencez petit, puis ajoutez l inbox WhatsApp et les brouillons de commandes quand le volume augmente.
+                </p>
+              </div>
+            </Reveal>
+
+            <div className="mt-10 grid gap-5 xl:grid-cols-4 md:grid-cols-2">
+              {plans.map((plan, index) => (
+                <Reveal key={plan.id} delay={index * 70}>
+                  <article className={`premium-card relative flex h-full flex-col p-6 ${plan.id === 'STANDARD' ? 'border-[#fdba74] shadow-[0_24px_60px_rgba(234,88,12,0.16)]' : ''}`}>
+                    {plan.isPopular && (
+                      <div className="absolute -top-3 left-6 rounded-full bg-[#ea580c] px-4 py-1 text-xs font-black text-white shadow-lg">
+                        Le plus populaire
+                      </div>
+                    )}
+                    <p className="mt-2 text-sm font-black uppercase tracking-[0.22em]" style={{ color: plan.color }}>
+                      {plan.name}
+                    </p>
+                    <div className="mt-3 flex items-end gap-2">
+                      <span className="text-4xl font-black tracking-tight text-slate-950">{formatXaf(plan.priceXaf).replace(' FCFA', '')}</span>
+                      <span className="pb-1 text-sm font-semibold text-slate-400">FCFA / mois</span>
+                    </div>
+                    <div className="mt-5 space-y-3 text-sm text-slate-600">
+                      {plan.features.slice(0, 4).map((feature) => (
+                        <div key={feature} className="flex items-start gap-2">
+                          <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: plan.color }} />
+                          <span>{feature}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <Link href={SIGNUP_URL} className={`mt-6 inline-flex items-center justify-center rounded-2xl px-5 py-4 text-sm font-black transition ${plan.id === 'STANDARD' ? 'bg-[#ea580c] text-white hover:bg-[#c2410c]' : 'border border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:shadow-soft'}`}>
+                      Choisir {plan.name}
+                    </Link>
+                  </article>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="px-5 py-20 lg:px-8">
+          <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[0.82fr_1.18fr]">
+            <Reveal>
+              <div>
+                <p className="section-kicker">FAQ courte</p>
+                <h2 className="section-title">Les questions avant de connecter WhatsApp</h2>
+              </div>
+            </Reveal>
+
+            <div className="space-y-4">
+              {FAQS.map((item, index) => (
+                <Reveal key={item.q} delay={index * 70}>
+                  <details className="premium-card group overflow-hidden p-0">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 text-left text-base font-black text-slate-950 marker:content-none">
+                      <span>{item.q}</span>
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition group-open:rotate-45 group-open:bg-[#25D366] group-open:text-white">
+                        +
+                      </span>
+                    </summary>
+                    <div className="border-t border-slate-200 px-6 py-5 text-sm leading-7 text-slate-600">
+                      {item.a}
+                    </div>
+                  </details>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="px-5 pb-24 lg:px-8">
+          <Reveal>
+            <div className="mx-auto max-w-5xl rounded-[36px] border border-slate-200 bg-[linear-gradient(135deg,#0f172a_0%,#111827_58%,#14532d_100%)] px-6 py-10 text-white shadow-[0_35px_80px_rgba(15,23,42,0.24)] sm:px-10 sm:py-12">
+              <div className="mx-auto max-w-3xl text-center">
+                <h2 className="text-3xl font-black tracking-tight sm:text-5xl">
+                  Gardez WhatsApp pour vendre. Utilisez MasterShopPro pour ne plus perdre le suivi.
+                </h2>
+                <p className="mt-4 text-base leading-8 text-white/75">
+                  Le client ecrit comme avant. Vous travaillez avec une inbox, des commandes, des paiements et un historique clair.
+                </p>
+                <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                  <Link href={SIGNUP_URL} className="btn bg-white px-6 py-4 text-sm font-black text-slate-900 hover:-translate-y-0.5">
+                    Organiser mes ventes
+                  </Link>
+                  <a
+                    href={PLAY_STORE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn border border-white/20 bg-white/10 px-6 py-4 text-sm font-black text-white hover:-translate-y-0.5 hover:bg-white/15"
+                  >
+                    Telecharger l application
+                  </a>
+                </div>
+                <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer" className="mt-6 inline-flex transition hover:-translate-y-0.5">
+                  <Image
+                    src="/google-play-badge.svg"
+                    alt="Get it on Google Play"
+                    width={180}
+                    height={54}
+                    className="h-[54px] w-auto"
+                  />
+                </a>
+              </div>
+            </div>
+          </Reveal>
+        </section>
+      </main>
+
+      <footer className="border-t border-slate-200 bg-white px-5 py-10 lg:px-8">
+        <div className="mx-auto flex max-w-7xl flex-col gap-5 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#25D366] text-white shadow-[0_12px_30px_rgba(37,211,102,0.24)]">
+              <ShoppingBag className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-base font-black tracking-tight">MasterShopPro</p>
+              <p className="text-sm text-slate-500">WhatsApp vend. MasterShopPro organise le suivi.</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-4 text-sm font-semibold text-slate-500">
+            <Link href="/login" className="transition hover:text-slate-900">Connexion</Link>
+            <Link href={SIGNUP_URL} className="transition hover:text-slate-900">Organiser mes ventes</Link>
+            <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer" className="transition hover:text-slate-900">Google Play</a>
+          </div>
         </div>
-        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', marginTop: 32 }}>mastershoppro.com · {new Date().getFullYear()}</p>
-      </section>
+      </footer>
     </div>
   );
 }
