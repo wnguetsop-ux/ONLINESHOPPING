@@ -20,15 +20,16 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // Crédits attribués par Payment Link Stripe
 const CREDITS_BY_LINK: Record<string, number> = {
-  'https://buy.stripe.com/6oUbITeEl3ia1UM1DmaVa05': 50,   // Pack 50
-  'https://buy.stripe.com/dRmdR12VD6um56Y4PyaVa04': 200,  // Pack 200
+  'https://buy.stripe.com/7sYeV5ao57yq0QIfucaVa09': 50,   // Pack 50  — 2.29 EUR
+  'https://buy.stripe.com/9B64gr2VDf0S56YbdWaVa0a': 200,  // Pack 200 — 7.62 EUR
+  'https://buy.stripe.com/3cI6ozao53iaari6XGaVa0b': 500,  // Pack 500 — 15.24 EUR
 };
 
-// Fallback par price ID (plus robuste — configure dans Stripe Dashboard)
+// Fallback par price ID (robuste — correspond aux produits créés le 2026-05-15)
 const CREDITS_BY_PRICE: Record<string, number> = {
-  // Prix Stripe IDs — à remplir après avoir créé les produits dans Stripe
-  // Ex: 'price_1ABC...': 50,
-  // Ex: 'price_1XYZ...': 200,
+  'price_1TXRxU0xylvxJgKULExNS7mI': 50,   // Pack 50
+  'price_1TXRxX0xylvxJgKU46tf6HR6': 200,  // Pack 200
+  'price_1TXRxa0xylvxJgKUhstdeCdG': 500,  // Pack 500
 };
 
 // ── Vérification signature Stripe (HMAC SHA-256) ────────────────────────────
@@ -85,21 +86,22 @@ async function addCreditsFirestore(shopId: string, credits: number, sessionId: s
   }
   const shopDoc = await shopRes.json();
   const currentCredits = parseInt(
-    shopDoc.fields?.photoCredits?.integerValue ??
-    shopDoc.fields?.photoCredits?.doubleValue ?? '0'
+    shopDoc.fields?.aiCredits?.integerValue ??
+    shopDoc.fields?.aiCredits?.doubleValue ??
+    shopDoc.fields?.photoCredits?.integerValue ?? '0' // legacy fallback
   );
 
   // 3. Mettre à jour les crédits
   const patchRes = await fetch(
     `${base}/shops/${shopId}?key=${apiKey}` +
-    `&updateMask.fieldPaths=photoCredits&updateMask.fieldPaths=updatedAt`,
+    `&updateMask.fieldPaths=aiCredits&updateMask.fieldPaths=updatedAt`,
     {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         fields: {
-          photoCredits: { integerValue: String(currentCredits + credits) },
-          updatedAt:    { stringValue: new Date().toISOString() },
+          aiCredits: { integerValue: String(currentCredits + credits) },
+          updatedAt: { stringValue: new Date().toISOString() },
         }
       }),
     }

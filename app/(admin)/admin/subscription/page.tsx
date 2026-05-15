@@ -163,7 +163,7 @@ export default function SubscriptionPage() {
                   <>
                     {stripeLink ? (
                       <a
-                        href={stripeLink}
+                        href={`${stripeLink}${shop?.id ? `?client_reference_id=${shop.id}` : ''}`}
                         target="_blank"
                         rel="noreferrer"
                         className="w-full py-3 rounded-2xl text-white font-bold flex items-center justify-center gap-2"
