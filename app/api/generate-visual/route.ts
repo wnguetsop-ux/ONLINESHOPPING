@@ -108,6 +108,14 @@ function normalizeGeminiVisualError(error: any) {
     raw.includes('"code":403') ||
     raw.includes('code: 403');
 
+  const quotaExceeded =
+    raw.includes('RESOURCE_EXHAUSTED') ||
+    raw.includes('quota') ||
+    raw.includes('"code":429') ||
+    raw.includes('code: 429') ||
+    raw.includes('exceeded your current quota') ||
+    raw.includes('rate limit');
+
   if (denied) {
     return {
       status: 403,
@@ -116,6 +124,14 @@ function normalizeGeminiVisualError(error: any) {
         "La generation d'image IA n'est pas encore autorisee sur ce projet Google. La brochure texte et le PDF restent disponibles.",
       details:
         "Google refuse l'acces au modele image pour cette cle API. Il faut activer l'acces Gemini image/Nano Banana sur Google AI Studio ou utiliser une autre cle autorisee.",
+    };
+  }
+
+  if (quotaExceeded) {
+    return {
+      status: 429,
+      code: 'GEMINI_IMAGE_ACCESS_DENIED', // même code → déclenche le fallback OpenAI
+      error: "Quota Gemini image atteint — bascule sur OpenAI.",
     };
   }
 
@@ -145,6 +161,22 @@ export async function POST(req: NextRequest) {
 
     if (!prompt) {
       return NextResponse.json({ error: 'Prompt manquant' }, { status: 400 });
+    }
+
+    // Pour les photos produit, aller directement sur OpenAI (plus fiable + quota Gemini image limité)
+    if (preset === 'product-spotlight' && getOpenAIKey()) {
+      const fallback = await generateOpenAIVisualFallback(prompt, aspectRatioUsed, referenceImagesUsed);
+      return NextResponse.json({
+        success: true,
+        image: fallback.image,
+        mimeType: fallback.mimeType,
+        notes: fallback.notes,
+        model: fallback.model,
+        promptUsed,
+        aspectRatio: aspectRatioUsed,
+        imageSize: imageSizeUsed,
+        providerFallback: 'openai',
+      });
     }
 
     const quality = body.quality || 'balanced';
