@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   BarChart3,
+  Copy,
   Crown,
   ExternalLink,
   Home,
@@ -64,6 +65,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
+
+  function copyShopLink() {
+    if (!shop?.slug) return;
+    navigator.clipboard.writeText(`${window.location.origin}/${shop.slug}`);
+    setShareCopied(true);
+    setTimeout(() => setShareCopied(false), 2000);
+  }
 
   useEffect(() => {
     if (!loading && !user) {
@@ -224,6 +233,37 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         <main className="page-enter mb-bar-safe p-4 lg:mb-0 lg:p-6">{children}</main>
       </div>
+
+      {/* ── FLOATING SHARE BAR — boutique toujours accessible ── */}
+      {shop?.slug && (
+        <div className="fixed bottom-[4.5rem] left-3 right-3 z-30 lg:hidden">
+          <div className="flex items-center gap-2 rounded-2xl border border-wa/20 px-4 py-2.5 shadow-wa"
+               style={{ background: 'linear-gradient(135deg,#052e25,#0E5D32)' }}>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/55">Ma boutique</p>
+              <p className="text-[12px] font-extrabold text-white truncate">/{shop.slug}</p>
+            </div>
+            <button onClick={copyShopLink}
+                    className="h-9 px-3 rounded-xl text-[11px] font-extrabold flex items-center gap-1.5 transition-all"
+                    style={{ background: shareCopied ? '#1FB955' : 'rgba(255,255,255,0.15)', color: 'white' }}>
+              <Copy className="h-3.5 w-3.5" />
+              {shareCopied ? 'Copié !' : 'Copier'}
+            </button>
+            <a href={`https://wa.me/?text=${encodeURIComponent(`Bonjour ! Découvre ma boutique : ${window?.location?.origin ?? ''}/${shop.slug}`)}`}
+               target="_blank" rel="noopener noreferrer"
+               className="h-9 px-3 rounded-xl text-[11px] font-extrabold flex items-center gap-1.5"
+               style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}>
+              <MessageCircle className="h-3.5 w-3.5" />
+              Partager
+            </a>
+            <Link href={`/${shop.slug}`} target="_blank"
+                  className="h-9 w-9 rounded-xl flex items-center justify-center"
+                  style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}>
+              <ExternalLink className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        </div>
+      )}
 
       <nav className="bottom-nav fixed bottom-0 left-0 right-0 z-30 flex border-t border-app-border bg-white/90 shadow-[0_-18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl lg:hidden">
         {BOTTOM_NAV.map((item) => {

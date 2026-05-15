@@ -458,6 +458,54 @@ export default function ProductsPage() {
   const [brochurePreviewUrl, setBrochurePreviewUrl] = useState('');
   const [newCat, setNewCat] = useState({ name:'', color:'#16a34a' });
   const [postSaveProduct, setPostSaveProduct] = useState<Product | null>(null);
+  const [showQuickSell, setShowQuickSell] = useState(false);
+  const [qsStep, setQsStep] = useState<'photo'|'review'>('photo');
+  const [qsSaving, setQsSaving] = useState(false);
+
+  function openQuickSell() {
+    resetPhoto();
+    setForm({ name:'', description:'', specifications:'', category:'', brand:'', sku:'', barcode:'', costPrice:'', sellingPrice:'', stock:'1', minStock:'5', isActive:true, isFeatured:false, imageUrl:'' });
+    setQsStep('photo');
+    setShowQuickSell(true);
+  }
+
+  async function handleQuickSave() {
+    if (!shop?.id || !form.name || !form.sellingPrice) return;
+    setQsSaving(true);
+    try {
+      let imageUrl = form.imageUrl;
+      if (photoFile) {
+        try {
+          const r = ref(storage, `shops/${shop.id}/products/${Date.now()}.jpg`);
+          await uploadBytes(r, photoFile);
+          imageUrl = await getDownloadURL(r);
+        } catch {}
+      }
+      const data: Record<string,any> = {
+        name: form.name.trim(),
+        category: form.category || 'Autre',
+        costPrice: parseFloat(form.costPrice) || 0,
+        sellingPrice: parseFloat(form.sellingPrice) || 0,
+        stock: parseInt(form.stock) || 1,
+        minStock: 5,
+        isActive: true,
+        isFeatured: false,
+        imageUrl,
+        images: extraPhotos.filter(Boolean),
+      };
+      if (form.description.trim()) data.description = form.description.trim();
+      const savedProduct = {
+        ...data, id: '', shopId: shop.id,
+        createdAt: new Date().toISOString(),
+      } as Product;
+      await createProduct(shop.id, data as any);
+      await loadData();
+      setShowQuickSell(false);
+      resetPhoto();
+      setPostSaveProduct(savedProduct);
+    } catch(err:any) { alert('Erreur : ' + (err?.message || String(err))); }
+    setQsSaving(false);
+  }
 
   const [form, setForm] = useState({
     name:'', description:'', specifications:'', category:'', brand:'',
@@ -1254,6 +1302,11 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
           </h1>
           <div className="mt-6 flex flex-wrap gap-3">
             <button onClick={openAdd} className="btn-primary px-6 text-sm"><Plus className="w-5 h-5" />Nouveau produit</button>
+            <button onClick={openQuickSell}
+                    className="btn px-5 py-3 text-sm rounded-full font-extrabold"
+                    style={{ background: 'rgba(255,106,44,0.22)', border: '1.5px solid rgba(255,106,44,0.45)', color: '#FFB89A' }}>
+              <Zap className="w-4 h-4" />⚡ Quick Sell
+            </button>
             <button onClick={() => setShowCatModal(true)} className="btn px-5 py-3 text-sm rounded-full" style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.15)', color: 'white' }}>+ Catégorie</button>
           </div>
         </div>
@@ -1814,6 +1867,155 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
       )}
 
       {showCreditsModal && <CreditsModal credits={studioCredits} shopName={shop?.name||''} shopId={shop?.id||''} onClose={()=>setShowCreditsModal(false)}/>}
+
+      {/* ── QUICK SELL MODAL ── */}
+      {showQuickSell && (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center" style={{ background: 'rgba(11,18,32,0.7)' }}>
+          <div className="w-full max-w-lg bg-white rounded-t-3xl overflow-hidden shadow-hi animate-slideUp">
+            {/* Header */}
+            <div className="relative px-5 py-5 text-white" style={{ background: 'linear-gradient(135deg,#0B1220,#0E5D32)' }}>
+              <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 90% 10%, rgba(31,185,85,0.3), transparent 50%)' }}/>
+              <div className="relative flex items-center justify-between">
+                <div>
+                  <div className="inline-flex items-center gap-2 text-[10px] font-extrabold tracking-[0.22em] uppercase text-white/55 mb-1">
+                    <Zap className="w-3 h-3 text-orange" /> Mode express
+                  </div>
+                  <h2 className="display-serif text-2xl">Quick Sell</h2>
+                  <p className="text-white/65 text-[12px] mt-0.5">Photo → IA remplit → partage en 30 sec</p>
+                </div>
+                <button onClick={() => { setShowQuickSell(false); stopCam(); resetPhoto(); }}
+                        className="w-9 h-9 rounded-full flex items-center justify-center"
+                        style={{ background: 'rgba(255,255,255,0.12)' }}>
+                  <X className="w-4 h-4 text-white"/>
+                </button>
+              </div>
+              {/* Steps indicator */}
+              <div className="relative flex gap-2 mt-4">
+                <div className={`flex-1 h-1 rounded-full transition-all ${qsStep === 'photo' || qsStep === 'review' ? 'bg-wa' : 'bg-white/20'}`}/>
+                <div className={`flex-1 h-1 rounded-full transition-all ${qsStep === 'review' ? 'bg-wa' : 'bg-white/20'}`}/>
+              </div>
+            </div>
+
+            <div className="p-5 space-y-4 overflow-y-auto max-h-[65vh] pb-safe">
+              {/* STEP 1 — PHOTO */}
+              {qsStep === 'photo' && (
+                <>
+                  <p className="text-[13px] font-extrabold text-slate-500 uppercase tracking-[0.18em]">Étape 1 — Prends une photo</p>
+                  {photoMode === 'camera' && (
+                    <div className="relative rounded-2xl overflow-hidden bg-black">
+                      <video ref={videoRef} autoPlay playsInline muted className="w-full" style={{ maxHeight: '55vw', objectFit: 'cover' }}/>
+                      <canvas ref={canvasRef} className="hidden"/>
+                      <div className="absolute bottom-4 inset-x-0 flex justify-center gap-4">
+                        <button type="button" onClick={stopCam} className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm text-white px-3 py-2 rounded-xl text-sm"><StopCircle className="w-4 h-4"/>Annuler</button>
+                        <button type="button" onClick={() => { captureCam(); setQsStep('review'); }}
+                                className="w-16 h-16 bg-white rounded-full shadow-xl flex items-center justify-center active:scale-95">
+                          <div className="w-12 h-12 rounded-full border-4 border-gray-300"/>
+                        </button>
+                        <button type="button" onClick={flipCamera} className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm text-white px-3 py-2 rounded-xl text-sm"><RefreshCw className="w-4 h-4"/>Flip</button>
+                      </div>
+                    </div>
+                  )}
+                  {(photoMode === 'done' || photoPreview) && (
+                    <div className="relative rounded-2xl overflow-hidden border border-emerald-200" style={{ aspectRatio: '1' }}>
+                      <img src={photoPreview} alt="Aperçu" className="w-full h-full object-contain p-2"/>
+                      {isAnalyzing && (
+                        <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2 rounded-2xl backdrop-blur-sm">
+                          <Sparkles className="w-8 h-8 text-purple-300 animate-pulse"/>
+                          <p className="text-white font-extrabold text-sm">IA analyse…</p>
+                          <p className="text-white/60 text-xs">Nom, prix, description en cours</p>
+                        </div>
+                      )}
+                      {!isAnalyzing && (
+                        <div className="absolute bottom-3 inset-x-3 flex gap-2">
+                          <button type="button" onClick={() => { setPhotoPreview(''); setPhotoMode('none'); setForm(f=>({...f,imageUrl:''})); }}
+                                  className="flex-1 py-2 rounded-xl bg-black/60 text-white text-[11px] font-bold backdrop-blur-sm">Reprendre</button>
+                          <button type="button" onClick={() => setQsStep('review')}
+                                  className="flex-1 py-2 rounded-xl text-[11px] font-extrabold text-white shadow-wa"
+                                  style={{ background: 'linear-gradient(135deg,#1FB955,#0E5D32)' }}>
+                            Continuer →
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {photoMode !== 'camera' && !photoPreview && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <button type="button" onClick={() => { startCam(); }}
+                              className="flex flex-col items-center justify-center gap-2 py-8 rounded-2xl text-white font-extrabold shadow-wa"
+                              style={{ background: 'linear-gradient(135deg,#1FB955,#0E5D32)' }}>
+                        <Camera className="w-8 h-8"/>
+                        <span className="text-sm">Prendre une photo</span>
+                      </button>
+                      <button type="button" onClick={() => fileInputRef.current?.click()}
+                              className="flex flex-col items-center justify-center gap-2 py-8 rounded-2xl border-2 border-dashed border-gray-200 text-gray-500 hover:border-gray-400 hover:bg-gray-50 transition-all">
+                        <ImageIcon className="w-8 h-8"/>
+                        <span className="text-sm font-bold">Importer</span>
+                      </button>
+                    </div>
+                  )}
+                  <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { handleFile(e); setQsStep('review'); }}/>
+                </>
+              )}
+
+              {/* STEP 2 — REVIEW */}
+              {qsStep === 'review' && (
+                <>
+                  <p className="text-[13px] font-extrabold text-slate-500 uppercase tracking-[0.18em]">Étape 2 — Vérifie et enregistre</p>
+                  {isAnalyzing && (
+                    <div className="flex items-center gap-3 bg-purple-50 border border-purple-200 rounded-2xl p-4">
+                      <Sparkles className="w-5 h-5 text-purple-500 animate-pulse flex-shrink-0"/>
+                      <p className="text-sm text-purple-700 font-extrabold">IA remplit la fiche… quelques secondes</p>
+                    </div>
+                  )}
+                  <div>
+                    <label className="text-xs font-extrabold text-gray-500 uppercase tracking-wide mb-1 block">
+                      Nom du produit *
+                      {form.name && <span className="ml-2 text-emerald-600 normal-case tracking-normal">✓ IA</span>}
+                    </label>
+                    <input type="text" required value={form.name} onChange={e=>setForm({...form,name:e.target.value})} className="input" placeholder="Nom du produit"/>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-extrabold text-gray-500 uppercase tracking-wide mb-1 block">Prix de vente *</label>
+                      <input type="number" required min="0" value={form.sellingPrice} onChange={e=>setForm({...form,sellingPrice:e.target.value})} className="input" placeholder="0"/>
+                    </div>
+                    <div>
+                      <label className="text-xs font-extrabold text-gray-500 uppercase tracking-wide mb-1 block">Stock</label>
+                      <input type="number" min="0" value={form.stock} onChange={e=>setForm({...form,stock:e.target.value})} className="input" placeholder="1"/>
+                    </div>
+                  </div>
+                  {/* Catégorie chips */}
+                  <div>
+                    <label className="text-xs font-extrabold text-gray-500 uppercase tracking-wide mb-2 block">
+                      Catégorie {form.category && <span className="text-emerald-600 normal-case tracking-normal ml-1">✓ {form.category}</span>}
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {['Vêtements','Cosmétiques','Alimentaire','Électronique','Maison','Artisanat','Accessoires','Autre'].map(cat => (
+                        <button type="button" key={cat}
+                          onClick={()=>setForm({...form,category:form.category===cat?'':cat})}
+                          className={`px-3 py-1.5 rounded-full text-xs font-extrabold transition-all ${form.category===cat ? 'bg-wa text-white shadow-wa' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    <button type="button" onClick={() => setQsStep('photo')}
+                            className="btn-secondary py-3.5 text-sm">
+                      ← Reprendre photo
+                    </button>
+                    <button type="button" onClick={handleQuickSave}
+                            disabled={qsSaving || !form.name || !form.sellingPrice || isAnalyzing}
+                            className="btn-primary py-3.5 text-sm disabled:opacity-60">
+                      {qsSaving ? <><Loader2 className="w-4 h-4 animate-spin"/>Sauvegarde…</> : <><Zap className="w-4 h-4"/>Enregistrer</>}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── POST-SAVE BOTTOM SHEET ── */}
       {postSaveProduct && (
