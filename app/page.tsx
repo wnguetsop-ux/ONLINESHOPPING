@@ -30,11 +30,14 @@ export default function LandingPage() {
           </Link>
 
           <div className="flex items-center gap-3">
+            <Link href="/pricing" className="hidden text-sm font-semibold text-slate-500 transition hover:text-slate-900 sm:inline-flex">
+              Tarifs
+            </Link>
             <Link href="/login" className="hidden text-sm font-semibold text-slate-500 transition hover:text-slate-900 sm:inline-flex">
               Connexion
             </Link>
             <Link href={SIGNUP_URL} className="btn-primary px-5 text-sm">
-              Organiser mes ventes
+              Créer ma boutique
             </Link>
           </div>
         </div>
