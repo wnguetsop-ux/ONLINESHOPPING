@@ -6,9 +6,9 @@ import { checkShopLimits } from '@/lib/firestore';
 import { PLANS, PlanId, AI_CREDIT_COSTS } from '@/lib/types';
 
 const STRIPE_LINKS: Partial<Record<PlanId, string>> = {
-  STARTER: process.env.NEXT_PUBLIC_STRIPE_PLAN_STARTER_URL || '',
-  STANDARD: process.env.NEXT_PUBLIC_STRIPE_PLAN_STANDARD_URL || '',
-  PRO: process.env.NEXT_PUBLIC_STRIPE_PLAN_PRO_URL || '',
+  STARTER:  process.env.NEXT_PUBLIC_STRIPE_PLAN_STARTER_URL  || 'https://buy.stripe.com/7sYeV5ao57yq0QIfucaVa09',
+  STANDARD: process.env.NEXT_PUBLIC_STRIPE_PLAN_STANDARD_URL || 'https://buy.stripe.com/9B64gr2VDf0S56YbdWaVa0a',
+  PRO:      process.env.NEXT_PUBLIC_STRIPE_PLAN_PRO_URL      || 'https://buy.stripe.com/3cI6ozao53iaari6XGaVa0b',
 };
 
 const MOBILE_MONEY = {
