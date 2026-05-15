@@ -1,6 +1,6 @@
 # MasterShopPro Project Guide
 
-> **Last updated:** 2026-04-30 — Market intelligence refresh + WhatsApp strategy pivot
+> **Last updated:** 2026-05-15 — Premium redesign shipped + Product flow engineering proposals
 
 ## Product Vision
 
@@ -8,11 +8,15 @@ MasterShopPro must become the simplest, clearest and most reassuring way for an 
 
 Core promise:
 
-`Vous vendez sur WhatsApp. MasterShopPro organise le reste.`
+`Tu prends une photo. La brochure est prête. Tu partages. Le client commande.`
 
-Primary flow:
+Primary flow (2026-05-15, validé) :
 
-`Message WhatsApp -> Client -> Commande -> Statut -> Suivi`
+`Photo → Fiche IA → Brochure → Partage WhatsApp → Commande suivie → Boutique en ligne`
+
+Secondary flow (ordre de valeur) :
+
+`Message WhatsApp → Client → Commande → Statut → Suivi`
 
 Extended vision (2026–2027):
 
@@ -256,6 +260,133 @@ This remains the right approach for PRO merchants who want direct control. Follo
 7. Build a proper outbound send API route that uses per-merchant token (fallback to env token for legacy numbers).
 
 Do not touch the existing processing pipeline — it already works. Extend it.
+
+---
+
+# Design System (appliqué 2026-05-15)
+
+## Tokens premium (globals.css + tailwind.config.ts)
+
+```
+--wa:           #1FB955  (vert WA premium, -8% saturation vs #25D366)
+--wa-dark:      #0E5D32
+--wa-soft:      #E6F8EE
+--ink:          #0B1220  (bleu nuit chaud, remplace noir pur)
+--ink-2:        #1F2A44
+--orange:       #FF6A2C  (action / chaleur)
+--sky:          #3F7BDC  (trust / business)
+--app-bg:       #FBF7EF  (crème chaude — fond global)
+--app-paper:    #F6F2EA
+```
+
+## Classes CSS clés
+
+- `.premium-card` — carte blanche, hover translateY(-4px) + shadow-hi + border-glow wa
+- `.premium-tilt` / `.premium-tilt-inner` — effet 3D léger perspective 1200px
+- `.premium-zoom` — zoom image 1.04x au hover
+- `.display-serif` — Instrument Serif italic, usage ponctuel sur les headlines "wow"
+- `.btn-primary` — vert WA avec shimmer au hover
+- `.btn-orange` — orange #FF6A2C
+- `.btn-dark` — ink #0B1220
+- `.pulse-dot` — indicateur live animé vert
+- `.premium-chip` / `.premium-chip-wa` / `.premium-chip-orange` — badges premium
+- `.float-soft` / `.float-soft-slow` — animation flottante décorative
+- `.premium-mesh` — fond mesh radial-gradient hero
+- `.ambient-panel` — panel blanc translucide backdrop-blur
+- `.status-pill-live` / `.status-pill-hidden` — pills statut produit
+- `prefers-reduced-motion` — coupe toutes les animations
+
+## Règles d'usage design
+
+- `display-serif` : headlines uniquement (h1 hero, prix display, titres "wow"). Jamais en corps de texte.
+- Fond global : `var(--app-bg)` (#FBF7EF crème), pas blanc pur
+- Hero admin sombre : `background: #0B1220` avec mesh radial-gradient
+- Cartes produit : `premium-card premium-tilt overflow-hidden`
+- Prix : `display-serif text-[28px]` ou plus grand
+- CTAs primaires : `btn-primary` (WA) sur actions principales, `btn-orange` pour IA/photo pro
+- Sidebar active : `background: linear-gradient(135deg,#1FB955,#0E5D32)`
+
+## Pages redessinées (2026-05-15, sur main)
+
+| Page | Changement principal |
+|---|---|
+| `app/globals.css` + `tailwind.config.ts` | Foundation complète (tokens, classes, animations) |
+| `app/page.tsx` | Landing simplifiée : Hero → 3 features (Brochure IA / Commandes / Boutique) → CTA final |
+| `app/(admin)/admin/layout.tsx` | Sidebar WA-accented, header blur, bottom nav wa-dark |
+| `app/(admin)/admin/dashboard/page.tsx` | Hero sombre #0B1220 + KPI strip 4 cellules |
+| `app/(admin)/admin/products/page.tsx` | Hero sombre + stats strip + premium-card grid |
+| `app/(admin)/admin/subscription/page.tsx` | premium-card plans, STARTER "Le plus populaire" display-serif prix |
+| `app/(auth)/login/page.tsx` | Panneau branding dark mesh + display-serif |
+| `app/(auth)/register/page.tsx` | Header dark mesh + progress bar wa |
+| `app/[shop]/page.tsx` | Hero gradient sombre, filter strip sticky, trust footer 4 colonnes |
+
+---
+
+# Product Flow Engineering — Propositions validées (2026-05-15)
+
+Ces propositions ont été validées avec William. À implémenter par ordre de priorité.
+
+## P1 — Smart Category Chips (IA + presets) [PRIORITÉ ABSOLUE]
+
+**Problème** : la catégorie obligatoire bloque le flow de création produit.
+
+**Solution** :
+1. L'IA analyse la photo → suggère 1 catégorie automatiquement
+2. 8 chips pré-remplis pour marchés africains : `Vêtements` `Cosmétiques` `Alimentaire` `Électronique` `Maison` `Artisanat` `Accessoires` `Autre`
+3. 1 tap = catégorie assignée, zéro frappe clavier
+4. Catégorie devient optionnelle → fallback `Autre` si skippée
+
+**Fichier** : `app/(admin)/admin/products/page.tsx` — remplacer le `<select>` catégorie dans le modal produit
+
+## P2 — Pop-up "Que faire ?" post-save produit [PRIORITÉ ABSOLUE]
+
+**Déclencheur** : après `handleSave` réussi, au lieu de fermer le modal immédiatement
+
+**Bottom sheet avec 4 actions** :
+```
+✅  Produit enregistré ! — [Nom produit] · [Prix]
+─────────────────────────────────────────
+✨  Générer la brochure (3 variantes)
+💬  Partager sur WhatsApp
+🌐  Voir dans la boutique
+📋  Copier le lien produit
+```
+
+**Fichier** : `app/(admin)/admin/products/page.tsx` — ajouter state `showPostSave` + composant `PostSaveSheet`
+
+## P3 — 3 variantes de brochure [DIFFÉRENCIATEUR FORT]
+
+Après Studio Photo, proposer 3 templates rendus live (canvas ou CSS) :
+
+| Template | Format | Usage |
+|---|---|---|
+| **Fiche Pro** | Portrait · fond blanc | DM WhatsApp |
+| **Story** | Carré · image bg + overlay prix | Story WA / Instagram |
+| **Catalogue** | Paysage · image gauche + détails droite | Groupe WA / impression |
+
+**Fichier** : `app/api/product-brochure/route.ts` + nouveau composant `BrocureVariantPicker`
+
+## P4 — Boutique publique toujours visible [VISIBILITÉ]
+
+**Floating Share Bar** dans l'admin (au-dessus de la bottom nav mobile) :
+- Aperçu miniature boutique
+- Bouton "Copier le lien" (1 tap)
+- Bouton "Partager sur WhatsApp"
+- QR code tap-to-download
+
+**Fichier** : `app/(admin)/admin/layout.tsx` — ajouter `<ShopShareBar />` au-dessus de `<nav className="bottom-nav">`
+
+## P5 — Mode Quick Sell [FLOW EXPRESS]
+
+Flow alternatif pour commerçante pressée :
+```
+📸 Photo → 🤖 IA remplit tout → 👀 Confirmation rapide → ⚡ Bottom sheet "Que faire ?"
+```
+Pas de long formulaire. 30 secondes du début à la brochure partagée.
+
+**À créer** : bouton "Quick Sell" dans le header de `/admin/products`, flow dédié en bottom sheet progressif
+
+---
 
 ## Next Features to Build (in order)
 
