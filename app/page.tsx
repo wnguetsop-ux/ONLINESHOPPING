@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowRight, CheckCircle2, MessageCircle, Package, ShoppingBag, FileText, Store, Sparkles } from 'lucide-react';
+import { ArrowRight, CheckCircle2, MessageCircle, Package, ShoppingBag, FileText, Store, Sparkles, Zap } from 'lucide-react';
 import Reveal from '@/components/marketing/Reveal';
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.mastershoppro.app';
 const SIGNUP_URL = '/register';
@@ -166,7 +166,7 @@ export default function LandingPage() {
               </div>
             </Reveal>
 
-            <div className="mt-10 grid gap-5 lg:grid-cols-3">
+            <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {[
                 {
                   icon: Sparkles,
@@ -174,6 +174,13 @@ export default function LandingPage() {
                   title: 'Brochure en 1 photo',
                   text: 'Prends une photo — la fiche et la brochure sont prêtes en 8 sec. Tu colles, tu envoies.',
                   accent: '#1FB955',
+                },
+                {
+                  icon: Zap,
+                  badge: '🔥 Promo',
+                  title: 'Fiche promo en 1 clic',
+                  text: '-20%, date limite, prix barré. L\'IA génère l\'accroche. Tu partages sur WhatsApp en 10 sec.',
+                  accent: '#dc2626',
                 },
                 {
                   icon: Package,

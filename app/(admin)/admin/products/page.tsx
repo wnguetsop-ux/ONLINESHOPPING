@@ -853,6 +853,7 @@ export default function ProductsPage() {
   async function handleAddCat(e: React.FormEvent) { e.preventDefault(); if (!shop?.id||!newCat.name.trim()) return; await createCategory(shop.id,newCat); setNewCat({name:'',color:'#16a34a'}); await loadData(); setShowCatModal(false); }
 
   async function openBrochure(product: Product) {
+    if (studioCredits < 1) { setShowCreditsModal(true); return; }
     const initial = defaultBrochure(product, shop?.name || 'MasterShopPro', shop?.currency || 'FCFA', shop?.slug || '');
     setBrochureProduct(product);
     setBrochureCopy(initial);
@@ -921,6 +922,13 @@ export default function ProductsPage() {
   }
 
   async function generateBrochure(product: Product, fallback = defaultBrochure(product, shop?.name || 'MasterShopPro', shop?.currency || 'FCFA', shop?.slug || '')) {
+    // Vérifier les crédits avant d'appeler l'IA
+    if (studioCredits <= 0) {
+      setBrochureCopy(fallback);
+      setBrochureError('Crédits insuffisants — recharge pour générer avec l\'IA.');
+      setShowCreditsModal(true);
+      return;
+    }
     setBrochureLoading(true);
     setBrochureError('');
     try {
@@ -941,6 +949,16 @@ export default function ProductsPage() {
       if (!res.ok) throw new Error('generation_failed');
       const data = await res.json();
       setBrochureCopy({ ...fallback, ...data, bullets: data.bullets?.length ? data.bullets : fallback.bullets });
+      // Déduire 1 crédit (brochureIA) après succès
+      if (shop?.id) {
+        const { doc: fsDoc, getDoc, updateDoc } = await import('firebase/firestore');
+        const { db: fsDb } = await import('@/lib/firebase');
+        const shopRef = fsDoc(fsDb, 'shops', shop.id);
+        const snap = await getDoc(shopRef);
+        const cur = snap.data()?.aiCredits ?? 0;
+        updateDoc(shopRef, { aiCredits: Math.max(0, cur - 1), updatedAt: new Date().toISOString() }).catch(() => {});
+        setStudioCredits(c => Math.max(0, c - 1));
+      }
     } catch {
       setBrochureCopy(fallback);
       setBrochureError("L'IA n'a pas repondu. J'ai prepare une brochure locale utilisable.");
@@ -1248,17 +1266,23 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
     }
 
     // Bottom bar
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    ctx.fillRect(0, 970, 1080, 110);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '700 28px Arial';
+    const shopUrl = shop?.slug ? `mastershoppro.com/${shop.slug}` : '';
+    ctx.fillStyle = 'rgba(0,0,0,0.40)';
+    ctx.fillRect(0, 955, 1080, 125);
     ctx.textAlign = 'center';
     if (whatsapp) {
-      ctx.fillText(`📱 Commander: ${whatsapp}`, 540, 1010);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '700 26px Arial';
+      ctx.fillText(`📱 WhatsApp: ${whatsapp}`, 540, 990);
     }
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.font = '500 20px Arial';
-    ctx.fillText('Fiche promo générée avec MasterShopPro', 540, 1048);
+    if (shopUrl) {
+      ctx.fillStyle = isFlash ? '#fbbf24' : '#4ade80';
+      ctx.font = '700 24px Arial';
+      ctx.fillText(`🛒 Commander: ${shopUrl}`, 540, 1024);
+    }
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.font = '500 18px Arial';
+    ctx.fillText('Fiche promo générée avec MasterShopPro', 540, 1062);
 
     return new Promise<Blob>((resolve, reject) => {
       canvas.toBlob(b => b ? resolve(b) : reject(new Error('canvas blob failed')), 'image/png');
