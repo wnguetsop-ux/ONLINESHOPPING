@@ -476,6 +476,21 @@ export default function ProductsPage() {
   const [qsStep, setQsStep] = useState<'photo'|'review'>('photo');
   const [qsSaving, setQsSaving] = useState(false);
 
+  const [promoProduct, setPromoProduct] = useState<Product | null>(null);
+  const [showPromoModal, setShowPromoModal] = useState(false);
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoGenerating, setPromoGenerating] = useState(false);
+  const [promoTemplate, setPromoTemplate] = useState<'flash' | 'vedette'>('flash');
+  const [promoPreviewUrl, setPromoPreviewUrl] = useState('');
+  const [promoForm, setPromoForm] = useState({
+    discountPercent: 20,
+    promoPrice: 0,
+    deadline: '',
+    headline: '',
+    subtext: '',
+    badge: 'OFFRE FLASH',
+  });
+
   function openQuickSell() {
     resetPhoto();
     setForm({ name:'', description:'', specifications:'', category:'', brand:'', sku:'', barcode:'', costPrice:'', sellingPrice:'', stock:'1', minStock:'5', isActive:true, isFeatured:false, imageUrl:'' });
@@ -1022,6 +1037,290 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
     }
   }
 
+  function openPromoModal(product: Product) {
+    setPromoProduct(product);
+    const discount = 20;
+    const promoPrice = Math.round(product.sellingPrice * (1 - discount / 100));
+    setPromoForm({
+      discountPercent: discount,
+      promoPrice,
+      deadline: '',
+      headline: '',
+      subtext: '',
+      badge: 'OFFRE FLASH',
+    });
+    setPromoTemplate('flash');
+    setPromoPreviewUrl('');
+    setShowPromoModal(true);
+  }
+
+  async function generatePromoTextAI() {
+    if (!promoProduct || !shop?.id) return;
+    if (studioCredits < 1) { setShowCreditsModal(true); return; }
+    setPromoGenerating(true);
+    try {
+      const res = await fetch('/api/product-brochure', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productName: promoProduct.name,
+          description: promoProduct.description || '',
+          category: promoProduct.category || '',
+          brand: promoProduct.brand || '',
+          price: promoForm.promoPrice || promoProduct.sellingPrice,
+          currency: shop?.currency || 'FCFA',
+          shopName: shop?.name || 'MasterShopPro',
+          stock: promoProduct.stock,
+          promoMode: true,
+          discountPercent: promoForm.discountPercent,
+        }),
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      // Deduct 1 credit
+      const { doc: fsDoc, getDoc, updateDoc } = await import('firebase/firestore');
+      const { db: fsDb } = await import('@/lib/firebase');
+      const shopRef = fsDoc(fsDb, 'shops', shop.id);
+      const shopSnap = await getDoc(shopRef);
+      const currentCredits = shopSnap.data()?.aiCredits ?? 0;
+      updateDoc(shopRef, { aiCredits: Math.max(0, currentCredits - 1), updatedAt: new Date().toISOString() }).catch(() => {});
+      setStudioCredits(c => Math.max(0, c - 1));
+      setPromoForm(prev => ({
+        ...prev,
+        headline: data.headline || `Profitez de -${prev.discountPercent}% sur ${promoProduct.name}`,
+        subtext: data.subheadline || 'Offre limitée. Commandez maintenant sur WhatsApp.',
+        badge: data.badge || 'OFFRE FLASH',
+      }));
+    } catch {
+      setPromoForm(prev => ({
+        ...prev,
+        headline: `Profitez de -${prev.discountPercent}% sur ${promoProduct.name}`,
+        subtext: 'Offre limitée. Commandez maintenant sur WhatsApp.',
+      }));
+    } finally {
+      setPromoGenerating(false);
+    }
+  }
+
+  async function renderPromoCanvas(): Promise<Blob | null> {
+    if (!promoProduct) return null;
+    const canvas = document.createElement('canvas');
+    canvas.width = 1080;
+    canvas.height = 1080;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    const isFlash = promoTemplate === 'flash';
+    const currency = shop?.currency || 'FCFA';
+    const originalPrice = promoProduct.sellingPrice;
+    const promoPrice = promoForm.promoPrice || Math.round(originalPrice * (1 - promoForm.discountPercent / 100));
+    const discount = promoForm.discountPercent;
+    const shopName = shop?.name || 'MasterShopPro';
+    const whatsapp = (shop as any)?.whatsapp || '';
+    const headline = promoForm.headline || `-${discount}% sur ${promoProduct.name}`;
+    const subtext = promoForm.subtext || 'Offre limitée. Commandez sur WhatsApp.';
+    const badge = promoForm.badge || (isFlash ? 'OFFRE FLASH' : 'PRODUIT VEDETTE');
+    const deadline = promoForm.deadline ? new Date(promoForm.deadline).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : '';
+
+    // Background gradient
+    if (isFlash) {
+      const grad = ctx.createLinearGradient(0, 0, 1080, 1080);
+      grad.addColorStop(0, '#7f1d1d');
+      grad.addColorStop(0.5, '#dc2626');
+      grad.addColorStop(1, '#ea580c');
+      ctx.fillStyle = grad;
+    } else {
+      const grad = ctx.createLinearGradient(0, 0, 1080, 1080);
+      grad.addColorStop(0, '#0b1220');
+      grad.addColorStop(0.6, '#14532d');
+      grad.addColorStop(1, '#166534');
+      ctx.fillStyle = grad;
+    }
+    ctx.fillRect(0, 0, 1080, 1080);
+
+    // Decorative circles
+    ctx.globalAlpha = 0.12;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(980, 100, 260, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(80, 980, 200, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Top badge bar
+    const badgeColor = isFlash ? '#ff4500' : '#16a34a';
+    ctx.fillStyle = badgeColor;
+    ctx.fillRect(0, 0, 1080, 80);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '900 36px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(badge.toUpperCase(), 540, 54);
+
+    // Shop name
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.font = '700 28px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(shopName.toUpperCase(), 540, 126);
+
+    // Product image
+    const imageUrl = promoProduct.imageUrl;
+    if (imageUrl) {
+      try {
+        const img = await loadCanvasImage(imageUrl.startsWith('data:') ? imageUrl : proxySrc(imageUrl));
+        const imgSize = 380;
+        const imgX = (1080 - imgSize) / 2;
+        const imgY = 145;
+        ctx.fillStyle = 'rgba(255,255,255,0.12)';
+        ctx.beginPath();
+        ctx.roundRect(imgX - 10, imgY - 10, imgSize + 20, imgSize + 20, 30);
+        ctx.fill();
+        const scale = Math.min(imgSize / img.width, imgSize / img.height);
+        const w = img.width * scale;
+        const h = img.height * scale;
+        ctx.drawImage(img, imgX + (imgSize - w) / 2, imgY + (imgSize - h) / 2, w, h);
+      } catch {
+        ctx.fillStyle = 'rgba(255,255,255,0.1)';
+        ctx.beginPath();
+        ctx.roundRect(300, 145, 480, 380, 30);
+        ctx.fill();
+      }
+    }
+
+    // Discount badge circle
+    if (discount > 0) {
+      const cx = 870, cy = 230, r = 90;
+      ctx.fillStyle = isFlash ? '#fbbf24' : '#4ade80';
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = isFlash ? '#7f1d1d' : '#052e16';
+      ctx.font = '900 52px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(`-${discount}%`, cx, cy + 8);
+      ctx.font = '700 22px Arial';
+      ctx.fillText('de réduction', cx, cy + 38);
+    }
+
+    // Product name
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '900 48px Arial';
+    ctx.textAlign = 'center';
+    const nameLine = promoProduct.name.length > 28 ? promoProduct.name.substring(0, 28) + '...' : promoProduct.name;
+    ctx.fillText(nameLine, 540, 588);
+
+    // Prices
+    if (originalPrice > 0 && discount > 0) {
+      // Strikethrough old price
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      ctx.font = '700 36px Arial';
+      const oldPriceText = `${originalPrice.toLocaleString('fr-FR')} ${currency}`;
+      const oldW = ctx.measureText(oldPriceText).width;
+      ctx.fillText(oldPriceText, 540, 640);
+      ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(540 - oldW / 2, 633);
+      ctx.lineTo(540 + oldW / 2, 633);
+      ctx.stroke();
+    }
+
+    // New promo price
+    ctx.fillStyle = isFlash ? '#fbbf24' : '#4ade80';
+    ctx.font = '900 72px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${promoPrice.toLocaleString('fr-FR')} ${currency}`, 540, 720);
+
+    // Headline
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '700 32px Arial';
+    ctx.textAlign = 'center';
+    const hlWords = headline;
+    const hlMaxW = 900;
+    wrapCanvasText(ctx, hlWords, 90, 790, hlMaxW, 38, 2);
+
+    // Subtext
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.font = '500 26px Arial';
+    wrapCanvasText(ctx, subtext, 90, 858, 900, 32, 2);
+
+    // Deadline
+    if (deadline) {
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.font = '700 26px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(`⏳ Valable jusqu'au ${deadline}`, 540, 930);
+    }
+
+    // Bottom bar
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.fillRect(0, 970, 1080, 110);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '700 28px Arial';
+    ctx.textAlign = 'center';
+    if (whatsapp) {
+      ctx.fillText(`📱 Commander: ${whatsapp}`, 540, 1010);
+    }
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = '500 20px Arial';
+    ctx.fillText('Fiche promo générée avec MasterShopPro', 540, 1048);
+
+    return new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(b => b ? resolve(b) : reject(new Error('canvas blob failed')), 'image/png');
+    });
+  }
+
+  async function previewPromo() {
+    setPromoLoading(true);
+    try {
+      const blob = await renderPromoCanvas();
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      setPromoPreviewUrl(prev => { if (prev) URL.revokeObjectURL(prev); return url; });
+    } catch (e) { console.error(e); }
+    setPromoLoading(false);
+  }
+
+  async function downloadPromo() {
+    setPromoLoading(true);
+    try {
+      const blob = await renderPromoCanvas();
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `promo-${promoProduct?.name?.replace(/\s+/g, '-').toLowerCase() || 'produit'}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      // Auto-save to Firestore
+      if (promoProduct?.id && shop?.id) {
+        const r2 = ref(storage, `shops/${shop.id}/products/promo-${promoProduct.id}-${Date.now()}.png`);
+        await uploadBytes(r2, blob, { contentType: 'image/png' });
+        const savedUrl = await getDownloadURL(r2);
+        await updateProduct(promoProduct.id, { promoImageUrl: savedUrl } as any);
+        setProducts(prev => prev.map(p => p.id === promoProduct!.id ? { ...p, promoImageUrl: savedUrl } : p));
+      }
+    } catch (e) { console.error(e); }
+    setPromoLoading(false);
+  }
+
+  async function sharePromo() {
+    setPromoLoading(true);
+    try {
+      const blob = await renderPromoCanvas();
+      if (!blob) return;
+      const file = new File([blob], `promo-${promoProduct?.name || 'produit'}.png`, { type: 'image/png' });
+      const caption = promoForm.headline || `Promo sur ${promoProduct?.name}`;
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ title: promoProduct?.name, text: caption, files: [file] });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = file.name;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+    } catch (e) { console.error(e); }
+    setPromoLoading(false);
+  }
+
   function printProductSheet() {
     if (!brochureProduct || !brochureCopy) return;
     const img = proImageUrl || brochureProduct.imageUrl || '';
@@ -1548,7 +1847,7 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
                     <p className={`text-lg font-black ${product.stock<=(product.minStock||5)?'text-red-700':'text-gray-900'}`}>{product.stock}</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-[1fr,auto] gap-2">
+                <div className="grid grid-cols-[1fr,auto,auto] gap-2">
                   <button
                     onClick={() => openBrochure(product)}
                     className="py-3 rounded-2xl text-sm font-extrabold text-white flex items-center justify-center gap-2 shadow-sm hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all"
@@ -1556,6 +1855,14 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
                   >
                     <Sparkles className="w-4 h-4"/>
                     Fiche + partage
+                  </button>
+                  <button
+                    onClick={() => openPromoModal(product)}
+                    title="Fiche Promo"
+                    className="py-3 px-3 rounded-2xl text-white flex items-center justify-center shadow-sm hover:-translate-y-0.5 transition-all"
+                    style={{background:'linear-gradient(135deg,#dc2626,#ea580c)'}}
+                  >
+                    <Zap className="w-4 h-4"/>
                   </button>
                   {shop?.whatsapp ? (
                     <a
@@ -2080,6 +2387,129 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
                 </button>
               )}
               <p className="text-center text-xs text-gray-400 mt-2">Photo sauvegardee en 1024x1024px</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── FICHE PROMO MODAL ── */}
+      {showPromoModal && promoProduct && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center sm:p-4">
+          <div className="bg-white w-full sm:rounded-3xl sm:max-w-2xl max-h-[95vh] overflow-y-auto rounded-t-3xl flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b border-gray-100 flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-white" style={{background:'linear-gradient(135deg,#dc2626,#ea580c)'}}>
+                  <Zap className="w-5 h-5"/>
+                </div>
+                <div>
+                  <p className="font-extrabold text-gray-900">Fiche Promo</p>
+                  <p className="text-xs text-gray-400 truncate max-w-[180px]">{promoProduct.name}</p>
+                </div>
+              </div>
+              <button onClick={() => setShowPromoModal(false)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                <X className="w-4 h-4 text-gray-500"/>
+              </button>
+            </div>
+
+            <div className="p-5 space-y-5 flex-1">
+              {/* Template selector */}
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-gray-400 mb-2">Template</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={() => setPromoTemplate('flash')}
+                    className={`py-3 rounded-2xl text-sm font-extrabold flex items-center justify-center gap-2 border-2 transition-all ${promoTemplate==='flash' ? 'border-red-500 text-red-700 bg-red-50' : 'border-gray-200 text-gray-500'}`}>
+                    <Zap className="w-4 h-4"/> Flash (Rouge)
+                  </button>
+                  <button onClick={() => setPromoTemplate('vedette')}
+                    className={`py-3 rounded-2xl text-sm font-extrabold flex items-center justify-center gap-2 border-2 transition-all ${promoTemplate==='vedette' ? 'border-emerald-500 text-emerald-700 bg-emerald-50' : 'border-gray-200 text-gray-500'}`}>
+                    <Star className="w-4 h-4"/> Vedette (Vert)
+                  </button>
+                </div>
+              </div>
+
+              {/* Discount + Price */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Réduction (%)</label>
+                  <input type="number" min={0} max={90} value={promoForm.discountPercent}
+                    onChange={e => {
+                      const d = Number(e.target.value);
+                      setPromoForm(prev => ({ ...prev, discountPercent: d, promoPrice: Math.round(promoProduct.sellingPrice * (1 - d / 100)) }));
+                    }}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-bold focus:ring-2 focus:ring-red-300 focus:outline-none"/>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Prix promo ({shop?.currency || 'FCFA'})</label>
+                  <input type="number" min={0} value={promoForm.promoPrice}
+                    onChange={e => setPromoForm(prev => ({ ...prev, promoPrice: Number(e.target.value) }))}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-bold focus:ring-2 focus:ring-red-300 focus:outline-none"/>
+                </div>
+              </div>
+
+              {/* Date limite */}
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Date limite (optionnel)</label>
+                <input type="date" value={promoForm.deadline}
+                  onChange={e => setPromoForm(prev => ({ ...prev, deadline: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-red-300 focus:outline-none"/>
+              </div>
+
+              {/* Accroche */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Accroche</label>
+                  <button onClick={generatePromoTextAI} disabled={promoGenerating}
+                    className="flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-xl text-white disabled:opacity-60"
+                    style={{background:'linear-gradient(135deg,#7c3aed,#4c1d95)'}}>
+                    {promoGenerating ? <Loader2 className="w-3 h-3 animate-spin"/> : <Sparkles className="w-3 h-3"/>}
+                    IA — 1 crédit
+                  </button>
+                </div>
+                <input type="text" value={promoForm.headline} placeholder="Ex: Profitez de -20% sur ce produit !"
+                  onChange={e => setPromoForm(prev => ({ ...prev, headline: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-red-300 focus:outline-none"/>
+              </div>
+
+              {/* Sous-texte */}
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Texte secondaire</label>
+                <input type="text" value={promoForm.subtext} placeholder="Ex: Offre limitée. Commandez maintenant !"
+                  onChange={e => setPromoForm(prev => ({ ...prev, subtext: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-red-300 focus:outline-none"/>
+              </div>
+
+              {/* Preview */}
+              {promoPreviewUrl ? (
+                <div className="rounded-2xl overflow-hidden border border-gray-100">
+                  <img src={promoPreviewUrl} alt="Aperçu fiche promo" className="w-full"/>
+                </div>
+              ) : (
+                <div className="rounded-2xl bg-gray-50 border-2 border-dashed border-gray-200 flex items-center justify-center" style={{height:200}}>
+                  <p className="text-sm text-gray-400 font-medium">Clique sur &quot;Aperçu&quot; pour voir la fiche</p>
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="p-5 border-t border-gray-100 flex-shrink-0 space-y-2">
+              <button onClick={previewPromo} disabled={promoLoading}
+                className="w-full py-3 rounded-2xl bg-gray-100 text-gray-700 font-extrabold text-sm flex items-center justify-center gap-2 disabled:opacity-60">
+                {promoLoading ? <Loader2 className="w-4 h-4 animate-spin"/> : <Eye className="w-4 h-4"/>}
+                Aperçu
+              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={downloadPromo} disabled={promoLoading}
+                  className="py-3 rounded-2xl text-white font-extrabold text-sm flex items-center justify-center gap-2 disabled:opacity-60"
+                  style={{background:'linear-gradient(135deg,#dc2626,#ea580c)'}}>
+                  <Download className="w-4 h-4"/> Télécharger
+                </button>
+                <button onClick={sharePromo} disabled={promoLoading}
+                  className="py-3 rounded-2xl text-white font-extrabold text-sm flex items-center justify-center gap-2 disabled:opacity-60"
+                  style={{background:'linear-gradient(135deg,#1FB955,#0E5D32)'}}>
+                  <Share2 className="w-4 h-4"/> Partager
+                </button>
+              </div>
             </div>
           </div>
         </div>

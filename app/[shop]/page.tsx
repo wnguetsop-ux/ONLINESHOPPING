@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import {
   Search, ShoppingCart, Plus, Minus, Star, Phone, MapPin, MessageCircle,
   SlidersHorizontal, Heart, Eye, Truck, Shield, RotateCcw, X, ChevronRight,
-  Grid3X3, LayoutList, Settings, ArrowLeft, Loader2, CheckCircle, CreditCard, Trash2, FileText
+  Grid3X3, LayoutList, Settings, ArrowLeft, Loader2, CheckCircle, CreditCard, Trash2, FileText, Zap
 } from 'lucide-react';
 import { getShopBySlug, getProducts, getCategories, createOrder } from '@/lib/firestore';
 import PhoneInput from '@/components/PhoneInput';
@@ -372,6 +372,11 @@ export default function ShopPage() {
                     {(p as any).brochureImageUrl && (
                       <button onClick={() => setBrochureViewUrl((p as any).brochureImageUrl)} className="mt-2 w-full flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors">
                         <FileText className="w-3 h-3" />Voir la brochure
+                      </button>
+                    )}
+                    {(p as any).promoImageUrl && (
+                      <button onClick={() => setBrochureViewUrl((p as any).promoImageUrl)} className="mt-1 w-full flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-bold text-red-700 bg-red-50 hover:bg-red-100 transition-colors">
+                        <Zap className="w-3 h-3" />Promo en cours
                       </button>
                     )}
                   </div>

@@ -353,6 +353,7 @@ export interface Product {
   isActive: boolean;
   isFeatured?: boolean;
   createdAt: string;
+  promoImageUrl?: string;
   brochureImageUrl?: string;
   updatedAt?: string;
 }
