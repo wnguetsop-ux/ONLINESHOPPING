@@ -1,9 +1,9 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
-import { Check, Copy, Crown, ExternalLink, MessageCircle, Shield, Sparkles, Wallet } from 'lucide-react';
+import { Check, Copy, Crown, ExternalLink, MessageCircle, Shield, Sparkles, Wallet, Zap } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { checkShopLimits } from '@/lib/firestore';
-import { PLANS, PlanId } from '@/lib/types';
+import { PLANS, PlanId, AI_CREDIT_COSTS } from '@/lib/types';
 
 const STRIPE_LINKS: Partial<Record<PlanId, string>> = {
   STARTER: process.env.NEXT_PUBLIC_STRIPE_PLAN_STARTER_URL || '',
@@ -32,6 +32,7 @@ export default function SubscriptionPage() {
 
   const currentPlan = PLANS[shop?.planId || 'FREE'];
   const primaryColor = '#25D366';
+  const aiCredits: number = (shop as any)?.aiCredits ?? 0;
 
   const paidPlans = useMemo(
     () => (Object.values(PLANS).filter((plan) => plan.id !== 'FREE') as typeof currentPlan[]),
@@ -46,8 +47,9 @@ export default function SubscriptionPage() {
 
   function getWhatsAppPlanMessage(planId: PlanId) {
     const plan = PLANS[planId];
+    const credits = (plan as any).aiCreditsIncluded ?? 0;
     return encodeURIComponent(
-      `Bonjour MasterShopPro, je veux activer le plan ${plan.name} pour la boutique ${shop?.name || ''}.\nPrix: ${plan.priceXaf.toLocaleString('fr-FR')} FCFA/mois.\nJe vais regler via Mobile Money.`
+      `Bonjour MasterShopPro, je veux acheter le ${plan.name} (${credits} crédits IA) pour la boutique ${shop?.name || ''}.\nPrix: ${plan.priceXaf.toLocaleString('fr-FR')} FCFA.\nJe vais régler via Mobile Money.`
     );
   }
 
@@ -64,26 +66,27 @@ export default function SubscriptionPage() {
       <div className="rounded-3xl border border-gray-100 bg-white p-5">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wide text-wa-dark mb-2">Plan actif</p>
-            <h1 className="text-2xl font-black text-gray-800">{currentPlan.name}</h1>
-            <p className="text-sm text-gray-500 mt-2 max-w-2xl">
-              Choisis le niveau qui correspond a ton volume de messages, de commandes et d organisation au quotidien.
+            <p className="text-xs font-bold uppercase tracking-wide text-wa-dark mb-2">Crédits IA disponibles</p>
+            <div className="flex items-end gap-2">
+              <span className="display-serif text-5xl font-black text-gray-900">{aiCredits}</span>
+              <span className="mb-1 text-sm font-semibold text-gray-400">crédits</span>
+            </div>
+            <p className="text-sm text-gray-500 mt-2 max-w-lg">
+              Recharge quand tu veux — les crédits n'expirent jamais. Produits et commandes toujours illimités.
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-3 text-sm">
+          <div className="grid grid-cols-3 gap-3 text-sm">
             <div className="rounded-2xl bg-gray-50 border border-gray-100 px-4 py-3">
-              <p className="text-xs text-gray-400 uppercase tracking-wide font-bold mb-1">Produits</p>
-              <p className="font-black text-gray-800">
-                {limits?.productsCount || 0}
-                <span className="text-gray-400 font-medium">/{currentPlan.maxProducts === -1 ? '∞' : currentPlan.maxProducts}</span>
-              </p>
+              <p className="text-xs text-gray-400 uppercase tracking-wide font-bold mb-1">Analyse photo</p>
+              <p className="font-black text-gray-800">{AI_CREDIT_COSTS.analysePhoto} crédit</p>
             </div>
-            <div className="rounded-2xl bg-gray-50 border border-gray-100 px-4 py-3">
-              <p className="text-xs text-gray-400 uppercase tracking-wide font-bold mb-1">Commandes/mois</p>
-              <p className="font-black text-gray-800">
-                {limits?.ordersThisMonth || 0}
-                <span className="text-gray-400 font-medium">/{currentPlan.maxOrdersPerMonth === -1 ? '∞' : currentPlan.maxOrdersPerMonth}</span>
-              </p>
+            <div className="rounded-2xl bg-violet-50 border border-violet-100 px-4 py-3">
+              <p className="text-xs text-violet-500 uppercase tracking-wide font-bold mb-1">Photo Pro IA</p>
+              <p className="font-black text-gray-800">{AI_CREDIT_COSTS.photoProIA} crédits</p>
+            </div>
+            <div className="rounded-2xl bg-emerald-50 border border-emerald-100 px-4 py-3">
+              <p className="text-xs text-emerald-600 uppercase tracking-wide font-bold mb-1">Brochure IA</p>
+              <p className="font-black text-gray-800">{AI_CREDIT_COSTS.brochureIA} crédit</p>
             </div>
           </div>
         </div>
@@ -196,36 +199,39 @@ export default function SubscriptionPage() {
 
       <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-4">
         <div className="rounded-3xl border border-gray-100 bg-white p-5">
-          <p className="text-xs font-bold uppercase tracking-wide text-gray-400 mb-2">Ce que chaque plan change</p>
-          <h2 className="text-lg font-black text-gray-800 mb-4">Une progression simple selon le stade de la boutique</h2>
+          <p className="text-xs font-bold uppercase tracking-wide text-gray-400 mb-2">Comment fonctionnent les crédits</p>
+          <h2 className="text-lg font-black text-gray-800 mb-4">Chaque action IA consomme quelques crédits</h2>
           <div className="space-y-3 text-sm text-gray-600">
-            <div className="rounded-2xl bg-gray-50 border border-gray-100 p-4">
-              Gratuit pour demarrer et valider ton organisation sur 8 commandes.
+            <div className="rounded-2xl bg-gray-50 border border-gray-100 p-4 flex items-center gap-3">
+              <Zap className="w-5 h-5 text-violet-500 flex-shrink-0" />
+              <span>Photo Pro IA (OpenAI) = <strong>2 crédits</strong> — génère une photo studio professionnelle.</span>
             </div>
-            <div className="rounded-2xl bg-gray-50 border border-gray-100 p-4">
-              Starter pour recevoir les messages dans l app et suivre les conversations simplement.
+            <div className="rounded-2xl bg-gray-50 border border-gray-100 p-4 flex items-center gap-3">
+              <Sparkles className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+              <span>Analyse photo + Brochure IA = <strong>1 crédit chacun</strong> — fiche et texte de vente auto.</span>
             </div>
-            <div className="rounded-2xl bg-gray-50 border border-gray-100 p-4">
-              Standard pour gagner du temps avec la detection des commandes et les brouillons.
+            <div className="rounded-2xl bg-gray-50 border border-gray-100 p-4 flex items-center gap-3">
+              <Crown className="w-5 h-5 text-orange-500 flex-shrink-0" />
+              <span>Les crédits n'expirent jamais — achète quand tu en as besoin.</span>
             </div>
           </div>
         </div>
 
         <div className="rounded-3xl border border-gray-100 bg-white p-5">
           <p className="text-xs font-bold uppercase tracking-wide text-gray-400 mb-2">Paiement</p>
-          <h2 className="text-lg font-black text-gray-800 mb-4">Comment activer un plan sans complication</h2>
+          <h2 className="text-lg font-black text-gray-800 mb-4">Recharger sans complication</h2>
           <div className="space-y-3 text-sm text-gray-600">
             <div className="flex items-start gap-2">
               <Shield className="w-4 h-4 mt-0.5 text-emerald-600" />
-              <span>Carte bancaire si le lien Stripe du plan est disponible.</span>
+              <span>Carte bancaire si le lien Stripe est disponible.</span>
             </div>
             <div className="flex items-start gap-2">
               <Crown className="w-4 h-4 mt-0.5 text-wa-dark" />
-              <span>Mobile Money pour un paiement rapide depuis le Cameroun.</span>
+              <span>Mobile Money (Wave, Orange Money, MTN MoMo) pour payer localement.</span>
             </div>
             <div className="flex items-start gap-2">
               <MessageCircle className="w-4 h-4 mt-0.5 text-blue-500" />
-              <span>Confirmation WhatsApp pour activer le bon plan sur la bonne boutique.</span>
+              <span>Confirme via WhatsApp après paiement → crédits ajoutés sous 1h.</span>
             </div>
           </div>
         </div>
@@ -240,7 +246,7 @@ export default function SubscriptionPage() {
               </div>
               <h2 className="text-xl font-black">Paiement Mobile Money</h2>
               <p className="text-emerald-100 text-sm mt-1">
-                {PLANS[showManualPlan].name} - {PLANS[showManualPlan].priceXaf.toLocaleString('fr-FR')} FCFA / mois
+                {PLANS[showManualPlan].name} — {(PLANS[showManualPlan] as any).aiCreditsIncluded ?? 0} crédits · {PLANS[showManualPlan].priceXaf.toLocaleString('fr-FR')} FCFA
               </p>
             </div>
 

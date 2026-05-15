@@ -43,11 +43,22 @@ export interface PlanDefinition {
   maxOrdersPerMonth: number;
   maxWhatsappAccounts: number;
   maxStaff: number;
+  aiCreditsIncluded: number;
   features: string[];
   featureFlags: Record<PlanFeatureKey, boolean>;
 }
 
+// ─── CRÉDIT IA — coûts par action ────────────────────────────────────────────
+// Ces valeurs pilotent la déduction côté client ET la documentation.
+export const AI_CREDIT_COSTS = {
+  analysePhoto:   1,   // Gemini/GPT analyse la photo → remplit la fiche
+  photoProIA:     2,   // OpenAI génère une photo produit professionnelle
+  brochureIA:     1,   // IA génère le texte + canvas de la brochure
+  quickSell:      3,   // analysePhoto + brochureIA en 1 flow express
+} as const;
+
 export const PLANS: Record<PlanId, PlanDefinition> = {
+  // ── Compte de base — gratuit, 10 crédits offerts à l'inscription ──────────
   FREE: {
     id: 'FREE',
     code: 'FREE',
@@ -56,17 +67,19 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     priceXaf: 0,
     billingCycle: 'monthly',
     annualPriceXaf: null,
-    badge: '8 commandes pour essayer',
+    badge: '10 crédits IA offerts',
     color: '#64748b',
-    maxProducts: 20,
-    maxOrdersPerMonth: 8,
+    maxProducts: -1,           // produits illimités
+    maxOrdersPerMonth: -1,     // commandes illimitées
     maxWhatsappAccounts: 0,
     maxStaff: 1,
+    aiCreditsIncluded: 10,     // crédits offerts à l'inscription (non renouvelables)
     features: [
-      'Jusqu a 8 commandes par mois',
-      'Creation manuelle de commandes',
-      'Historique client simple',
-      'Interface mobile-first',
+      '10 crédits IA offerts',
+      'Produits & commandes illimités',
+      'Boutique en ligne publique',
+      'Brochures texte de base',
+      'Support email',
     ],
     featureFlags: {
       manualOrders: true,
@@ -84,30 +97,33 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       controlledOutboundReady: false,
     },
   },
+
+  // ── Pack 50 crédits — 1 500 FCFA ─────────────────────────────────────────
   STARTER: {
     id: 'STARTER',
     code: 'STARTER',
-    name: 'Starter',
-    price: 3000,
-    priceXaf: 3000,
+    name: 'Pack 50',
+    price: 1500,
+    priceXaf: 1500,
     billingCycle: 'monthly',
     annualPriceXaf: null,
     color: '#2563eb',
-    maxProducts: 120,
+    maxProducts: -1,
     maxOrdersPerMonth: -1,
-    maxWhatsappAccounts: 1,
+    maxWhatsappAccounts: 0,
     maxStaff: 1,
+    aiCreditsIncluded: 50,
     features: [
-      '1 numero WhatsApp connecte',
-      'Reception des messages dans l app',
-      'Inbox simple et conversations',
-      'Creation manuelle de commandes',
-      'Historique client simple',
+      '50 crédits IA',
+      '30 FCFA / crédit',
+      'Fiches produit IA (×50)',
+      'Photos pro OpenAI (×25)',
+      'Brochures IA (×50)',
     ],
     featureFlags: {
       manualOrders: true,
-      incomingWhatsappInbox: true,
-      conversationManagement: true,
+      incomingWhatsappInbox: false,
+      conversationManagement: false,
       simpleCustomerHistory: true,
       orderIntentDetection: false,
       draftOrders: false,
@@ -120,50 +136,53 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       controlledOutboundReady: false,
     },
   },
+
+  // ── Pack 200 crédits — 5 000 FCFA — le plus populaire ────────────────────
   STANDARD: {
     id: 'STANDARD',
     code: 'STANDARD',
-    name: 'Standard',
+    name: 'Pack 200',
     price: 5000,
     priceXaf: 5000,
     billingCycle: 'monthly',
     annualPriceXaf: null,
-    badge: 'Le plus populaire',
+    badge: 'Meilleur rapport',
     isPopular: true,
-    color: '#ea580c',
-    maxProducts: 400,
+    color: '#1FB955',
+    maxProducts: -1,
     maxOrdersPerMonth: -1,
-    maxWhatsappAccounts: 1,
-    maxStaff: 2,
+    maxWhatsappAccounts: 0,
+    maxStaff: 1,
+    aiCreditsIncluded: 200,
     features: [
-      'Tout Starter',
-      'Detection automatique des messages de commande',
-      'Creation de commande brouillon',
-      'Statuts de commande',
-      'Recherche et filtres',
-      'Notifications internes',
-      'Fiche client enrichie',
+      '200 crédits IA',
+      '25 FCFA / crédit',
+      'Fiches produit IA (×200)',
+      'Photos pro OpenAI (×100)',
+      'Brochures IA (×200)',
     ],
     featureFlags: {
       manualOrders: true,
-      incomingWhatsappInbox: true,
-      conversationManagement: true,
+      incomingWhatsappInbox: false,
+      conversationManagement: false,
       simpleCustomerHistory: true,
-      orderIntentDetection: true,
-      draftOrders: true,
-      orderStatuses: true,
-      searchAndFilters: true,
-      internalNotifications: true,
-      enrichedCustomerProfile: true,
+      orderIntentDetection: false,
+      draftOrders: false,
+      orderStatuses: false,
+      searchAndFilters: false,
+      internalNotifications: false,
+      enrichedCustomerProfile: false,
       multiStaff: false,
       statsAndReports: false,
       controlledOutboundReady: false,
     },
   },
+
+  // ── Pack 500 crédits — 10 000 FCFA ───────────────────────────────────────
   PRO: {
     id: 'PRO',
     code: 'PRO',
-    name: 'Pro',
+    name: 'Pack 500',
     price: 10000,
     priceXaf: 10000,
     billingCycle: 'monthly',
@@ -171,30 +190,30 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     color: '#7c3aed',
     maxProducts: -1,
     maxOrdersPerMonth: -1,
-    maxWhatsappAccounts: 3,
-    maxStaff: 10,
+    maxWhatsappAccounts: 0,
+    maxStaff: 1,
+    aiCreditsIncluded: 500,
     features: [
-      'Tout Standard',
-      'Acces multi-staff',
-      'Statistiques',
-      'Rapports',
-      'Support prioritaire',
-      'Structure prete pour reponses sortantes controlees',
+      '500 crédits IA',
+      '20 FCFA / crédit',
+      'Fiches produit IA (×500)',
+      'Photos pro OpenAI (×250)',
+      'Brochures IA (×500)',
     ],
     featureFlags: {
       manualOrders: true,
-      incomingWhatsappInbox: true,
-      conversationManagement: true,
+      incomingWhatsappInbox: false,
+      conversationManagement: false,
       simpleCustomerHistory: true,
-      orderIntentDetection: true,
-      draftOrders: true,
-      orderStatuses: true,
-      searchAndFilters: true,
-      internalNotifications: true,
-      enrichedCustomerProfile: true,
-      multiStaff: true,
-      statsAndReports: true,
-      controlledOutboundReady: true,
+      orderIntentDetection: false,
+      draftOrders: false,
+      orderStatuses: false,
+      searchAndFilters: false,
+      internalNotifications: false,
+      enrichedCustomerProfile: false,
+      multiStaff: false,
+      statsAndReports: false,
+      controlledOutboundReady: false,
     },
   },
 };

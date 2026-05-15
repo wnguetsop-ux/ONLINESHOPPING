@@ -468,6 +468,7 @@ export default function ProductsPage() {
   const [brochureCopied, setBrochureCopied] = useState(false);
   const [proImageUrl, setProImageUrl] = useState('');
   const [proImageLoading, setProImageLoading] = useState(false);
+  const [modalProLoading, setModalProLoading] = useState(false);
   const [brochurePreviewUrl, setBrochurePreviewUrl] = useState('');
   const [newCat, setNewCat] = useState({ name:'', color:'#16a34a' });
   const [postSaveProduct, setPostSaveProduct] = useState<Product | null>(null);
@@ -557,7 +558,7 @@ export default function ProductsPage() {
     if (!shop?.id) return;
     const [p, c, lim] = await Promise.all([getProducts(shop.id), getCategories(shop.id), checkShopLimits(shop.id)]);
     setProducts(p); setCategories(c); setLimits(lim);
-    setStudioCredits((shop as any).photoCredits ?? 0);
+    setStudioCredits((shop as any).aiCredits ?? 0);
     setLoading(false);
   }
 
@@ -665,39 +666,82 @@ export default function ProductsPage() {
       setIsAnalyzing(false);
     }
 
-    // ── Studio Photo — traitement fond en arrière-plan (silent, non-bloquant) ──
-    if (!b64) return;
+    // ── Photo Pro IA — génération OpenAI en arrière-plan (silent, non-bloquant) ──
+    if (!b64 || !shop?.id) return;
     try {
-      // Vérifier les crédits avant de consommer
-      if (shop?.id) {
-        const { doc: fsDoc, getDoc, updateDoc } = await import('firebase/firestore');
-        const { db: fsDb } = await import('@/lib/firebase');
-        const shopRef = fsDoc(fsDb, 'shops', shop.id);
-        const shopSnap = await getDoc(shopRef);
-        const currentCredits = shopSnap.data()?.photoCredits ?? 0;
-        if (currentCredits <= 0) return; // plus de crédits → on garde la photo originale
-        // Lancer le studio en background — ne rien afficher tant que pas prêt
-        fetch('/api/photo-studio', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ base64: b64 }),
-        }).then(async sRes => {
-          if (!sRes.ok) return;
-          const sData = await sRes.json();
-          if (!sData.processedImage) return;
-          // Déduire 1 crédit seulement si succès
-          updateDoc(shopRef, { photoCredits: Math.max(0, currentCredits - 1), updatedAt: new Date().toISOString() }).catch(() => {});
-          // Appliquer la photo pro silencieusement
-          const processedBlob = await fetch(sData.processedImage).then(r => r.blob());
-          const processedUrl = URL.createObjectURL(processedBlob);
-          setPhotoPreview(processedUrl);
-          setRawSrc(sData.processedImage);
-          setPhotoFile(new File([processedBlob], `studio-${Date.now()}.png`, { type: 'image/png' }));
-          setPhotoMode('done');
-          setStudioCredits(c => Math.max(0, c - 1));
-        }).catch(() => { /* Remove.bg indisponible — photo originale conservée */ });
-      }
+      const { doc: fsDoc, getDoc, updateDoc } = await import('firebase/firestore');
+      const { db: fsDb } = await import('@/lib/firebase');
+      const shopRef = fsDoc(fsDb, 'shops', shop.id);
+      const shopSnap = await getDoc(shopRef);
+      const currentCredits = shopSnap.data()?.aiCredits ?? 0;
+      if (currentCredits < 2) return; // coût = 2 crédits (photoProIA)
+      fetch('/api/generate-visual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          preset: 'product-spotlight',
+          brandName: shop?.name || 'MasterShopPro',
+          aspectRatio: '1:1',
+          imageSize: '1K',
+          quality: 'fast',
+          referenceImages: [{ data: b64, mimeType: 'image/jpeg' }],
+          description: `Premium ecommerce product photo for "${form.name || 'product'}". Clean studio background, mobile-first visual for WhatsApp commerce. Same product, improved lighting and presentation.`,
+        }),
+      }).then(async sRes => {
+        if (!sRes.ok) return;
+        const sData = await sRes.json();
+        if (!sData.image) return;
+        // Déduire 2 crédits seulement si succès
+        updateDoc(shopRef, { aiCredits: Math.max(0, currentCredits - 2), updatedAt: new Date().toISOString() }).catch(() => {});
+        setStudioCredits(c => Math.max(0, c - 2));
+        const imgData = sData.image;
+        const processedBlob = await fetch(imgData).then(r => r.blob());
+        const processedUrl = URL.createObjectURL(processedBlob);
+        setPhotoPreview(processedUrl);
+        setRawSrc(imgData);
+        setPhotoFile(new File([processedBlob], `pro-${Date.now()}.png`, { type: 'image/png' }));
+        setPhotoMode('done');
+      }).catch(() => { /* OpenAI indisponible — photo originale conservée */ });
     } catch { /* non-bloquant */ }
+  }
+
+  async function generateModalProPhoto() {
+    const srcToUse = photoPreview || form.imageUrl;
+    if (!srcToUse || !shop?.id) return;
+    if (studioCredits < 2) { setShowCreditsModal(true); return; }
+    setModalProLoading(true);
+    try {
+      const referenceImages = [await imageUrlToDataUrl(proxySrc(srcToUse))];
+      const res = await fetch('/api/generate-visual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          preset: 'product-spotlight',
+          brandName: shop?.name || 'MasterShopPro',
+          aspectRatio: '1:1',
+          imageSize: '1K',
+          quality: 'fast',
+          referenceImages,
+          description: `Premium ecommerce product photo for "${form.name || 'product'}". Clean studio background, mobile-first visual for WhatsApp commerce.`,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.image) throw new Error(data.error || 'Génération impossible');
+      const { doc: fsDoc, updateDoc } = await import('firebase/firestore');
+      const { db: fsDb } = await import('@/lib/firebase');
+      updateDoc(fsDoc(fsDb, 'shops', shop.id), { aiCredits: Math.max(0, studioCredits - 2), updatedAt: new Date().toISOString() }).catch(() => {});
+      setStudioCredits(c => Math.max(0, c - 2));
+      const processedBlob = await fetch(data.image).then(r => r.blob());
+      const processedUrl = URL.createObjectURL(processedBlob);
+      setPhotoPreview(processedUrl);
+      setRawSrc(data.image);
+      setPhotoFile(new File([processedBlob], `pro-${Date.now()}.png`, { type: 'image/png' }));
+      setPhotoMode('done');
+    } catch (e: any) {
+      console.error('[ModalProPhoto]', e);
+    } finally {
+      setModalProLoading(false);
+    }
   }
 
   async function applyStudio() {
@@ -1359,7 +1403,7 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
       )}
       {studioCredits>=0&&studioCredits<10&&(
         <div className="rounded-2xl p-4 flex items-center justify-between border" style={{background:'linear-gradient(135deg,#fff7ed,#fef3c7)',borderColor:'#fed7aa'}}>
-          <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center"><Wand2 className="w-5 h-5 text-orange-500"/></div><div><p className="font-bold text-orange-800 text-sm">Studio Photo IA - {studioCredits} credit{studioCredits!==1?'s':''} restant{studioCredits!==1?'s':''}</p><p className="text-xs text-orange-600">Pack 50 photos = 1 000 FCFA Pack 200 = 3 000 FCFA</p></div></div>
+          <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center"><Wand2 className="w-5 h-5 text-orange-500"/></div><div><p className="font-bold text-orange-800 text-sm">Studio Photo IA - {studioCredits} credit{studioCredits!==1?'s':''} restant{studioCredits!==1?'s':''}</p><p className="text-xs text-orange-600">Pack 50 = 1 500 FCFA · Pack 200 = 5 000 FCFA · Pack 500 = 10 000 FCFA</p></div></div>
           <button onClick={()=>setShowCreditsModal(true)} className="text-xs font-bold px-4 py-2 rounded-xl text-white shadow-sm" style={{background:'linear-gradient(135deg,#f97316,#ea580c)'}}>Recharger</button>
         </div>
       )}
@@ -1554,6 +1598,11 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
                       <button type="button" onClick={()=>rawSrc?setPhotoMode('crop'):fileInputRef.current?.click()} className="py-2 bg-gray-100 text-gray-600 text-xs rounded-xl hover:bg-gray-200 font-medium">Recadrer</button>
                       <button type="button" onClick={()=>setShowStudio(true)} className="py-2 text-white text-xs rounded-xl font-bold flex items-center justify-center gap-1" style={{background:'linear-gradient(135deg,#7c3aed,#6d28d9)'}}><Wand2 className="w-3 h-3"/>Studio</button>
                     </div>
+                    <button type="button" onClick={generateModalProPhoto} disabled={modalProLoading}
+                            className="mt-2 w-full py-2.5 text-white text-[11.5px] rounded-xl font-extrabold flex items-center justify-center gap-1.5 disabled:opacity-60 transition hover:-translate-y-0.5"
+                            style={{background:'linear-gradient(135deg,#7c3aed,#4c1d95)'}}>
+                      {modalProLoading?<><Loader2 className="w-3.5 h-3.5 animate-spin"/>Génération en cours...</>:<><Sparkles className="w-3.5 h-3.5"/>Photo Pro IA{studioCredits>=2?<span className="ml-1 bg-white/20 px-1.5 py-0.5 rounded-full text-[10px]">2 crédits</span>:<span className="ml-1 text-violet-300 text-[10px]">— {studioCredits} crédit{studioCredits!==1?'s':''} (recharger)</span>}</>}
+                    </button>
                   </div>
                 )}
 

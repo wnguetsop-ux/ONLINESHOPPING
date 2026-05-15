@@ -133,7 +133,7 @@ export default function LandingPage() {
                   <div className="flex flex-col gap-5">
                     <div className="ambient-panel p-4">
                       <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">Apercu operationnel</p>
-                      <h3 className="mt-1 text-lg font-black text-slate-900">Chat -> commande -> suivi</h3>
+                      <h3 className="mt-1 text-lg font-black text-slate-900">Chat → commande → suivi</h3>
                       <div className="mt-4 media-frame media-hover overflow-hidden rounded-[24px]">
                         <Image
                           src="/generated/landing-hero-1.png"
