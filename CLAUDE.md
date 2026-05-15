@@ -354,17 +354,20 @@ Ces propositions ont été validées avec William. À implémenter par ordre de 
 
 **Fichier** : `app/(admin)/admin/products/page.tsx` — ajouter state `showPostSave` + composant `PostSaveSheet`
 
-## P3 — 3 variantes de brochure [DIFFÉRENCIATEUR FORT]
+## P3 — 3 photos produit sous 3 angles dans la brochure [DIFFÉRENCIATEUR FORT]
 
-Après Studio Photo, proposer 3 templates rendus live (canvas ou CSS) :
+**Clarification (2026-05-15)** : la brochure doit contenir 3 photos du MÊME produit prises sous 3 angles différents, pas 3 layouts.
 
-| Template | Format | Usage |
-|---|---|---|
-| **Fiche Pro** | Portrait · fond blanc | DM WhatsApp |
-| **Story** | Carré · image bg + overlay prix | Story WA / Instagram |
-| **Catalogue** | Paysage · image gauche + détails droite | Groupe WA / impression |
+**Flow** :
+1. Dans le modal produit : 3 slots photo avec labels clairs
+   - Slot 1 : "Vue principale" (face avant) — photo existante
+   - Slot 2 : "Vue côté / dos"
+   - Slot 3 : "Vue détail / zoom"
+2. L'IA analyse la photo principale → remplit la fiche
+3. Les 3 photos sont utilisées dans la brochure générée
+4. La brochure montre : nom + prix + description + 3 photos en grille + CTA WhatsApp
 
-**Fichier** : `app/api/product-brochure/route.ts` + nouveau composant `BrocureVariantPicker`
+**Fichier** : `app/(admin)/admin/products/page.tsx` — section photo du modal + `app/api/product-brochure/route.ts`
 
 ## P4 — Boutique publique toujours visible [VISIBILITÉ]
 

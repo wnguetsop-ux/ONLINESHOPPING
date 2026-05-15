@@ -5,7 +5,7 @@ import {
   Plus, Search, Edit, Trash2, Package, Loader2, X, Star, Camera, Sparkles,
   AlertTriangle, Crown, Image as ImageIcon, StopCircle, ZoomIn, ZoomOut,
   RotateCw, Check, Wand2, Sun, Contrast, Zap, Move, SlidersHorizontal,
-  RefreshCw, Eye, Copy, Download, Share2, FileText,
+  RefreshCw, Eye, Copy, Download, Share2, FileText, MessageCircle, ArrowRight,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useI18n } from '@/hooks/useI18n';
@@ -457,6 +457,7 @@ export default function ProductsPage() {
   const [proImageLoading, setProImageLoading] = useState(false);
   const [brochurePreviewUrl, setBrochurePreviewUrl] = useState('');
   const [newCat, setNewCat] = useState({ name:'', color:'#16a34a' });
+  const [postSaveProduct, setPostSaveProduct] = useState<Product | null>(null);
 
   const [form, setForm] = useState({
     name:'', description:'', specifications:'', category:'', brand:'',
@@ -684,6 +685,7 @@ export default function ProductsPage() {
         createdAt: editing?.createdAt || new Date().toISOString(),
       } as Product;
       await loadData(); setShowModal(false); resetPhoto();
+      setPostSaveProduct(savedProduct);
       if (shouldOpenBrochure) {
         setTimeout(() => openBrochure(savedProduct), 120);
       }
@@ -1447,37 +1449,53 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
                 {photoMode==='none'&&!photoPreview&&!form.imageUrl&&<p className="text-xs text-gray-400 mt-2 text-center">Gemini + GPT-4o remplissent les champs automatiquement</p>}
               </div>
 
-              {/* ── PHOTOS SUPPLÉMENTAIRES ── */}
+              {/* ── 3 ANGLES PRODUIT ── */}
               {(photoMode==='done'||form.imageUrl) && (
-                <details className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
-                  <summary className="cursor-pointer text-sm font-bold text-gray-700">Photos supplementaires</summary>
-                  <div className="space-y-2 mt-3">
-                  <div className="flex items-center gap-2">
-                    <label className="block text-sm font-medium text-gray-700">Photos supplémentaires</label>
-                    <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">jusqu'à 2 photos</span>
+                <div className="rounded-2xl border border-emerald-100 bg-emerald-50/40 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-extrabold text-gray-800">3 angles pour la brochure</p>
+                      <p className="text-[11px] text-gray-500 mt-0.5">Face avant déjà prise · Ajoute côté + détail pour une brochure complète</p>
+                    </div>
+                    <div className="flex gap-1">
+                      {[0,1,2].map(i => (
+                        <div key={i} className={`w-2 h-2 rounded-full ${i===0 ? 'bg-emerald-500' : extraPhotos[i-1] ? 'bg-emerald-500' : 'bg-gray-200'}`}/>
+                      ))}
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[0, 1].map(idx => (
+                  <div className="grid grid-cols-3 gap-2">
+                    {/* Angle 1 — Face avant (déjà pris) */}
+                    <div className="relative rounded-xl overflow-hidden border-2 border-emerald-400 bg-white" style={{aspectRatio:'1'}}>
+                      {(photoPreview||form.imageUrl) && (
+                        <img src={photoPreview||form.imageUrl} alt="Vue face" className="w-full h-full object-contain p-1"/>
+                      )}
+                      <div className="absolute bottom-0 inset-x-0 bg-emerald-500 text-white text-[9px] font-extrabold text-center py-0.5">✓ FACE</div>
+                    </div>
+                    {/* Angles 2 & 3 */}
+                    {[
+                      { idx:0, label:'CÔTÉ', hint:'Vue de côté' },
+                      { idx:1, label:'DÉTAIL', hint:'Zoom / détail' },
+                    ].map(({idx, label, hint}) => (
                       <div key={idx}>
                         {extraPhotos[idx] ? (
-                          <div className="relative rounded-2xl overflow-hidden border border-gray-200 bg-white" style={{aspectRatio:'1'}}>
-                            <img src={extraPhotos[idx]} alt={`Photo ${idx+2}`} className="w-full h-full object-contain p-2"/>
+                          <div className="relative rounded-xl overflow-hidden border-2 border-emerald-400 bg-white" style={{aspectRatio:'1'}}>
+                            <img src={extraPhotos[idx]} alt={label} className="w-full h-full object-contain p-1"/>
                             <button type="button"
                               onClick={() => setExtraPhotos(prev => { const next=[...prev]; next.splice(idx,1); return next; })}
-                              className="absolute top-1.5 right-1.5 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white shadow-md hover:bg-red-600 transition-colors">
-                              <X className="w-3.5 h-3.5"/>
+                              className="absolute top-1 right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white">
+                              <X className="w-3 h-3"/>
                             </button>
-                            <div className="absolute bottom-1.5 left-1.5 bg-black/40 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Photo {idx+2}</div>
+                            <div className="absolute bottom-0 inset-x-0 bg-emerald-500 text-white text-[9px] font-extrabold text-center py-0.5">✓ {label}</div>
                           </div>
                         ) : (
-                          <label className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 cursor-pointer hover:bg-gray-100 hover:border-gray-300 transition-all" style={{aspectRatio:'1'}}>
+                          <label className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 bg-white cursor-pointer hover:border-emerald-400 hover:bg-emerald-50 transition-all" style={{aspectRatio:'1'}}>
                             {uploadingExtra ? (
-                              <Loader2 className="w-6 h-6 text-gray-400 animate-spin"/>
+                              <Loader2 className="w-5 h-5 text-gray-400 animate-spin"/>
                             ) : (
                               <>
-                                <Camera className="w-6 h-6 text-gray-300 mb-1"/>
-                                <span className="text-xs text-gray-400 font-medium">Photo {idx+2}</span>
-                                <span className="text-[10px] text-gray-300">Ajouter</span>
+                                <Camera className="w-5 h-5 text-gray-300 mb-1"/>
+                                <span className="text-[9px] font-extrabold text-gray-400 uppercase tracking-wide">{label}</span>
+                                <span className="text-[9px] text-gray-300">{hint}</span>
                               </>
                             )}
                             <input type="file" accept="image/*" className="hidden" onChange={async e => {
@@ -1491,10 +1509,11 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
                     ))}
                   </div>
                   {extraPhotos.length > 0 && (
-                    <p className="text-xs text-emerald-600 font-medium">✓ {extraPhotos.length} photo{extraPhotos.length > 1 ? 's' : ''} supplémentaire{extraPhotos.length > 1 ? 's' : ''} ajoutée{extraPhotos.length > 1 ? 's' : ''}</p>
+                    <p className="text-[11px] text-emerald-700 font-extrabold">
+                      ✓ {extraPhotos.length + 1}/3 angle{extraPhotos.length > 0 ? 's' : ''} — brochure {extraPhotos.length >= 2 ? 'complète' : 'partielle'}
+                    </p>
                   )}
-                  </div>
-                </details>
+                </div>
               )}
 
               {isAnalyzing&&photoMode==='done'&&(
@@ -1507,10 +1526,46 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Nom du produit *</label><input type="text" required value={form.name} onChange={e=>setForm({...form,name:e.target.value})} className="input" placeholder="Nom du produit"/></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Description {form.description&&<span className="text-xs text-green-500 ml-1">✓ IA</span>}</label><textarea value={form.description} onChange={e=>setForm({...form,description:e.target.value})} className="textarea" rows={2} placeholder="Description attrayante"/></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Caracteristiques {form.specifications&&<span className="text-xs text-green-500 ml-1">✓ IA</span>}</label><textarea value={form.specifications} onChange={e=>setForm({...form,specifications:e.target.value})} className="textarea font-mono text-xs" rows={3} placeholder={"Couleur: \nMatiere: \nDimensions: "}/></div>
-              <div className="grid grid-cols-2 gap-4">
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Categorie *</label><select required value={form.category} onChange={e=>setForm({...form,category:e.target.value})} className="select"><option value="">Choisir...</option>{categories.map(c=><option key={c.id} value={c.name}>{c.name}</option>)}</select></div>
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Marque</label><input type="text" value={form.brand} onChange={e=>setForm({...form,brand:e.target.value})} className="input" placeholder="Samsung, Nike..."/></div>
+              {/* ── CATÉGORIE — Smart Chips ── */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Catégorie
+                    {form.category && <span className="ml-2 text-xs text-emerald-600 font-extrabold">✓ {form.category}</span>}
+                  </label>
+                  <button type="button" onClick={()=>setShowCatModal(true)}
+                    className="text-[11px] font-extrabold text-wa-dark hover:text-wa underline-offset-2 hover:underline">
+                    + Créer
+                  </button>
+                </div>
+                {/* AI suggestion */}
+                {aiAnalysis?.category && !form.category && (
+                  <button type="button"
+                    onClick={()=>setForm({...form,category:aiAnalysis.category})}
+                    className="mb-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-extrabold border-2 border-emerald-400 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-all">
+                    <Sparkles className="w-3.5 h-3.5"/>
+                    IA suggère : {aiAnalysis.category}
+                  </button>
+                )}
+                {/* Preset chips + existing categories */}
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    ...['Vêtements','Cosmétiques','Alimentaire','Électronique','Maison','Artisanat','Accessoires','Autre'],
+                    ...categories.map(c=>c.name).filter(n=>!['Vêtements','Cosmétiques','Alimentaire','Électronique','Maison','Artisanat','Accessoires','Autre'].includes(n)),
+                  ].map(cat => (
+                    <button type="button" key={cat}
+                      onClick={()=>setForm({...form,category:form.category===cat?'':cat})}
+                      className={`px-3 py-1.5 rounded-full text-xs font-extrabold transition-all ${
+                        form.category===cat
+                          ? 'bg-wa text-white shadow-wa'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}>
+                      {cat}
+                    </button>
+                  ))}
+                </div>
               </div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Marque</label><input type="text" value={form.brand} onChange={e=>setForm({...form,brand:e.target.value})} className="input" placeholder="Samsung, Nike..."/></div>
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Prix d'achat *</label><input type="number" required min="0" value={form.costPrice} onChange={e=>setForm({...form,costPrice:e.target.value})} className="input"/></div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Prix de vente *</label><input type="number" required min="0" value={form.sellingPrice} onChange={e=>setForm({...form,sellingPrice:e.target.value})} className="input"/>{margin>0&&<p className={`text-xs mt-1 font-medium ${margin>=20?'text-emerald-600':'text-amber-600'}`}>Marge: {margin}%</p>}</div>
@@ -1759,6 +1814,106 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
       )}
 
       {showCreditsModal && <CreditsModal credits={studioCredits} shopName={shop?.name||''} shopId={shop?.id||''} onClose={()=>setShowCreditsModal(false)}/>}
+
+      {/* ── POST-SAVE BOTTOM SHEET ── */}
+      {postSaveProduct && (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center" style={{ background: 'rgba(11,18,32,0.6)' }}
+             onClick={()=>setPostSaveProduct(null)}>
+          <div className="w-full max-w-lg bg-white rounded-t-3xl overflow-hidden shadow-hi animate-slideUp"
+               onClick={e=>e.stopPropagation()}>
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 bg-gray-200 rounded-full"/>
+            </div>
+            {/* Header */}
+            <div className="px-5 pt-2 pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-wa"
+                     style={{ background: 'linear-gradient(135deg,#1FB955,#0E5D32)' }}>
+                  <span className="text-white text-lg">✅</span>
+                </div>
+                <div>
+                  <p className="font-extrabold text-ink text-base truncate max-w-[240px]">{postSaveProduct.name || 'Produit enregistré'}</p>
+                  <p className="text-[12px] text-slate-500 font-semibold">
+                    {postSaveProduct.sellingPrice?.toLocaleString('fr-FR')} {shop?.currency || 'FCFA'}
+                    {postSaveProduct.category ? ` · ${postSaveProduct.category}` : ''}
+                  </p>
+                </div>
+              </div>
+            </div>
+            {/* Actions */}
+            <div className="p-4 space-y-2.5 pb-safe">
+              <button
+                onClick={()=>{ setPostSaveProduct(null); openBrochure(postSaveProduct); }}
+                className="w-full flex items-center gap-4 p-4 rounded-2xl text-left transition-all hover:bg-emerald-50 border border-emerald-100 bg-emerald-50/50">
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 shadow-wa"
+                     style={{ background: 'linear-gradient(135deg,#1FB955,#0E5D32)' }}>
+                  <Sparkles className="w-5 h-5 text-white"/>
+                </div>
+                <div className="flex-1">
+                  <p className="font-extrabold text-ink text-[15px]">Générer la brochure</p>
+                  <p className="text-[12px] text-slate-500 font-semibold">
+                    {extraPhotos.length >= 2 ? '3 angles · prête pour WhatsApp' : 'Fiche produit + partage WhatsApp'}
+                  </p>
+                </div>
+                <ArrowRight className="w-4 h-4 text-slate-400"/>
+              </button>
+
+              {shop?.whatsapp && (
+                <a href={getWhatsAppLink(shop.whatsapp, `Bonjour ! Voici ${postSaveProduct.name} — ${postSaveProduct.sellingPrice?.toLocaleString('fr-FR')} ${shop.currency||'FCFA'}\n\n✅ Disponible en boutique : ${typeof window!=='undefined'?window.location.origin:''} /${shop.slug}`)}
+                   target="_blank" rel="noopener noreferrer"
+                   onClick={()=>setPostSaveProduct(null)}
+                   className="w-full flex items-center gap-4 p-4 rounded-2xl text-left transition-all hover:bg-slate-50 border border-slate-100">
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                       style={{ background: '#E6F8EE', color: '#0E5D32' }}>
+                    <MessageCircle className="w-5 h-5"/>
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-extrabold text-ink text-[15px]">Partager sur WhatsApp</p>
+                    <p className="text-[12px] text-slate-500 font-semibold">Message pré-rempli avec prix + lien</p>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-slate-400"/>
+                </a>
+              )}
+
+              {shop?.slug && (
+                <a href={`/${shop.slug}`} target="_blank" rel="noopener noreferrer"
+                   onClick={()=>setPostSaveProduct(null)}
+                   className="w-full flex items-center gap-4 p-4 rounded-2xl text-left transition-all hover:bg-slate-50 border border-slate-100">
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                       style={{ background: '#EAF2FF', color: '#1E3F87' }}>
+                    <Eye className="w-5 h-5"/>
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-extrabold text-ink text-[15px]">Voir dans la boutique</p>
+                    <p className="text-[12px] text-slate-500 font-semibold">Vérifier l'affichage public</p>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-slate-400"/>
+                </a>
+              )}
+
+              <button
+                onClick={()=>{ navigator.clipboard.writeText(`${typeof window!=='undefined'?window.location.origin:''}/${shop?.slug}`); setPostSaveProduct(null); }}
+                className="w-full flex items-center gap-4 p-4 rounded-2xl text-left transition-all hover:bg-slate-50 border border-slate-100">
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                     style={{ background: '#F6F2EA', color: '#6B7385' }}>
+                  <Copy className="w-5 h-5"/>
+                </div>
+                <div className="flex-1">
+                  <p className="font-extrabold text-ink text-[15px]">Copier le lien boutique</p>
+                  <p className="text-[12px] text-slate-500 font-semibold">{typeof window!=='undefined'?window.location.origin:''}/{shop?.slug}</p>
+                </div>
+                <ArrowRight className="w-4 h-4 text-slate-400"/>
+              </button>
+
+              <button onClick={()=>setPostSaveProduct(null)}
+                      className="w-full py-3 text-center text-[13px] font-extrabold text-slate-400 hover:text-slate-600 transition-colors">
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showCatModal&&(
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
