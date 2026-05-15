@@ -13,7 +13,7 @@ const config: Config = {
         serif: ['"Instrument Serif"', 'Times New Roman', 'serif'],
       },
       colors: {
-        // WhatsApp green — tuned for a more premium business UI
+        // WhatsApp green — slightly deeper for premium feel
         wa: {
           DEFAULT: '#1FB955',
           hover:   '#19A44A',
@@ -22,24 +22,27 @@ const config: Config = {
           soft:    '#E6F8EE',
           border:  '#BBF7D0',
         },
-        // App surfaces
+        // App surfaces — warm
         app: {
-          bg:      '#FBF7EF',
+          bg:      '#FBF7EF',   // cream
           card:    '#FFFFFF',
           paper:   '#F6F2EA',
           border:  '#E2E8F0',
         },
+        // Ink — warm navy
         ink: {
           DEFAULT: '#0B1220',
           2:       '#1F2A44',
           mute:    '#6B7385',
         },
+        // Action / heat
         orange: {
           DEFAULT: '#FF6A2C',
           hover:   '#F25B1A',
           ink:     '#B23E0A',
           soft:    '#FFF1E8',
         },
+        // Trust / business
         sky: {
           DEFAULT: '#3F7BDC',
           soft:    '#EAF2FF',
@@ -47,11 +50,11 @@ const config: Config = {
         },
         // Order status semantic colors
         status: {
-          pending:    '#F59E0B', // amber
-          confirmed:  '#3B82F6', // blue
-          processing: '#9333EA', // purple
-          delivered:  '#10B981', // green
-          cancelled:  '#EF4444', // red
+          pending:    '#F59E0B',
+          confirmed:  '#3B82F6',
+          processing: '#9333EA',
+          delivered:  '#10B981',
+          cancelled:  '#EF4444',
         },
       },
       borderRadius: {
