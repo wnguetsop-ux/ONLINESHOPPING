@@ -58,28 +58,13 @@ async function loadShops(): Promise<ShopItem[]> {
   }).filter((s: ShopItem) => s.slug);
 }
 
-async function directActivate(shopId: string, credits: number): Promise<boolean> {
-  const shopRes = await fetch(`${BASE}/shops/${shopId}?key=${API_KEY}`);
-  if (!shopRes.ok) return false;
-  const shopDoc = await shopRes.json();
-  const current = parseInt(
-    shopDoc.fields?.aiCredits?.integerValue ??
-    shopDoc.fields?.aiCredits?.doubleValue ?? '0'
-  );
-  const patch = await fetch(
-    `${BASE}/shops/${shopId}?key=${API_KEY}&updateMask.fieldPaths=aiCredits&updateMask.fieldPaths=updatedAt`,
-    {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        fields: {
-          aiCredits: { integerValue: String(current + credits) },
-          updatedAt: { stringValue: new Date().toISOString() },
-        },
-      }),
-    }
-  );
-  return patch.ok;
+async function directActivate(shopId: string, credits: number, transactionRef?: string): Promise<boolean> {
+  const res = await fetch('/api/admin-activate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ shopId, credits, transactionRef }),
+  });
+  return res.ok;
 }
 
 async function activatePendingItem(item: PendingItem, shops: ShopItem[]): Promise<boolean> {
@@ -88,8 +73,13 @@ async function activatePendingItem(item: PendingItem, shops: ShopItem[]): Promis
     shopId = shops.find(s => s.slug === item.shopSlug)?.id;
   }
   if (!shopId) return false;
-  const ok = await directActivate(shopId, item.credits);
-  if (!ok) return false;
+  const res = await fetch('/api/admin-activate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ shopId, credits: item.credits, transactionRef: item.sessionId || item.transactionNumber }),
+  });
+  if (!res.ok) return false;
+  // Marquer comme activé
   const col = item.type === 'stripe' ? 'pending_credits' : 'pending_mobile_money';
   await fetch(
     `${BASE}/${col}/${item.docId}?key=${API_KEY}&updateMask.fieldPaths=status&updateMask.fieldPaths=activatedAt`,
@@ -142,30 +132,11 @@ export default function ActivationsPage() {
     if (!selectedShop) return;
     setActivating('direct');
     setDirectDone(false);
-    const ok = await directActivate(selectedShop.id, pack.credits);
+    const ref = txNumber.trim() || `ADMIN-${Date.now()}`;
+    const ok = await directActivate(selectedShop.id, pack.credits, ref);
     if (ok) {
       setShops(prev => prev.map(s => s.id === selectedShop.id ? { ...s, aiCredits: s.aiCredits + pack.credits } : s));
       setSelectedShop(prev => prev ? { ...prev, aiCredits: prev.aiCredits + pack.credits } : prev);
-      setDirectDone(true);
-      // Log dans Firestore
-      const ref = txNumber.trim() || `ADMIN-${Date.now()}`;
-      await fetch(`${BASE}/pending_mobile_money?key=${API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fields: {
-            shopId:            { stringValue: selectedShop.id },
-            shopName:          { stringValue: selectedShop.name },
-            shopSlug:          { stringValue: selectedShop.slug },
-            pack:              { stringValue: selectedPack },
-            credits:           { integerValue: String(pack.credits) },
-            transactionNumber: { stringValue: ref },
-            status:            { stringValue: 'ACTIVATED' },
-            createdAt:         { stringValue: new Date().toISOString() },
-            activatedAt:       { stringValue: new Date().toISOString() },
-          },
-        }),
-      }).catch(() => {});
       setTimeout(() => setDirectDone(false), 3000);
     } else {
       alert('Activation échouée — boutique introuvable ?');
