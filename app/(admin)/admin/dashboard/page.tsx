@@ -60,6 +60,27 @@ const PRIORITY_BORDER: Record<string, string> = {
   low:    'border-l-slate-300',
 };
 
+function formatPriceCompact(value: number): string {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace('.0', '')}M`;
+  if (value >= 1_000)     return `${Math.round(value / 1_000)}k`;
+  return String(value);
+}
+
+function HeroKpiCell({ label, value, sub, accent, icon }: {
+  label: string; value: string; sub: string; accent: string; icon: React.ReactNode;
+}) {
+  return (
+    <div className="px-5 py-5 sm:px-6 border-r border-white/10 last:border-r-0">
+      <div className="flex items-center gap-2 mb-1.5">
+        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${accent}22`, color: accent }}>{icon}</div>
+        <div className="text-[10.5px] font-extrabold tracking-[0.22em] uppercase text-white/55">{label}</div>
+      </div>
+      <div className="display-serif text-3xl sm:text-4xl leading-none mt-1.5" style={{ color: accent }}>{value}</div>
+      <div className="text-[11.5px] font-semibold text-white/55 mt-1">{sub}</div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { shop, admin } = useAuth();
   const [orders,   setOrders]   = useState<any[]>([]);
@@ -224,7 +245,32 @@ export default function DashboardPage() {
   // VUE UTILISATEUR ACTIF
   // ════════════════════════════════════════════════════════════════════════════
   return (
-    <div className="space-y-5 max-w-2xl animate-fadeIn">
+    <div className="space-y-6 page-enter">
+
+      {/* ── HERO ────────────────────────────────────────────────────────────── */}
+      <div className="relative overflow-hidden rounded-[2.25rem] shadow-hi" style={{ background: '#0B1220' }}>
+        <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(circle at 92% 8%, rgba(31,185,85,0.32), transparent 50%), radial-gradient(circle at 6% 92%, rgba(255,106,44,0.18), transparent 55%)' }} />
+        <div className="relative px-6 sm:px-8 py-8 sm:py-10 text-white">
+          <div className="inline-flex items-center gap-2 text-[11px] font-extrabold tracking-[0.22em] uppercase text-white/55">
+            <span className="pulse-dot" /> {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </div>
+          <h1 className="display-serif text-4xl sm:text-5xl mt-3 leading-[1.02]">
+            Bonjour <em className="italic" style={{ color: '#1FB955' }}>{shop?.name || 'Boutique'}.</em>
+          </h1>
+          <div className="mt-6 flex flex-wrap gap-2.5">
+            <Link href="/admin/orders" className="btn-primary px-5 text-sm">Ouvrir les commandes</Link>
+            <button onClick={copyLink} className="btn px-5 py-3 text-sm rounded-full" style={{ background: 'rgba(255,255,255,0.10)', border: '1.5px solid rgba(255,255,255,0.18)', color: 'white' }}>
+              {copied ? 'Lien copié !' : 'Partager la boutique'}
+            </button>
+          </div>
+        </div>
+        <div className="relative grid grid-cols-2 sm:grid-cols-4 border-t border-white/10">
+          <HeroKpiCell label="À encaisser" value={formatPriceCompact(totalUnpaid)} sub={`${shop?.currency || 'FCFA'}`} accent="#FF6A2C" icon={<span className="text-xs">💰</span>} />
+          <HeroKpiCell label="En attente" value={String(pending.length)} sub="commandes" accent="#3F7BDC" icon={<span className="text-xs">⏳</span>} />
+          <HeroKpiCell label="Aujourd'hui" value={formatPriceCompact(todayRevenue)} sub={`${shop?.currency || 'FCFA'}`} accent="#1FB955" icon={<span className="text-xs">📈</span>} />
+          <HeroKpiCell label="Total" value={formatPriceCompact(orders.reduce((s,o) => s + (o.total||0), 0))} sub={`${orders.length} commandes`} accent="#FFFFFF" icon={<span className="text-xs">🛍️</span>} />
+        </div>
+      </div>
 
       {/* ── Greeting header ──────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between">

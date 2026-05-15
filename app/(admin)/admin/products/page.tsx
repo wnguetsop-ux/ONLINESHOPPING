@@ -390,6 +390,21 @@ function CreditsModal({ credits, shopName, shopId, onClose }: { credits: number;
 }
 
 // ==============================================================================
+function formatPriceCompact(value: number): string {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace('.0','')}M`;
+  if (value >= 1_000) return `${Math.round(value / 1_000)}k`;
+  return String(value);
+}
+function StatCell({ label, value, sub, accent }: { label:string; value:string; sub:string; accent:string }) {
+  return (
+    <div className="px-5 py-5 sm:px-6 border-r border-white/10 last:border-r-0">
+      <div className="text-[10.5px] font-extrabold tracking-[0.22em] uppercase text-white/55">{label}</div>
+      <div className="display-serif text-3xl sm:text-4xl leading-none mt-1.5" style={{ color: accent }}>{value}</div>
+      <div className="text-[11.5px] font-semibold text-white/55 mt-1">{sub}</div>
+    </div>
+  );
+}
+
 export default function ProductsPage() {
   const { shop } = useAuth();
   const { t } = useI18n();
@@ -1204,9 +1219,9 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
 
   const margin=calculateMargin(parseFloat(form.costPrice)||0, parseFloat(form.sellingPrice)||0);
   const filtered=products.filter(p=>(p.name.toLowerCase().includes(search.toLowerCase())||p.category.toLowerCase().includes(search.toLowerCase()))&&(!catFilter||p.category===catFilter));
-  const activeProducts = products.filter((product) => product.isActive).length;
-  const lowStockProducts = products.filter((product) => product.stock <= (product.minStock || 5)).length;
-  const sellableStockValue = products.reduce((total, product) => total + (product.sellingPrice || 0) * Math.max(product.stock || 0, 0), 0);
+  const activeProducts = products.filter(p => p.isActive).length;
+  const lowStockProducts = products.filter(p => p.stock > 0 && p.stock <= (p.minStock || 5)).length;
+  const sellableStockValue = products.reduce((s, p) => s + (p.sellingPrice||0) * (p.stock||0), 0);
   const pc='#25D366';
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="w-12 h-12 border-4 border-t-transparent rounded-full animate-spin" style={{borderColor:pc}}/></div>;
@@ -1226,42 +1241,25 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
         </div>
       )}
 
-      <div className="rounded-[2rem] overflow-hidden shadow-sm border border-emerald-100 bg-white">
-        <div className="p-5 sm:p-6 text-white" style={{background:'linear-gradient(135deg,#052e25,#0f766e 58%,#25D366)'}}>
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
-            <div className="max-w-2xl">
-              <p className="text-emerald-100 text-xs font-black tracking-[0.22em] uppercase">Source principale de vente</p>
-              <h1 className="text-3xl sm:text-4xl font-black mt-2">Produits</h1>
-              <p className="text-emerald-50 mt-2 text-sm sm:text-base leading-relaxed">
-                Ajoute un produit, laisse l'IA remplir la fiche, genere une brochure et partage directement sur WhatsApp.
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2">
-              {shop?.slug&&(
-                <Link href={`/${shop.slug}`} target="_blank" className="px-4 py-3 rounded-2xl bg-white/15 text-white font-extrabold text-sm border border-white/20 hover:bg-white/25 text-center">
-                  Voir la boutique
-                </Link>
-              )}
-              <button onClick={openAdd} className="px-5 py-3 rounded-2xl bg-white text-emerald-800 font-black text-sm shadow-lg flex items-center justify-center gap-2">
-                <Plus className="w-5 h-5"/>
-                Nouveau produit
-              </button>
-            </div>
+      <div className="relative overflow-hidden rounded-[2.25rem] shadow-hi" style={{ background: '#0B1220' }}>
+        <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(circle at 88% 12%, rgba(31,185,85,0.32), transparent 50%), radial-gradient(circle at 8% 88%, rgba(255,106,44,0.18), transparent 55%)' }} />
+        <div className="relative px-6 sm:px-8 py-8 sm:py-10 text-white">
+          <div className="inline-flex items-center gap-2 text-[11px] font-extrabold tracking-[0.22em] uppercase text-white/60">
+            <span className="pulse-dot" /> Tableau de bord · Produits
+          </div>
+          <h1 className="display-serif text-4xl sm:text-5xl lg:text-6xl mt-3 leading-[1.02]">
+            Ajoute un produit.<br /><em className="italic" style={{ color: '#1FB955' }}>L'IA fait la fiche.</em>
+          </h1>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <button onClick={openAdd} className="btn-primary px-6 text-sm"><Plus className="w-5 h-5" />Nouveau produit</button>
+            <button onClick={() => setShowCatModal(true)} className="btn px-5 py-3 text-sm rounded-full" style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.15)', color: 'white' }}>+ Catégorie</button>
           </div>
         </div>
-        <div className="grid grid-cols-3 divide-x divide-emerald-100">
-          <div className="p-4">
-            <p className="text-[11px] uppercase tracking-wide text-gray-400 font-black">Visibles</p>
-            <p className="text-xl font-black text-gray-950">{activeProducts}</p>
-          </div>
-          <div className="p-4">
-            <p className="text-[11px] uppercase tracking-wide text-gray-400 font-black">Alertes stock</p>
-            <p className={`text-xl font-black ${lowStockProducts ? 'text-orange-600' : 'text-gray-950'}`}>{lowStockProducts}</p>
-          </div>
-          <div className="p-4">
-            <p className="text-[11px] uppercase tracking-wide text-gray-400 font-black">Valeur stock</p>
-            <p className="text-xl font-black text-gray-950">{formatPrice(sellableStockValue, shop?.currency)}</p>
-          </div>
+        <div className="relative grid grid-cols-2 sm:grid-cols-4 border-t border-white/10">
+          <StatCell label="Visibles" value={String(activeProducts)} sub={`/ ${products.length} total`} accent="#1FB955" />
+          <StatCell label="Alertes stock" value={String(lowStockProducts)} sub="< 5 unités" accent={lowStockProducts ? '#FF6A2C' : 'rgba(255,255,255,0.6)'} />
+          <StatCell label="Valeur stock" value={formatPriceCompact(sellableStockValue)} sub={shop?.currency || 'FCFA'} accent="#FFFFFF" />
+          <StatCell label="Crédits IA" value={String(studioCredits ?? 0)} sub="photos" accent="#3F7BDC" />
         </div>
       </div>
 
@@ -1272,9 +1270,9 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
       </div>
 
       {filtered.length>0?(
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filtered.map(product=>(
-            <div key={product.id} className={`rounded-[1.75rem] border bg-white shadow-sm hover:shadow-xl transition-all overflow-hidden ${!product.isActive?'opacity-70 border-gray-100':'border-emerald-100'}`}>
+            <div key={product.id} className={`premium-card overflow-hidden ${!product.isActive ? 'opacity-75' : ''}`}>
               <div className="relative bg-gradient-to-br from-gray-50 to-emerald-50" style={{aspectRatio:'1'}}>
                 {product.imageUrl
                   ? <img src={product.imageUrl} alt={product.name} className="w-full h-full object-contain p-4"/>

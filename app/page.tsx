@@ -64,20 +64,20 @@ export default function LandingPage() {
 
       <main>
         <section className="relative overflow-hidden px-5 pb-20 pt-28 lg:px-8 lg:pb-24 lg:pt-36">
-          <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[36rem] bg-[radial-gradient(circle_at_top_left,rgba(37,211,102,0.18),transparent_44%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.12),transparent_38%),linear-gradient(180deg,#f8fffb_0%,#ffffff_70%)]" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[36rem]" style={{ background: 'radial-gradient(60% 60% at 8% 10%, rgba(31,185,85,0.18), transparent 55%), linear-gradient(180deg, #FBF7EF 0%, #FFFFFF 70%)' }} />
           <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[1.02fr_0.98fr]">
             <div>
               <Reveal>
-                <div className="inline-flex items-center gap-2 rounded-full border border-[#bbf7d0] bg-[#f0fdf4] px-4 py-2 text-xs font-bold uppercase tracking-[0.22em] text-[#128C7E]">
+                <div className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.22em]" style={{ background: 'var(--wa-soft)', color: 'var(--wa-dark)', border: '1px solid rgba(31,185,85,0.22)' }}>
                   <MessageCircle className="h-4 w-4" />
                   Pensé pour les vendeurs WhatsApp
                 </div>
               </Reveal>
 
               <Reveal delay={80}>
-                <h1 className="mt-6 max-w-3xl text-5xl font-black tracking-[-0.05em] text-slate-950 sm:text-6xl lg:text-7xl">
+                <h1 className="display-serif mt-6 max-w-3xl text-5xl tracking-[-0.05em] text-slate-950 sm:text-6xl lg:text-7xl">
                   WhatsApp vous aide a vendre.
-                  <span className="block text-[#25D366]">MasterShopPro vous aide a gerer.</span>
+                  <span className="block" style={{ color: '#1FB955' }}>MasterShopPro vous aide a gerer.</span>
                 </h1>
               </Reveal>
 
@@ -91,7 +91,7 @@ export default function LandingPage() {
                 <div className="mt-8 grid gap-3 sm:grid-cols-1">
                   {BENEFITS.map((item) => (
                     <div key={item} className="premium-chip">
-                      <CheckCircle2 className="h-4 w-4 text-[#25D366]" />
+                      <CheckCircle2 className="h-4 w-4 text-wa" />
                       <span>{item}</span>
                     </div>
                   ))}
@@ -231,9 +231,9 @@ export default function LandingPage() {
             <div className="mt-10 grid gap-5 xl:grid-cols-4 md:grid-cols-2">
               {plans.map((plan, index) => (
                 <Reveal key={plan.id} delay={index * 70}>
-                  <article className={`premium-card relative flex h-full flex-col p-6 ${plan.id === 'STANDARD' ? 'border-[#fdba74] shadow-[0_24px_60px_rgba(234,88,12,0.16)]' : ''}`}>
+                  <article className={`premium-card relative flex h-full flex-col p-6 ${plan.id === 'STARTER' ? 'border-wa-border shadow-wa' : ''}`}>
                     {plan.isPopular && (
-                      <div className="absolute -top-3 left-6 rounded-full bg-[#ea580c] px-4 py-1 text-xs font-black text-white shadow-lg">
+                      <div className="absolute -top-3 left-6 rounded-full px-4 py-1 text-xs font-black text-white shadow-lg" style={{ background: 'linear-gradient(135deg,#1FB955,#0E5D32)' }}>
                         Le plus populaire
                       </div>
                     )}
@@ -252,7 +252,7 @@ export default function LandingPage() {
                         </div>
                       ))}
                     </div>
-                    <Link href={SIGNUP_URL} className={`mt-6 inline-flex items-center justify-center rounded-2xl px-5 py-4 text-sm font-black transition ${plan.id === 'STANDARD' ? 'bg-[#ea580c] text-white hover:bg-[#c2410c]' : 'border border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:shadow-soft'}`}>
+                    <Link href={SIGNUP_URL} className={`mt-6 inline-flex items-center justify-center rounded-2xl px-5 py-4 text-sm font-black transition ${plan.isPopular ? 'text-white' : 'border border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:shadow-soft'}`} style={plan.isPopular ? { background: 'linear-gradient(135deg,#1FB955,#0E5D32)' } : {}}>
                       Choisir {plan.name}
                     </Link>
                   </article>
@@ -277,7 +277,7 @@ export default function LandingPage() {
                   <details className="premium-card group overflow-hidden p-0">
                     <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 text-left text-base font-black text-slate-950 marker:content-none">
                       <span>{item.q}</span>
-                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition group-open:rotate-45 group-open:bg-[#25D366] group-open:text-white">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition group-open:rotate-45 group-open:bg-[#1FB955] group-open:text-white">
                         +
                       </span>
                     </summary>
@@ -332,7 +332,7 @@ export default function LandingPage() {
       <footer className="border-t border-slate-200 bg-white px-5 py-10 lg:px-8">
         <div className="mx-auto flex max-w-7xl flex-col gap-5 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#25D366] text-white shadow-[0_12px_30px_rgba(37,211,102,0.24)]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-wa text-white shadow-wa">
               <ShoppingBag className="h-5 w-5" />
             </div>
             <div>

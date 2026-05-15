@@ -57,7 +57,10 @@ export default function LoginPage() {
     <div className="min-h-screen bg-app-bg flex">
 
       {/* ── Left branding panel (desktop only) ────────────────────────────── */}
-      <div className="hidden lg:flex lg:w-[420px] xl:w-[480px] bg-gradient-to-br from-wa to-wa-dark flex-col justify-between p-12 flex-shrink-0">
+      <div
+        className="hidden lg:flex lg:w-[420px] xl:w-[480px] flex-col justify-between p-12 flex-shrink-0"
+        style={{ background: 'radial-gradient(60% 70% at 20% 30%, rgba(31,185,85,0.22) 0%, transparent 60%), #0B1220' }}
+      >
         <Link href="/" className="flex items-center gap-3 text-white">
           <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
             <ShoppingBag className="w-5 h-5" />
@@ -66,7 +69,7 @@ export default function LoginPage() {
         </Link>
 
         <div className="text-white">
-          <h1 className="text-4xl font-extrabold tracking-tight mb-4 leading-tight">
+          <h1 className="display-serif text-4xl mb-4 leading-tight">
             Vous vendez<br />sur WhatsApp.
           </h1>
           <p className="text-white/70 text-lg leading-relaxed mb-8">

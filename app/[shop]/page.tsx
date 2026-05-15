@@ -191,62 +191,31 @@ export default function ShopPage() {
     <div className="premium-mesh min-h-screen flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
 
       {/* ── HEADER ── */}
-      <header className="shop-header sticky top-0 z-40 border-b border-app-border bg-white/88 shadow-[0_16px_45px_rgba(15,23,42,0.06)] backdrop-blur-2xl" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            {shop.logo ? (
-              <img src={shop.logo} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
-            ) : (
-              <div className="premium-icon w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0"
-                style={{ background: `linear-gradient(135deg, ${pc}, ${pc}bb)` }}>
-                {shop.name.charAt(0)}
+      <header className="relative overflow-hidden shop-header" style={{ background: `linear-gradient(135deg, #052e25 0%, #0E5D32 58%, ${pc} 100%)`, color: 'white' }}>
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 88% 10%, rgba(255,255,255,0.18), transparent 50%), radial-gradient(circle at 8% 90%, rgba(255,106,44,0.16), transparent 55%)' }} />
+        <div className="relative px-5 lg:px-8 pt-6 pb-8 max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl flex items-center justify-center overflow-hidden" style={{ background: 'rgba(255,255,255,0.15)', border: '1.5px solid rgba(255,255,255,0.25)' }}>
+                {shop.logo ? <img src={shop.logo} alt={shop.name} className="w-full h-full object-cover" /> : <span className="display-serif text-lg font-black">{shop.name?.[0]||'S'}</span>}
               </div>
-            )}
-            <div className="min-w-0">
-              <h1 className="font-bold text-gray-800 truncate text-sm">{shop.name}</h1>
-              {shop.slogan && <p className="text-xs text-gray-400 truncate">{shop.slogan}</p>}
+              <div>
+                <div className="font-black text-base">{shop.name}</div>
+                <div className="text-[11px] opacity-80 font-bold inline-flex items-center gap-1.5"><span className="pulse-dot" style={{ background:'white' }} />Ouvert · répond vite</div>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {shop.whatsapp && (
-              <a href={getWhatsAppLink(shop.whatsapp, `Bonjour ${shop.name}!`)} target="_blank"
-                className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold text-white bg-wa hover:bg-wa-hover shadow-wa transition-colors">
-                <MessageCircle className="w-4 h-4" /><span className="hidden md:inline">WhatsApp</span>
-              </a>
-            )}
-            {/* Cart button — opens checkout modal */}
-            <button onClick={openCheckout}
-              className="relative p-2.5 rounded-xl transition-all hover:scale-105"
-              style={{ backgroundColor: `${pc}15`, color: pc }}>
-              <ShoppingCart className="w-5 h-5" />
-              {totalItems > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full text-[10px] text-white flex items-center justify-center font-bold"
-                  style={{ backgroundColor: pc }}>{totalItems}</span>
-              )}
+            <button onClick={openCheckout} className="h-11 px-4 rounded-full bg-white font-extrabold text-sm inline-flex items-center gap-2" style={{ color: 'var(--ink)' }}>
+              <ShoppingCart className="w-4 h-4" />
+              Panier
+              {totalItems > 0 && <span className="px-2 py-0.5 rounded-full text-[11px] text-white" style={{ background: '#1FB955' }}>{totalItems}</span>}
             </button>
           </div>
+          <h1 className="display-serif text-4xl sm:text-5xl leading-[1.04] mt-2">
+            {shop.slogan || <>{shop.name}.<br/><em className="italic opacity-90">Commande sur WhatsApp.</em></>}
+          </h1>
+          {shop.description && <p className="mt-3 text-[15px] max-w-md" style={{ color: 'rgba(255,255,255,0.85)' }}>{shop.description}</p>}
         </div>
       </header>
-
-      {/* ── HERO ── */}
-      <section className="relative overflow-hidden py-10 text-white shadow-[0_28px_80px_rgba(15,23,42,0.16)]"
-        style={{ background: `linear-gradient(135deg, ${pc} 0%, ${pc}88 100%)` }}>
-        <div className="absolute inset-0 opacity-10 pointer-events-none">
-          <div className="absolute top-4 right-12 w-32 h-32 rounded-full border-4 border-white" />
-          <div className="absolute bottom-2 left-8 w-20 h-20 rounded-full border-2 border-white" />
-        </div>
-        <div className="relative max-w-6xl mx-auto px-4 text-center">
-          <h2 className="text-2xl md:text-3xl font-extrabold mb-2">Bienvenue chez {shop.name} 🛍️</h2>
-          <p className="text-white/85 max-w-md mx-auto text-sm">{shop.description || 'Découvrez nos produits sélectionnés avec soin pour vous.'}</p>
-          <div className="flex flex-wrap justify-center gap-2 mt-5">
-            {[{ icon: Truck, t: 'Livraison rapide' }, { icon: Shield, t: 'Paiement sécurisé' }, { icon: RotateCcw, t: 'Retours faciles' }].map(({ icon: I, t }) => (
-              <div key={t} className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-medium">
-                <I className="w-3.5 h-3.5" />{t}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* ── CATEGORY PILLS ── */}
       {categories.length > 0 && (
@@ -461,19 +430,28 @@ export default function ShopPage() {
       )}
 
       {/* ── FOOTER ── */}
-      <footer className="bg-white border-t py-6">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="text-center md:text-left">
-              <p className="font-bold text-gray-800">{shop.name}</p>
-              {shop.city && <p className="text-sm text-gray-500 flex items-center gap-1 justify-center md:justify-start"><MapPin className="w-3.5 h-3.5" />{shop.city}, {shop.country}</p>}
-            </div>
-            <div className="flex gap-3">
-              {shop.whatsapp && <a href={getWhatsAppLink(shop.whatsapp, `Bonjour ${shop.name}!`)} target="_blank" className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-medium bg-green-500"><MessageCircle className="w-4 h-4" />WhatsApp</a>}
-              {shop.phone && <a href={`tel:${shop.phone}`} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-gray-200 text-gray-600"><Phone className="w-4 h-4" />Appeler</a>}
+      <footer className="bg-white border-t border-slate-100">
+        <div className="max-w-7xl mx-auto px-5 lg:px-8 py-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+            {[
+              { Icon: Truck,         t: 'Livraison rapide',  s: shop.deliveryFee ? `${shop.deliveryFee.toLocaleString('fr-FR')} ${shop.currency||'FCFA'}` : 'Sur demande' },
+              { Icon: MessageCircle, t: 'WhatsApp direct',   s: 'Réponse rapide' },
+              { Icon: CreditCard,    t: 'Paiements locaux',  s: 'Mobile Money · Cash' },
+              { Icon: Shield,        t: 'Vendeur vérifié',   s: 'Boutique MasterShopPro' },
+            ].map(item => (
+              <div key={item.t} className="flex items-start gap-3">
+                <div className="premium-icon flex-shrink-0"><item.Icon className="w-4 h-4" /></div>
+                <div><div className="text-sm font-extrabold">{item.t}</div><div className="text-[11.5px] text-slate-500 font-semibold mt-0.5">{item.s}</div></div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-6 pt-6 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-400 font-semibold">
+            <span>{shop.name}</span>
+            <div className="flex items-center gap-3">
+              {shop.whatsapp && <a href={getWhatsAppLink(shop.whatsapp, `Bonjour ${shop.name}!`)} target="_blank" className="font-bold text-wa-dark hover:text-wa inline-flex items-center gap-1.5"><MessageCircle className="w-3 h-3" />WhatsApp</a>}
+              <span>Propulsé par <a href="/" className="font-extrabold text-wa-dark hover:text-wa">MasterShopPro</a></span>
             </div>
           </div>
-          <div className="mt-4 pt-4 border-t text-center text-xs text-gray-400">Propulsé par <a href="/" className="hover:text-pink-500 font-medium">ShopMaster</a></div>
         </div>
         <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} />
       </footer>

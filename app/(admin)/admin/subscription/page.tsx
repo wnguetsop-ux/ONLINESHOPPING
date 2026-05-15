@@ -97,21 +97,24 @@ export default function SubscriptionPage() {
           return (
             <div
               key={plan.id}
-              className={`relative rounded-3xl border bg-white p-5 flex flex-col ${
+              className={`premium-card relative p-5 flex flex-col ${
                 isCurrent
-                  ? 'border-gray-900 shadow-lg'
+                  ? 'border-2 border-ink shadow-lg'
                   : plan.isPopular
-                    ? 'border-wa-border shadow-md'
-                    : 'border-gray-100'
+                    ? 'border-2 border-wa-border shadow-wa'
+                    : ''
               }`}
             >
               {plan.isPopular && !isCurrent && (
-                <div className="absolute -top-3 left-5 px-3 py-1 rounded-full bg-wa text-white text-xs font-bold">
-                  Le plus populaire
+                <div
+                  className="absolute -top-3 left-5 px-3 py-1 rounded-full text-white text-xs font-bold tracking-wide"
+                  style={{ background: 'linear-gradient(135deg,#1FB955,#0E5D32)' }}
+                >
+                  PLUS POPULAIRE
                 </div>
               )}
               {isCurrent && (
-                <div className="absolute -top-3 left-5 px-3 py-1 rounded-full bg-gray-900 text-white text-xs font-bold">
+                <div className="absolute -top-3 left-5 px-3 py-1 rounded-full text-white text-xs font-bold" style={{ background: '#0B1220' }}>
                   Plan actuel
                 </div>
               )}
@@ -122,8 +125,8 @@ export default function SubscriptionPage() {
                 </div>
                 <h2 className="text-xl font-black text-gray-800">{plan.name}</h2>
                 <div className="mt-3">
-                  <p className="text-3xl font-black" style={{ color: plan.color }}>
-                    {plan.priceXaf.toLocaleString('fr-FR')}
+                  <p className="font-black" style={{ color: plan.color }}>
+                    <span className="display-serif text-5xl leading-none">{plan.priceXaf.toLocaleString('fr-FR')}</span>
                     <span className="text-sm font-semibold text-gray-400"> FCFA</span>
                   </p>
                   <p className="text-xs text-gray-400 mt-1">par mois</p>
