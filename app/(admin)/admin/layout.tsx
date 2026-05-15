@@ -18,7 +18,10 @@ import {
   Store,
   Users,
   X,
+  Zap,
 } from 'lucide-react';
+
+const SUPER_ADMIN_EMAIL = 'wnguetsop@gmail.com';
 import { useAuth } from '@/hooks/useAuth';
 
 // Produits au centre (position 3/5) = zone de pouce dominante sur mobile
@@ -219,6 +222,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <PlanBadge planId={shop.planId} />
             </div>
           </div>
+          {user?.email === SUPER_ADMIN_EMAIL && (
+            <Link
+              href="/superadmin/activations"
+              onClick={() => setSidebarOpen(false)}
+              className="sidebar-link mb-1 text-xs font-extrabold"
+              style={{ color: '#16a34a', background: 'rgba(22,163,74,0.08)' }}
+            >
+              <Zap className="h-4 w-4" />
+              Activations crédits
+            </Link>
+          )}
           <button
             onClick={() => void handleLogout()}
             className="sidebar-link w-full text-xs text-red-500 hover:bg-red-50"
