@@ -4,8 +4,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, CheckCircle2, MessageCircle, Package, ShoppingBag, FileText, Store, Sparkles } from 'lucide-react';
 import Reveal from '@/components/marketing/Reveal';
-import { PLANS } from '@/lib/types';
-
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.mastershoppro.app';
 const SIGNUP_URL = '/register';
 
@@ -15,27 +13,7 @@ const BENEFITS = [
   'Boutique en ligne à partager en 1 lien',
 ];
 
-const FAQS = [
-  {
-    q: 'Est-ce que MasterShopPro remplace WhatsApp ?',
-    a: 'Non. WhatsApp reste le canal de vente. MasterShopPro organise les commandes, clients, paiements et suivis derriere les discussions.',
-  },
-  {
-    q: 'Est-ce que je peux garder mon numero WhatsApp actuel ?',
-    a: 'Oui, c est le parcours cible. Si Meta demande une migration du numero, l app guide le commercant au lieu de lui demander de repartir de zero.',
-  },
-  {
-    q: 'Pourquoi utiliser MasterShopPro si WhatsApp a deja un catalogue ?',
-    a: 'Le catalogue aide a montrer les produits. MasterShopPro aide a gerer ce qui vient apres : commandes, paiements, statut, stock, historique client.',
-  },
-];
-
-function formatXaf(value: number) {
-  return `${value.toLocaleString('fr-FR')} FCFA`;
-}
-
 export default function LandingPage() {
-  const plans = [PLANS.FREE, PLANS.STARTER, PLANS.STANDARD, PLANS.PRO];
 
   return (
     <div className="premium-mesh min-h-screen overflow-x-hidden text-slate-900">
@@ -190,22 +168,22 @@ export default function LandingPage() {
                 {
                   icon: Sparkles,
                   badge: '✨ IA',
-                  title: 'Brochure produit en 1 photo',
-                  text: 'Prends une photo. MasterShopPro génère le nom, le prix, la description et une brochure prête à coller dans ta discussion WhatsApp.',
+                  title: 'Brochure en 1 photo',
+                  text: 'Prends une photo — la fiche et la brochure sont prêtes en 8 sec. Tu colles, tu envoies.',
                   accent: '#1FB955',
                 },
                 {
                   icon: Package,
                   badge: '🛒 Suivi',
-                  title: 'Commandes & paiements clairs',
-                  text: 'Chaque commande WhatsApp est enregistrée avec son statut, son montant et son client. Relance en 1 clic. Plus rien ne se perd.',
+                  title: 'Commandes suivies',
+                  text: 'Chaque commande a un statut, un paiement, un client. Relance en 1 clic.',
                   accent: '#3F7BDC',
                 },
                 {
                   icon: Store,
                   badge: '🔗 Boutique',
-                  title: 'Boutique en ligne à partager',
-                  text: 'Un lien personnalisé (mastershoppro.com/ta-boutique) à partager partout. Les clients voient tes produits et commandent directement.',
+                  title: 'Boutique à partager',
+                  text: 'Un lien que tu partages sur WhatsApp. Tes clients voient les produits et commandent directement.',
                   accent: '#FF6A2C',
                 },
               ].map((item, index) => (
@@ -220,81 +198,6 @@ export default function LandingPage() {
                     <h3 className="mt-4 text-xl font-black text-slate-950">{item.title}</h3>
                     <p className="mt-2 text-sm leading-7 text-slate-600">{item.text}</p>
                   </article>
-                </Reveal>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="bg-white/50 px-5 py-20 backdrop-blur lg:px-8">
-          <div className="mx-auto max-w-6xl">
-            <Reveal>
-              <div className="mx-auto max-w-2xl text-center">
-                <p className="section-kicker justify-center">Tarifs</p>
-                <h2 className="section-title">Des plans simples pour gerer vos ventes</h2>
-                <p className="section-copy mx-auto">
-                  Commencez petit, puis ajoutez l inbox WhatsApp et les brouillons de commandes quand le volume augmente.
-                </p>
-              </div>
-            </Reveal>
-
-            <div className="mt-10 grid gap-5 xl:grid-cols-4 md:grid-cols-2">
-              {plans.map((plan, index) => (
-                <Reveal key={plan.id} delay={index * 70}>
-                  <article className={`premium-card relative flex h-full flex-col p-6 ${plan.id === 'STARTER' ? 'border-wa-border shadow-wa' : ''}`}>
-                    {plan.isPopular && (
-                      <div className="absolute -top-3 left-6 rounded-full px-4 py-1 text-xs font-black text-white shadow-lg" style={{ background: 'linear-gradient(135deg,#1FB955,#0E5D32)' }}>
-                        Le plus populaire
-                      </div>
-                    )}
-                    <p className="mt-2 text-sm font-black uppercase tracking-[0.22em]" style={{ color: plan.color }}>
-                      {plan.name}
-                    </p>
-                    <div className="mt-3 flex items-end gap-2">
-                      <span className="text-4xl font-black tracking-tight text-slate-950">{formatXaf(plan.priceXaf).replace(' FCFA', '')}</span>
-                      <span className="pb-1 text-sm font-semibold text-slate-400">FCFA / mois</span>
-                    </div>
-                    <div className="mt-5 space-y-3 text-sm text-slate-600">
-                      {plan.features.slice(0, 4).map((feature) => (
-                        <div key={feature} className="flex items-start gap-2">
-                          <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: plan.color }} />
-                          <span>{feature}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <Link href={SIGNUP_URL} className={`mt-6 inline-flex items-center justify-center rounded-2xl px-5 py-4 text-sm font-black transition ${plan.isPopular ? 'text-white' : 'border border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:shadow-soft'}`} style={plan.isPopular ? { background: 'linear-gradient(135deg,#1FB955,#0E5D32)' } : {}}>
-                      Choisir {plan.name}
-                    </Link>
-                  </article>
-                </Reveal>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="px-5 py-20 lg:px-8">
-          <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[0.82fr_1.18fr]">
-            <Reveal>
-              <div>
-                <p className="section-kicker">FAQ courte</p>
-                <h2 className="section-title">Les questions avant de connecter WhatsApp</h2>
-              </div>
-            </Reveal>
-
-            <div className="space-y-4">
-              {FAQS.map((item, index) => (
-                <Reveal key={item.q} delay={index * 70}>
-                  <details className="premium-card group overflow-hidden p-0">
-                    <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 text-left text-base font-black text-slate-950 marker:content-none">
-                      <span>{item.q}</span>
-                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition group-open:rotate-45 group-open:bg-[#1FB955] group-open:text-white">
-                        +
-                      </span>
-                    </summary>
-                    <div className="border-t border-slate-200 px-6 py-5 text-sm leading-7 text-slate-600">
-                      {item.a}
-                    </div>
-                  </details>
                 </Reveal>
               ))}
             </div>
