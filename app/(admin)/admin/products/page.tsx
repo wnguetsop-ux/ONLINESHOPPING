@@ -470,6 +470,8 @@ export default function ProductsPage() {
   const [proImageLoading, setProImageLoading] = useState(false);
   const [modalProLoading, setModalProLoading] = useState(false);
   const [brochurePreviewUrl, setBrochurePreviewUrl] = useState('');
+  // Cache en mémoire : productId → URL brochure (blob ou Firebase). Évite régénération dans la session.
+  const brochureCacheRef = useRef<Record<string, string>>({});
   const [newCat, setNewCat] = useState({ name:'', color:'#16a34a' });
   const [postSaveProduct, setPostSaveProduct] = useState<Product | null>(null);
   const [showQuickSell, setShowQuickSell] = useState(false);
@@ -853,7 +855,9 @@ export default function ProductsPage() {
   async function handleAddCat(e: React.FormEvent) { e.preventDefault(); if (!shop?.id||!newCat.name.trim()) return; await createCategory(shop.id,newCat); setNewCat({name:'',color:'#16a34a'}); await loadData(); setShowCatModal(false); }
 
   async function openBrochure(product: Product, forceRegenerate = false) {
-    const savedBrochureUrl = (product as any).brochureImageUrl as string | undefined;
+    const productId = product.id || '';
+    // Cherche l'URL en cache : Firestore (persistant) OU mémoire session (blob URL)
+    const savedBrochureUrl = product.brochureImageUrl || brochureCacheRef.current[productId];
 
     // Brochure déjà générée — afficher directement sans brûler de crédits
     if (savedBrochureUrl && !forceRegenerate) {
@@ -863,7 +867,6 @@ export default function ProductsPage() {
       setBrochureError('');
       setBrochureCopied(false);
       setProImageUrl(product.imageUrl || '');
-      if (brochurePreviewUrl) URL.revokeObjectURL(brochurePreviewUrl);
       setBrochurePreviewUrl(savedBrochureUrl);
       setBrochureLoading(false);
       return;
@@ -926,8 +929,10 @@ export default function ProductsPage() {
       const blob = await renderCommercialBrochureBlob(imageForCanvas, product, generatedCopy);
       if (blob) {
         const url = URL.createObjectURL(blob);
-        setBrochurePreviewUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return url; });
-        // Phase 3: sauvegarder la brochure dans la boutique
+        setBrochurePreviewUrl((prev) => { if (prev && prev.startsWith('blob:')) URL.revokeObjectURL(prev); return url; });
+        // Mettre en cache immédiatement (session) — évite toute régénération avant fin upload Firebase
+        if (product.id) brochureCacheRef.current[product.id] = url;
+        // Phase 3: sauvegarder en arrière-plan dans Firestore/Storage
         if (product.id) autoSaveBrochureImage(product.id, blob).catch(() => {});
         setBrochureError('');
       }
@@ -1064,6 +1069,8 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
       await uploadBytes(r2, blob, { contentType: 'image/png' });
       const url = await getDownloadURL(r2);
       await updateProduct(productId, { brochureImageUrl: url } as any);
+      // Remplacer le blob URL en cache par l'URL Firebase persistante
+      brochureCacheRef.current[productId] = url;
       setProducts(prev => prev.map(p => p.id === productId ? { ...p, brochureImageUrl: url } : p));
       setBrochureProduct(prev => prev ? { ...prev, brochureImageUrl: url } : prev);
     } catch (e) {
@@ -1831,11 +1838,23 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
   async function shareBrochure() {
     if (!brochureProduct || !brochureCopy) return;
     try {
-      const blob = await renderCommercialBrochureBlob();
+      let blob: Blob | null = null;
+
+      // Utiliser l'image déjà rendue (blob URL ou URL Firebase) — ne pas re-générer le canvas
+      if (brochurePreviewUrl) {
+        try {
+          const res = await fetch(brochurePreviewUrl);
+          blob = await res.blob();
+        } catch { /* si fetch échoue, re-rendre */ }
+      }
+
+      // Fallback : re-rendre le canvas si pas de preview
+      if (!blob) blob = await renderCommercialBrochureBlob();
       if (!blob) return;
+
       await nativeShareBlob(
         blob,
-        `brochure-${brochureProduct.name}.png`,
+        `brochure-${brochureProduct.name.replace(/\s+/g, '-').toLowerCase()}.png`,
         brochureProduct.name,
         brochureCopy.whatsappCaption
       );
