@@ -1346,66 +1346,74 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
     const img = proImageUrl || brochureProduct.imageUrl || '';
     const price = brochureProduct.sellingPrice > 0 ? `${brochureProduct.sellingPrice.toLocaleString('fr-FR')} ${shop?.currency || 'FCFA'}` : 'Prix disponible en boutique';
     const specs = (brochureProduct.specifications || 'Caracteristiques a completer').replace(/\n/g, '<br/>');
+
+    const html = `
+      <html><head><title>Fiche produit - ${brochureProduct.name}</title>
+      <style>
+        body{font-family:Arial,sans-serif;margin:0;background:#f1f5f9;color:#0f172a}
+        .page{max-width:820px;margin:28px auto;background:white;border-radius:28px;overflow:hidden;box-shadow:0 20px 60px rgba(15,23,42,.12)}
+        .hero{background:linear-gradient(135deg,#052e25,#0f766e);color:white;padding:28px 34px}
+        .brand{font-size:13px;text-transform:uppercase;letter-spacing:.18em;opacity:.8;font-weight:800}
+        h1{font-size:36px;line-height:1.05;margin:12px 0 8px}
+        .sub{font-size:15px;line-height:1.55;opacity:.92}
+        .media{background:#f8fafc;padding:24px;text-align:center}
+        .media img{max-width:100%;max-height:360px;object-fit:contain;border-radius:20px}
+        .content{padding:24px 28px;display:grid;gap:18px}
+        .price{font-size:28px;font-weight:900;color:#047857}
+        .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+        .card{border:1px solid #e2e8f0;border-radius:16px;padding:14px;background:#f8fafc}
+        .label{font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:#64748b;font-weight:900;margin-bottom:8px}
+        .bullet{font-weight:700;margin:6px 0;font-size:14px}
+        .cta{background:#052e25;color:white;border-radius:16px;padding:16px;font-weight:900;text-align:center;font-size:16px}
+        .toolbar{position:fixed;top:0;left:0;right:0;background:#0f172a;padding:10px 16px;display:flex;gap:10px;z-index:9999}
+        .btn{padding:8px 18px;border:none;border-radius:10px;font-weight:800;font-size:13px;cursor:pointer}
+        .btn-print{background:#1FB955;color:white}
+        .btn-close{background:#dc2626;color:white}
+        body{padding-top:52px}
+        @media print{.toolbar{display:none}body{padding-top:0;background:white}.page{margin:0;box-shadow:none;border-radius:0}}
+      </style></head>
+      <body>
+        <div class="toolbar">
+          <button class="btn btn-print" onclick="window.print()">⬇️ Sauver / Imprimer PDF</button>
+          <button class="btn btn-close" onclick="document.getElementById('psheet').remove();document.querySelector('.toolbar').remove();document.body.style.paddingTop='0'">✕ Fermer</button>
+        </div>
+        <div class="page" id="psheet">
+          <div class="hero">
+            <div class="brand">${shop?.name || 'MasterShopPro'} · fiche produit</div>
+            <h1>${brochureCopy.headline}</h1>
+            <div class="sub">${brochureCopy.subheadline}</div>
+          </div>
+          ${img ? `<div class="media"><img src="${img}" /></div>` : ''}
+          <div class="content">
+            <div class="price">${price}</div>
+            <div class="grid">
+              <div class="card"><div class="label">Points forts</div>${brochureCopy.bullets.map(b=>`<div class="bullet">✓ ${b}</div>`).join('')}</div>
+              <div class="card"><div class="label">Caracteristiques</div><div style="font-size:13px">${specs}</div></div>
+            </div>
+            <div class="card"><div class="label">Message WhatsApp</div><div style="font-size:13px">${brochureCopy.whatsappCaption.replace(/\n/g,'<br/>')}</div></div>
+            <div class="cta">${brochureCopy.cta}</div>
+          </div>
+        </div>
+      </body></html>`;
+
+    // Essayer d'abord window.open (desktop)
     const win = window.open('', '_blank', 'width=900,height=1200');
-    if (!win) {
-      alert('Autorise les popups pour generer la fiche PDF.');
+    if (win) {
+      win.document.write(html);
+      win.document.close();
       return;
     }
-    win.document.write(`
-      <html>
-        <head>
-          <title>Fiche produit - ${brochureProduct.name}</title>
-          <style>
-            body{font-family:Arial,sans-serif;margin:0;background:#f1f5f9;color:#0f172a}
-            .page{max-width:820px;margin:28px auto;background:white;border-radius:28px;overflow:hidden;box-shadow:0 20px 60px rgba(15,23,42,.12)}
-            .hero{background:linear-gradient(135deg,#052e25,#0f766e);color:white;padding:28px 34px}
-            .brand{font-size:13px;text-transform:uppercase;letter-spacing:.18em;opacity:.8;font-weight:800}
-            h1{font-size:40px;line-height:1.05;margin:16px 0 8px}
-            .sub{font-size:17px;line-height:1.55;opacity:.92}
-            .media{background:#f8fafc;padding:28px;text-align:center}
-            .media img{max-width:100%;max-height:430px;object-fit:contain;border-radius:24px}
-            .content{padding:30px 34px;display:grid;gap:22px}
-            .price{font-size:30px;font-weight:900;color:#047857}
-            .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-            .card{border:1px solid #e2e8f0;border-radius:20px;padding:18px;background:#f8fafc}
-            .label{font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:#64748b;font-weight:900;margin-bottom:10px}
-            .bullet{font-weight:800;margin:8px 0}
-            .cta{background:#052e25;color:white;border-radius:20px;padding:20px;font-weight:900;text-align:center}
-            @media print{body{background:white}.page{margin:0;box-shadow:none;border-radius:0}.no-print{display:none}}
-          </style>
-        </head>
-        <body>
-          <div class="page">
-            <div class="hero">
-              <div class="brand">${shop?.name || 'MasterShopPro'} · fiche produit</div>
-              <h1>${brochureCopy.headline}</h1>
-              <div class="sub">${brochureCopy.subheadline}</div>
-            </div>
-            <div class="media">${img ? `<img src="${img}" />` : ''}</div>
-            <div class="content">
-              <div class="price">${price}</div>
-              <div class="grid">
-                <div class="card">
-                  <div class="label">Points forts</div>
-                  ${brochureCopy.bullets.map((b)=>`<div class="bullet">✓ ${b}</div>`).join('')}
-                </div>
-                <div class="card">
-                  <div class="label">Caracteristiques</div>
-                  <div>${specs}</div>
-                </div>
-              </div>
-              <div class="card">
-                <div class="label">Message client</div>
-                <div>${brochureCopy.whatsappCaption.replace(/\n/g, '<br/>')}</div>
-              </div>
-              <div class="cta">${brochureCopy.cta}</div>
-            </div>
-          </div>
-          <script>setTimeout(()=>window.print(),500)</script>
-        </body>
-      </html>
-    `);
-    win.document.close();
+
+    // Fallback Android/WebView : overlay dans la page courante
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:white;z-index:99998;overflow-y:auto;';
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'width:100%;height:100%;border:none;';
+    overlay.appendChild(iframe);
+    document.body.appendChild(overlay);
+    iframe.contentDocument!.open();
+    iframe.contentDocument!.write(html);
+    iframe.contentDocument!.close();
   }
 
   async function persistProfessionalImageToProduct() {
