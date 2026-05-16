@@ -284,7 +284,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* ── FLOATING SHARE — pill collapsible ── */}
       {shop?.slug && (
-        <div className="fixed bottom-[4.75rem] right-3 z-30 lg:hidden">
+        <div className="fixed right-3 z-30 lg:hidden" style={{ bottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
           {shareExpanded ? (
             <div className="rounded-2xl border border-wa/20 p-3 shadow-xl w-64"
                  style={{ background: 'linear-gradient(135deg,#052e25,#0E5D32)' }}>
