@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'Mastershop',
   webDir: 'out',
   server: {
-    url: 'https://www.mastershoppro.com/login',
+    url: 'https://www.mastershoppro.com/admin/orders',
     cleartext: false,
     androidScheme: 'https',
   },

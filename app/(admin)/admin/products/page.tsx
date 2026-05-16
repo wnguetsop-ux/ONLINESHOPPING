@@ -1776,20 +1776,44 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
   }
 
   async function nativeShareBlob(blob: Blob, filename: string, title: string, text: string) {
-    const file = new File([blob], filename, { type: 'image/png' });
+    // Capacitor (Android WebView) — Filesystem + Share avec files:[uri]
+    try {
+      const [{ Filesystem, Directory }, { Share }] = await Promise.all([
+        import('@capacitor/filesystem'),
+        import('@capacitor/share'),
+      ]);
+      const base64 = await new Promise<string>((res, rej) => {
+        const reader = new FileReader();
+        reader.onload = () => res((reader.result as string).split(',')[1]);
+        reader.onerror = rej;
+        reader.readAsDataURL(blob);
+      });
+      const path = `mastershop_${Date.now()}.png`;
+      await Filesystem.writeFile({ path, data: base64, directory: Directory.Cache });
+      const { uri } = await Filesystem.getUri({ path, directory: Directory.Cache });
+      await Share.share({ title, text, files: [uri], dialogTitle: 'Partager' });
+      Filesystem.deleteFile({ path, directory: Directory.Cache }).catch(() => {});
+      return;
+    } catch (e: any) {
+      // AbortError = user cancelled → ne pas continuer
+      if (e?.name === 'AbortError') return;
+      const msg = String(e?.message || '').toLowerCase();
+      if (msg.includes('cancel') || msg.includes('dismiss')) return;
+      // sinon : Capacitor non dispo → fallback web
+    }
 
-    // Web Share API avec fichiers (Android Chrome ≥ 89)
+    // Web Share API avec fichiers (navigateur standard hors Capacitor)
+    const file = new File([blob], filename, { type: 'image/png' });
     if (navigator.canShare?.({ files: [file] })) {
       try {
         await navigator.share({ title, text, files: [file] });
         return;
       } catch (e: any) {
-        if (e?.name === 'AbortError') return; // annulé par l'utilisateur
-        // partage impossible → fallback
+        if (e?.name === 'AbortError') return;
       }
     }
 
-    // Fallback : télécharger l'image + ouvrir WhatsApp
+    // Dernier recours : télécharger + ouvrir WhatsApp avec le texte
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = filename;

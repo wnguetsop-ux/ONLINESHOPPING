@@ -1,12 +1,12 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   AlertCircle, ArrowLeft, Eye, EyeOff,
   Loader2, Lock, Mail, ShoppingBag,
 } from 'lucide-react';
-import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
 const ERROR_CODES: Record<string, string> = {
@@ -19,6 +19,14 @@ const ERROR_CODES: Record<string, string> = {
 
 export default function LoginPage() {
   const router = useRouter();
+
+  // Si déjà connecté (session Firebase en mémoire) → rediriger directement
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      if (user) router.replace('/admin/orders');
+    });
+    return () => unsub();
+  }, []);
   const [tab,          setTab]          = useState<'login' | 'forgot'>('login');
   const [loading,      setLoading]      = useState(false);
   const [error,        setError]        = useState('');
