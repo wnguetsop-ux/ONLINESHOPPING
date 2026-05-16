@@ -852,7 +852,23 @@ export default function ProductsPage() {
   async function handleDelete(id: string) { if (!confirm('Supprimer ce produit ?')) return; await deleteProduct(id); await loadData(); }
   async function handleAddCat(e: React.FormEvent) { e.preventDefault(); if (!shop?.id||!newCat.name.trim()) return; await createCategory(shop.id,newCat); setNewCat({name:'',color:'#16a34a'}); await loadData(); setShowCatModal(false); }
 
-  async function openBrochure(product: Product) {
+  async function openBrochure(product: Product, forceRegenerate = false) {
+    const savedBrochureUrl = (product as any).brochureImageUrl as string | undefined;
+
+    // Brochure déjà générée — afficher directement sans brûler de crédits
+    if (savedBrochureUrl && !forceRegenerate) {
+      const initial = defaultBrochure(product, shop?.name || 'MasterShopPro', shop?.currency || 'FCFA', shop?.slug || '');
+      setBrochureProduct(product);
+      setBrochureCopy(initial);
+      setBrochureError('');
+      setBrochureCopied(false);
+      setProImageUrl(product.imageUrl || '');
+      if (brochurePreviewUrl) URL.revokeObjectURL(brochurePreviewUrl);
+      setBrochurePreviewUrl(savedBrochureUrl);
+      setBrochureLoading(false);
+      return;
+    }
+
     if (studioCredits < 1) { setShowCreditsModal(true); return; }
     const initial = defaultBrochure(product, shop?.name || 'MasterShopPro', shop?.currency || 'FCFA', shop?.slug || '');
     setBrochureProduct(product);
@@ -1250,12 +1266,12 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
     ctx.textAlign = 'center';
     const hlWords = headline;
     const hlMaxW = 900;
-    wrapCanvasText(ctx, hlWords, 90, 790, hlMaxW, 38, 2);
+    wrapCanvasText(ctx, hlWords, 540, 790, hlMaxW, 38, 2);
 
     // Subtext
     ctx.fillStyle = 'rgba(255,255,255,0.75)';
     ctx.font = '500 26px Arial';
-    wrapCanvasText(ctx, subtext, 90, 858, 900, 32, 2);
+    wrapCanvasText(ctx, subtext, 540, 858, 900, 32, 2);
 
     // Deadline
     if (deadline) {
@@ -1760,40 +1776,28 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
   }
 
   async function nativeShareBlob(blob: Blob, filename: string, title: string, text: string) {
-    // Essayer Capacitor Share (Android natif) en premier
-    try {
-      const { Share } = await import('@capacitor/share');
-      const reader = new FileReader();
-      const base64 = await new Promise<string>((res, rej) => {
-        reader.onload = () => res((reader.result as string).split(',')[1]);
-        reader.onerror = rej;
-        reader.readAsDataURL(blob);
-      });
-      const { Filesystem, Directory } = await import('@capacitor/filesystem').catch(() => ({ Filesystem: null, Directory: null }));
-      if (Filesystem) {
-        const path = `share_${Date.now()}.png`;
-        await Filesystem.writeFile({ path, data: base64, directory: Directory!.Cache });
-        const uriResult = await Filesystem.getUri({ path, directory: Directory!.Cache });
-        await Share.share({ title, text, url: uriResult.uri, dialogTitle: 'Partager sur WhatsApp' });
-        return;
-      }
-    } catch { /* pas Capacitor ou Filesystem — fallback */ }
-
-    // Fallback Web Share API
     const file = new File([blob], filename, { type: 'image/png' });
+
+    // Web Share API avec fichiers (Android Chrome ≥ 89)
     if (navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ title, text, files: [file] });
-      return;
+      try {
+        await navigator.share({ title, text, files: [file] });
+        return;
+      } catch (e: any) {
+        if (e?.name === 'AbortError') return; // annulé par l'utilisateur
+        // partage impossible → fallback
+      }
     }
 
-    // Dernier recours : télécharger + copier texte
+    // Fallback : télécharger l'image + ouvrir WhatsApp
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = filename;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    try { await navigator.clipboard.writeText(text); } catch { /* ignore */ }
-    alert('Image téléchargée et texte copié. Ouvre WhatsApp, attache l\'image et colle le message.');
+    setTimeout(() => {
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    }, 800);
   }
 
   async function shareBrochure() {
@@ -2337,6 +2341,12 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
                       {brochureLoading?<Loader2 className="w-4 h-4 animate-spin"/>:<Wand2 className="w-4 h-4"/>}
                       Generer brochure
                     </button>
+                    {(brochureProduct as any)?.brochureImageUrl && (
+                      <button onClick={() => brochureProduct && openBrochure(brochureProduct, true)} disabled={brochureLoading} className="py-3 rounded-2xl bg-amber-50 text-amber-800 font-extrabold text-sm border border-amber-100 hover:bg-amber-100 flex items-center justify-center gap-2 disabled:opacity-60 col-span-2">
+                        <RefreshCw className="w-4 h-4"/>
+                        Regenerer (4 credits)
+                      </button>
+                    )}
                     <button onClick={shareBrochure} className="py-3 rounded-2xl bg-slate-950 text-white font-extrabold text-sm flex items-center justify-center gap-2 hover:bg-slate-800">
                       <Share2 className="w-4 h-4"/>
                       Partager brochure
