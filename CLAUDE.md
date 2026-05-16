@@ -1,6 +1,6 @@
 # MasterShopPro Project Guide
 
-> **Last updated:** 2026-05-15 — Premium redesign shipped + Product flow engineering proposals
+> **Last updated:** 2026-05-16 — Crédits IA, Brochure auto, Fiche Promo, Stripe live, Android v1.6, fixes partage & cache
 
 ## Product Vision
 
@@ -73,6 +73,75 @@ When something feels too simple, ask:
 4. Did we lose feedback or visual guidance?
 
 If yes, restore or replace it with something better.
+
+---
+
+# Features livrées — session 2026-05-15/16
+
+## Modèle crédits IA (Option A — actif)
+
+Remplace l'abonnement WhatsApp par des crédits consommables.
+
+**Coûts IA (champ `aiCredits` dans Firestore `shops`):**
+| Action | Crédits |
+|--------|---------|
+| Analyse photo | 1 |
+| Photo Pro IA (gpt-image-1 low) | 3 |
+| Brochure IA (texte Gemini) | 1 |
+| QuickSell IA | 3 |
+
+**Packs Stripe (live, compte SANTE VITALE `acct_1Swh800xylvxJgKU`) :**
+| Pack | Prix | Crédits |
+|------|------|---------|
+| Pack 50 | 1 500 FCFA | 50 |
+| Pack 200 | 5 000 FCFA | 200 |
+| Pack 500 | 10 000 FCFA | 500 |
+
+- Nouveaux comptes : 5 crédits offerts à l'inscription (`lib/firestore.ts` → `createShop`)
+- Webhook Stripe → `client_reference_id=shopId` → `aiCredits` auto-crédité
+- Route admin : `/api/admin-activate` (Firebase Admin SDK, bypass Firestore rules)
+- Panel superadmin : `/superadmin/activations` — activer manuellement par boutique
+
+## Photo Pro IA
+
+- Route : `/api/generate-visual` preset `product-spotlight` → **OpenAI gpt-image-1** directement (bypass Gemini)
+- Coût réel : ~0.02 EUR / photo (13 FCFA), marge ≥ 78% sur Pack 500
+- Bouton dans modal produit + génération auto lors de `openBrochure`
+- Auto-sauvegarde : `product.imageUrl` + `product.images[]`
+
+## Brochure IA (one-click)
+
+- `openBrochure(product)` : texte Gemini + photo pro OpenAI en parallèle → canvas 1080×1920 → PNG
+- Sauvegarde : `product.brochureImageUrl` dans Firestore + Firebase Storage
+- **Cache mémoire session** (`brochureCacheRef`) : 0 crédit / 0 appel IA si déjà généré
+- `useEffect` sur `products` → peuple le cache dès chargement Firestore
+- Canvas visible dans boutique publique (icône FileText + modal)
+- Partage : `shareBrochure()` fetch `brochurePreviewUrl` directement (ne re-rend pas le canvas)
+
+## Fiche Promo
+
+- Canvas 1080×1080 (carré WhatsApp Status)
+- 2 templates : **Flash** (rouge/orange) + **Vedette** (vert foncé)
+- Manuel = 0 crédit / avec IA accroche = 1 crédit
+- Inclut : WhatsApp + URL boutique (`mastershoppro.com/[slug]`)
+- `product.promoImageUrl` → badge "Promo en cours" dans boutique publique
+- Centrage texte corrigé (`wrapCanvasText` x=90 → x=540)
+
+## Android app (Capacitor WebView)
+
+- WebView charge `https://www.mastershoppro.com/admin/orders` (pas une build locale)
+- **v1.6** (versionCode 8) — dernière version stable
+- Persistance session : `onAuthStateChanged` dans login/page.tsx → redirect si déjà authentifié
+- Partage natif : `Capacitor.isNativePlatform()` → Filesystem.writeFile (Directory.Cache) → Share.share(`files:[uri]`)
+- FileProvider corrigé : `android/app/src/main/res/xml/file_paths.xml` inclut `<cache-path>` + `<files-path>`
+- Message WhatsApp = présentation marchand (plus le message client "je suis intéressé...")
+
+## UX / Admin
+
+- Page Commandes : tri DESC par `createdAt`, PENDING en premier, groupes Aujourd'hui → Hier → passé
+- Share pill : collapsible en bas-droite (CSS `env(safe-area-inset-bottom)`)
+- Badge rouge sur "Commandes" (nav + sidebar) si PENDING > 0
+- Dashboard : `onSnapshot` temps réel, métriques mois/total/clients/produits
 
 ---
 
@@ -391,6 +460,19 @@ Pas de long formulaire. 30 secondes du début à la brochure partagée.
 
 ---
 
+## Features livrées — 2026-05-15/16 ✅
+
+- ✅ Modèle crédits IA (Option A) — remplace abonnement WhatsApp
+- ✅ Photo Pro IA (OpenAI gpt-image-1)
+- ✅ Brochure one-click (texte + photo + canvas + sauvegarde auto)
+- ✅ Fiche Promo (Flash/Vedette, canvas 1080×1080)
+- ✅ Stripe live (3 packs, webhook auto)
+- ✅ Panel activations superadmin (`/superadmin/activations`)
+- ✅ Android app v1.6 (Capacitor WebView, partage natif image, login persistant)
+- ✅ Commandes triées par date DESC + PENDING first
+- ✅ Cache brochure (useRef + Firestore — 0 crédit sur réouverture)
+- ✅ Message WhatsApp = présentation marchand (pas message client)
+
 ## Next Features to Build (in order)
 
 ### 1. Mobile Money Payment Links (URGENT)
@@ -401,19 +483,24 @@ Pas de long formulaire. 30 secondes du début à la brochure partagée.
 - Store credentials per merchant in Firestore (`merchant_payment_accounts`).
 - Currency: XAF native throughout.
 
-### 2. Improved AI Order Detection
+### 2. Page Abonnement / Crédits IA — mise à jour UI
+- La page `/admin/subscription` affiche encore les anciens plans WhatsApp.
+- Mettre à jour pour afficher les packs crédits (50/200/500) avec les vrais liens Stripe.
+- Afficher le solde actuel `aiCredits`, l'historique d'utilisation, et les boutons d'achat.
+
+### 3. Improved AI Order Detection
 - Replace keyword heuristics in `lib/whatsapp-analysis.ts` with a Gemini call.
 - Prompt must understand Cameroonian French, pidgin, and common local slang (e.g. "je veux prendre", "on m'avait dit", "c'est combien pour").
 - Fall back to heuristics if Gemini quota exceeded.
 - Target: confidence ≥ 0.85 for order intent, reducing missed orders.
 
-### 3. Voice Message Parsing (MEDIUM TERM)
+### 4. Voice Message Parsing (MEDIUM TERM)
 - WhatsApp Cloud API delivers audio messages as media URLs.
 - Transcribe using Gemini audio API or Whisper.
 - Feed transcript into existing `analyzeIncomingMessage` pipeline.
 - This is a significant retention differentiator — no competitor does this for African markets.
 
-### 4. TikTok/Instagram DM Capture (MEDIUM TERM)
+### 5. TikTok/Instagram DM Capture (MEDIUM TERM)
 - Build a lightweight "capture inbox" where merchants can manually paste DM content or screenshots.
 - AI extracts order intent and creates draft order.
 - Long-term: explore TikTok for Business API when available in Cameroon.
