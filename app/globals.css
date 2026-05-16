@@ -264,8 +264,8 @@ body {
   .stat-card { @apply card p-4 flex flex-col gap-3; }
 
   /* ── Sidebar / Navigation ───────────────────────────────────────────────── */
-  .sidebar-link        { @apply flex items-center gap-3 px-3 py-3 rounded-xl text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition-all font-medium text-sm; }
-  .sidebar-link-active { @apply flex items-center gap-3 px-3 py-3 rounded-xl bg-wa-soft text-wa-dark font-semibold text-sm; }
+  .sidebar-link        { @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all font-semibold text-sm; }
+  .sidebar-link-active { @apply flex items-center gap-3 px-3 py-2.5 rounded-xl bg-wa-soft text-wa-dark font-bold text-sm border border-wa-border/60; }
   .nav-tab             { @apply flex flex-col items-center gap-1 text-slate-400 transition-colors; }
   .nav-tab-active      { @apply flex flex-col items-center gap-1 text-wa-dark; }
 

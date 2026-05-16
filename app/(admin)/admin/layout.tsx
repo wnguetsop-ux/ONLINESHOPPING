@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   BarChart3,
+  Bell,
   Copy,
   Crown,
   ExternalLink,
@@ -71,6 +72,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [shareExpanded, setShareExpanded] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
 
   function copyShopLink() {
     if (!shop?.slug) return;
@@ -84,6 +87,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       router.push('/login');
     }
   }, [loading, router, user]);
+
+  useEffect(() => {
+    if (!shop?.id) return;
+    import('@/lib/firestore').then(({ getOrders }) => {
+      getOrders(shop.id!).then(orders => {
+        const count = orders.filter(o => o.status === 'PENDING').length;
+        setPendingCount(count);
+      }).catch(() => {});
+    });
+  }, [shop?.id]);
 
   async function handleLogout() {
     await logout();
@@ -189,6 +202,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 {item.href === '/admin/whatsapp' && !active && (
                   <span className="ml-auto rounded-full bg-wa px-1.5 py-0.5 text-[9px] font-bold text-white">IA</span>
                 )}
+                {item.href === '/admin/orders' && pendingCount > 0 && !active && (
+                  <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white">
+                    {pendingCount > 9 ? '9+' : pendingCount}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -264,34 +282,49 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <main className="page-enter mb-bar-safe p-4 lg:mb-0 lg:p-6">{children}</main>
       </div>
 
-      {/* ── FLOATING SHARE BAR — boutique toujours accessible ── */}
+      {/* ── FLOATING SHARE — pill collapsible ── */}
       {shop?.slug && (
-        <div className="fixed bottom-[4.5rem] left-3 right-3 z-30 lg:hidden">
-          <div className="flex items-center gap-2 rounded-2xl border border-wa/20 px-4 py-2.5 shadow-wa"
-               style={{ background: 'linear-gradient(135deg,#052e25,#0E5D32)' }}>
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/55">Ma boutique</p>
-              <p className="text-[12px] font-extrabold text-white truncate">/{shop.slug}</p>
+        <div className="fixed bottom-[4.75rem] right-3 z-30 lg:hidden">
+          {shareExpanded ? (
+            <div className="rounded-2xl border border-wa/20 p-3 shadow-xl w-64"
+                 style={{ background: 'linear-gradient(135deg,#052e25,#0E5D32)' }}>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-white/60">Ma boutique</p>
+                <button onClick={() => setShareExpanded(false)}
+                        className="w-6 h-6 rounded-full bg-white/15 flex items-center justify-center">
+                  <X className="h-3 w-3 text-white" />
+                </button>
+              </div>
+              <p className="text-xs font-extrabold text-white mb-3 truncate">/{shop.slug}</p>
+              <div className="flex gap-2">
+                <button onClick={copyShopLink}
+                        className="flex-1 h-9 rounded-xl text-[11px] font-extrabold flex items-center justify-center gap-1.5 transition-all"
+                        style={{ background: shareCopied ? '#1FB955' : 'rgba(255,255,255,0.15)', color: 'white' }}>
+                  <Copy className="h-3.5 w-3.5" />
+                  {shareCopied ? 'Copié !' : 'Copier'}
+                </button>
+                <a href={`https://wa.me/?text=${encodeURIComponent(`Découvre ma boutique : ${typeof window !== 'undefined' ? window.location.origin : 'https://mastershoppro.com'}/${shop.slug}`)}`}
+                   target="_blank" rel="noopener noreferrer"
+                   className="flex-1 h-9 rounded-xl text-[11px] font-extrabold flex items-center justify-center gap-1.5"
+                   style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}>
+                  <MessageCircle className="h-3.5 w-3.5" />
+                  Partager
+                </a>
+                <Link href={`/${shop.slug}`} target="_blank"
+                      className="h-9 w-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}>
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </Link>
+              </div>
             </div>
-            <button onClick={copyShopLink}
-                    className="h-9 px-3 rounded-xl text-[11px] font-extrabold flex items-center gap-1.5 transition-all"
-                    style={{ background: shareCopied ? '#1FB955' : 'rgba(255,255,255,0.15)', color: 'white' }}>
-              <Copy className="h-3.5 w-3.5" />
-              {shareCopied ? 'Copié !' : 'Copier'}
+          ) : (
+            <button onClick={() => setShareExpanded(true)}
+                    className="flex items-center gap-2 rounded-full px-4 py-2.5 shadow-wa transition-all hover:scale-105 active:scale-95"
+                    style={{ background: 'linear-gradient(135deg,#052e25,#0E5D32)' }}>
+              <Store className="h-3.5 w-3.5 text-white" />
+              <span className="text-[11px] font-extrabold text-white">/{shop.slug}</span>
             </button>
-            <a href={`https://wa.me/?text=${encodeURIComponent(`Bonjour ! Découvre ma boutique : ${window?.location?.origin ?? ''}/${shop.slug}`)}`}
-               target="_blank" rel="noopener noreferrer"
-               className="h-9 px-3 rounded-xl text-[11px] font-extrabold flex items-center gap-1.5"
-               style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}>
-              <MessageCircle className="h-3.5 w-3.5" />
-              Partager
-            </a>
-            <Link href={`/${shop.slug}`} target="_blank"
-                  className="h-9 w-9 rounded-xl flex items-center justify-center"
-                  style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}>
-              <ExternalLink className="h-3.5 w-3.5" />
-            </Link>
-          </div>
+          )}
         </div>
       )}
 
@@ -318,11 +351,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-2 transition-colors ${
+              onClick={() => { if (item.href === '/admin/orders') setPendingCount(0); }}
+              className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-2 transition-colors relative ${
                 active ? 'text-wa-dark' : 'text-slate-400 hover:text-slate-600'
               }`}
             >
-              <item.icon className={`h-5 w-5 ${active ? 'stroke-[2.5]' : ''}`} />
+              <div className="relative">
+                <item.icon className={`h-5 w-5 ${active ? 'stroke-[2.5]' : ''}`} />
+                {item.href === '/admin/orders' && pendingCount > 0 && !active && (
+                  <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[8px] font-black text-white">
+                    {pendingCount > 9 ? '9+' : pendingCount}
+                  </span>
+                )}
+              </div>
               <span className={`text-[9px] ${active ? 'font-bold' : 'font-medium'}`}>{item.label}</span>
               {active && <span className="mt-0.5 h-1 w-1 rounded-full bg-wa" />}
             </Link>

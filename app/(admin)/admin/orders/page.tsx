@@ -476,6 +476,19 @@ export default function OrdersPage() {
         ))}
       </div>
 
+      {/* Pending orders banner */}
+      {orders.filter(o => o.status === 'PENDING').length > 0 && (
+        <div className="mb-3 flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-400" />
+          </span>
+          <p className="text-sm font-extrabold text-amber-800">
+            {orders.filter(o => o.status === 'PENDING').length} commande{orders.filter(o => o.status === 'PENDING').length > 1 ? 's' : ''} en attente de confirmation
+          </p>
+        </div>
+      )}
+
       {/* Orders list */}
       {dateKeys.length === 0 ? (
         <div className="card text-center py-12">
