@@ -2,14 +2,16 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
-import { getOrders } from '@/lib/firestore';
+import { getProducts } from '@/lib/firestore';
+import { db } from '@/lib/firebase';
+import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { formatPrice } from '@/lib/utils';
 import { sendWhatsApp } from '@/lib/whatsapp';
 import { computeDayInsights, DayInsight } from '@/lib/insights';
 import {
   ArrowRight, BarChart3, CheckCircle, ChevronRight,
   Copy, ExternalLink, MessageCircle, Package, Plus,
-  ShoppingBag, Store, TrendingUp, Users, Zap,
+  ShoppingBag, Store, TrendingUp, Users, Zap, RefreshCw,
 } from 'lucide-react';
 
 // ── Status helpers ────────────────────────────────────────────────────────────
@@ -83,25 +85,42 @@ function HeroKpiCell({ label, value, sub, accent, icon }: {
 
 export default function DashboardPage() {
   const { shop, admin } = useAuth();
-  const [orders,   setOrders]   = useState<any[]>([]);
-  const [loading,  setLoading]  = useState(true);
-  const [copied,   setCopied]   = useState(false);
-  const [sending,  setSending]  = useState<string | null>(null);
-  const [step,     setStep]     = useState(0);
-  const [insights, setInsights] = useState<DayInsight[]>([]);
+  const [orders,        setOrders]        = useState<any[]>([]);
+  const [loading,       setLoading]       = useState(true);
+  const [copied,        setCopied]        = useState(false);
+  const [sending,       setSending]       = useState<string | null>(null);
+  const [step,          setStep]          = useState(0);
+  const [insights,      setInsights]      = useState<DayInsight[]>([]);
+  const [productsCount, setProductsCount] = useState(0);
+  const [lastUpdated,   setLastUpdated]   = useState<Date | null>(null);
   const lastHash = useRef('');
 
+  // ── Listener temps réel sur les commandes ────────────────────────────────────
   useEffect(() => {
     if (!shop?.id) return;
-    getOrders(shop.id).then(o => {
+    const q = query(
+      collection(db, 'orders'),
+      where('shopId', '==', shop.id),
+      orderBy('createdAt', 'desc')
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      const o = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
       setOrders(o);
       setLoading(false);
+      setLastUpdated(new Date());
       const hash = o.map((x: any) => x.id + x.status).join('|');
       if (hash !== lastHash.current) {
         lastHash.current = hash;
         setInsights(computeDayInsights(o, shop?.currency));
       }
-    });
+    }, () => setLoading(false));
+    return () => unsub();
+  }, [shop?.id]);
+
+  // ── Comptage produits (une fois) ─────────────────────────────────────────────
+  useEffect(() => {
+    if (!shop?.id) return;
+    getProducts(shop.id, true).then(p => setProductsCount(p.length)).catch(() => {});
   }, [shop?.id]);
 
   function copyLink() {
@@ -124,23 +143,26 @@ export default function DashboardPage() {
   }
 
   // ── Computed metrics ─────────────────────────────────────────────────────────
-  const pending      = orders.filter(o => o.status === 'PENDING');
-  const unpaid       = orders.filter(o =>
+  const pending       = orders.filter(o => o.status === 'PENDING');
+  const unpaid        = orders.filter(o =>
     ['PENDING','CONFIRMED','PROCESSING'].includes(o.status) && (o.balanceDue || 0) > 0
   );
-  const totalUnpaid  = unpaid.reduce((s, o) => s + (o.balanceDue || 0), 0);
-  const today        = new Date(); today.setHours(0, 0, 0, 0);
-  const todayOrders  = orders.filter(o => new Date(o.createdAt) >= today);
-  const todayRevenue = todayOrders
-    .filter(o => o.status === 'DELIVERED')
-    .reduce((s, o) => s + o.total, 0);
-  const twoDaysAgo   = new Date(); twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-  const toRelance    = orders.filter(o =>
+  const totalUnpaid   = unpaid.reduce((s, o) => s + (o.balanceDue || 0), 0);
+  const today         = new Date(); today.setHours(0, 0, 0, 0);
+  const monthStart    = new Date(); monthStart.setDate(1); monthStart.setHours(0,0,0,0);
+  const todayOrders   = orders.filter(o => new Date(o.createdAt) >= today);
+  const todayRevenue  = todayOrders.filter(o => o.status === 'DELIVERED').reduce((s,o) => s + (o.total||0), 0);
+  const monthRevenue  = orders.filter(o => new Date(o.createdAt) >= monthStart && o.status === 'DELIVERED').reduce((s,o) => s + (o.total||0), 0);
+  const totalRevenue  = orders.filter(o => o.status === 'DELIVERED').reduce((s,o) => s + (o.total||0), 0);
+  const uniqueClients = new Set(orders.map(o => o.customerPhone).filter(Boolean)).size;
+  const twoDaysAgo    = new Date(); twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+  const toRelance     = orders.filter(o =>
     ['PENDING','CONFIRMED','PROCESSING'].includes(o.status) &&
     (o.balanceDue || 0) > 0 && new Date(o.createdAt) < twoDaysAgo
   );
-  const recentOrders = orders.slice(0, 5);
-  const isNewUser    = !loading && orders.length === 0;
+  const recentOrders  = orders.slice(0, 5);
+  const isNewUser     = !loading && orders.length === 0;
+  const deliveredCount = orders.filter(o => o.status === 'DELIVERED').length;
 
   const todayLabel = new Date().toLocaleDateString('fr-FR', {
     weekday: 'long', day: 'numeric', month: 'long',
@@ -251,24 +273,35 @@ export default function DashboardPage() {
       <div className="relative overflow-hidden rounded-[2.25rem] shadow-hi" style={{ background: '#0B1220' }}>
         <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(circle at 92% 8%, rgba(31,185,85,0.32), transparent 50%), radial-gradient(circle at 6% 92%, rgba(255,106,44,0.18), transparent 55%)' }} />
         <div className="relative px-6 sm:px-8 py-8 sm:py-10 text-white">
-          <div className="inline-flex items-center gap-2 text-[11px] font-extrabold tracking-[0.22em] uppercase text-white/55">
-            <span className="pulse-dot" /> {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+          <div className="flex items-center justify-between">
+            <div className="inline-flex items-center gap-2 text-[11px] font-extrabold tracking-[0.22em] uppercase text-white/55">
+              <span className="pulse-dot" /> {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </div>
+            {lastUpdated && (
+              <div className="flex items-center gap-1.5 text-[10px] font-semibold text-white/40">
+                <RefreshCw className="w-3 h-3" />
+                {lastUpdated.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </div>
+            )}
           </div>
           <h1 className="display-serif text-4xl sm:text-5xl mt-3 leading-[1.02]">
             Bonjour <em className="italic" style={{ color: '#1FB955' }}>{shop?.name || 'Boutique'}.</em>
           </h1>
           <div className="mt-6 flex flex-wrap gap-2.5">
-            <Link href="/admin/orders" className="btn-primary px-5 text-sm">Ouvrir les commandes</Link>
+            <Link href="/admin/orders" className="btn-primary px-5 text-sm">
+              {pending.length > 0 && <span className="mr-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[9px] font-black">{pending.length}</span>}
+              Commandes
+            </Link>
             <button onClick={copyLink} className="btn px-5 py-3 text-sm rounded-full" style={{ background: 'rgba(255,255,255,0.10)', border: '1.5px solid rgba(255,255,255,0.18)', color: 'white' }}>
               {copied ? 'Lien copié !' : 'Partager la boutique'}
             </button>
           </div>
         </div>
         <div className="relative grid grid-cols-2 sm:grid-cols-4 border-t border-white/10">
-          <HeroKpiCell label="À encaisser" value={formatPriceCompact(totalUnpaid)} sub={`${shop?.currency || 'FCFA'}`} accent="#FF6A2C" icon={<span className="text-xs">💰</span>} />
-          <HeroKpiCell label="En attente" value={String(pending.length)} sub="commandes" accent="#3F7BDC" icon={<span className="text-xs">⏳</span>} />
-          <HeroKpiCell label="Aujourd'hui" value={formatPriceCompact(todayRevenue)} sub={`${shop?.currency || 'FCFA'}`} accent="#1FB955" icon={<span className="text-xs">📈</span>} />
-          <HeroKpiCell label="Total" value={formatPriceCompact(orders.reduce((s,o) => s + (o.total||0), 0))} sub={`${orders.length} commandes`} accent="#FFFFFF" icon={<span className="text-xs">🛍️</span>} />
+          <HeroKpiCell label="Ce mois" value={formatPriceCompact(monthRevenue)} sub={`${shop?.currency || 'FCFA'} encaissé`} accent="#1FB955" icon={<span className="text-xs">📈</span>} />
+          <HeroKpiCell label="En attente" value={String(pending.length)} sub="à confirmer" accent={pending.length > 0 ? '#FF6A2C' : '#3F7BDC'} icon={<span className="text-xs">⏳</span>} />
+          <HeroKpiCell label="À encaisser" value={formatPriceCompact(totalUnpaid)} sub={`${unpaid.length} commande(s)`} accent="#FF6A2C" icon={<span className="text-xs">💰</span>} />
+          <HeroKpiCell label="Clients" value={String(uniqueClients)} sub={`${orders.length} commandes total`} accent="#FFFFFF" icon={<span className="text-xs">👥</span>} />
         </div>
       </div>
 
@@ -300,13 +333,14 @@ export default function DashboardPage() {
             <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center">
               <ShoppingBag className="w-5 h-5" />
             </div>
-            <span className="flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-full border border-amber-200">
-              <TrendingUp className="w-3 h-3" />
-              Urgent
-            </span>
+            {pending.length > 0 && (
+              <span className="flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-full border border-amber-200 animate-pulse">
+                <TrendingUp className="w-3 h-3" /> Urgent
+              </span>
+            )}
           </div>
           <p className="text-3xl font-black text-slate-900 tracking-tight">{pending.length}</p>
-          <p className="text-xs font-semibold text-slate-500 mt-0.5">Commandes en attente</p>
+          <p className="text-xs font-semibold text-slate-500 mt-0.5">En attente · {todayOrders.length} auj.</p>
         </Link>
 
         {/* Chiffre du jour */}
@@ -315,47 +349,41 @@ export default function DashboardPage() {
             <div className="w-10 h-10 rounded-xl bg-wa-soft text-wa-dark flex items-center justify-center border border-wa-border">
               <BarChart3 className="w-5 h-5" />
             </div>
-            <span className="flex items-center gap-1 text-[10px] font-bold text-wa-dark bg-wa-soft px-2 py-1 rounded-full border border-wa-border">
-              <TrendingUp className="w-3 h-3" />
-              Auj.
-            </span>
+            <span className="text-[10px] font-bold text-wa-dark bg-wa-soft px-2 py-1 rounded-full border border-wa-border">Auj.</span>
           </div>
           <p className="text-xl font-black text-slate-900 tracking-tight leading-none">
-            {formatPrice(todayRevenue, shop?.currency)}
+            {todayRevenue > 0 ? formatPrice(todayRevenue, shop?.currency) : formatPriceCompact(todayOrders.length) + ' cmd'}
           </p>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Chiffre du jour · {todayOrders.length} commande(s)
+            {todayRevenue > 0 ? `${todayOrders.length} commande(s)` : 'Ce jour — aucune livraison'}
           </p>
         </div>
 
-        {/* Clients à relancer */}
-        <Link href="/admin/clients" className="stat-card hover:shadow-ios transition-shadow">
-          <div className="flex justify-between items-start mb-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
-              <Users className="w-5 h-5" />
-            </div>
-          </div>
-          <p className="text-3xl font-black text-slate-900 tracking-tight">{toRelance.length}</p>
-          <p className="text-xs font-semibold text-slate-500 mt-0.5">Clients à relancer (+2j)</p>
-        </Link>
-
-        {/* Solde impayé */}
+        {/* Total livré */}
         <div className="stat-card">
           <div className="flex justify-between items-start mb-3">
-            <div className="w-10 h-10 rounded-xl bg-red-100 text-red-500 flex items-center justify-center">
-              <span className="text-lg">💰</span>
+            <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+              <TrendingUp className="w-5 h-5" />
             </div>
-            {totalUnpaid > 0 && (
-              <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1 rounded-full border border-red-200">
-                Impayé
-              </span>
-            )}
+            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-200">{deliveredCount} livrées</span>
           </div>
           <p className="text-xl font-black text-slate-900 tracking-tight leading-none">
-            {formatPrice(totalUnpaid, shop?.currency)}
+            {formatPrice(totalRevenue, shop?.currency)}
           </p>
-          <p className="text-xs font-semibold text-slate-500 mt-1">{unpaid.length} commande(s) avec solde</p>
+          <p className="text-xs font-semibold text-slate-500 mt-1">Revenu total encaissé</p>
         </div>
+
+        {/* Produits & clients */}
+        <Link href="/admin/products" className="stat-card hover:shadow-ios transition-shadow">
+          <div className="flex justify-between items-start mb-3">
+            <div className="w-10 h-10 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center">
+              <Package className="w-5 h-5" />
+            </div>
+            <span className="text-[10px] font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-full border border-violet-200">{uniqueClients} clients</span>
+          </div>
+          <p className="text-3xl font-black text-slate-900 tracking-tight">{productsCount}</p>
+          <p className="text-xs font-semibold text-slate-500 mt-0.5">Produits actifs</p>
+        </Link>
       </div>
 
       {/* ── Daily priorities ─────────────────────────────────────────────────── */}
