@@ -9,7 +9,7 @@ import { formatPrice } from '@/lib/utils';
 import { sendWhatsApp } from '@/lib/whatsapp';
 import { computeDayInsights, DayInsight } from '@/lib/insights';
 import {
-  ArrowRight, BarChart3, CheckCircle, ChevronRight,
+  ArrowRight, BarChart3, CheckCircle,
   Copy, ExternalLink, MessageCircle, Package, Plus,
   ShoppingBag, Store, TrendingUp, Users, Zap, RefreshCw,
 } from 'lucide-react';
@@ -89,7 +89,6 @@ export default function DashboardPage() {
   const [loading,       setLoading]       = useState(true);
   const [copied,        setCopied]        = useState(false);
   const [sending,       setSending]       = useState<string | null>(null);
-  const [step,          setStep]          = useState(0);
   const [insights,      setInsights]      = useState<DayInsight[]>([]);
   const [productsCount, setProductsCount] = useState(0);
   const [lastUpdated,   setLastUpdated]   = useState<Date | null>(null);
@@ -161,7 +160,6 @@ export default function DashboardPage() {
     (o.balanceDue || 0) > 0 && new Date(o.createdAt) < twoDaysAgo
   );
   const recentOrders  = orders.slice(0, 5);
-  const isNewUser     = !loading && orders.length === 0;
   const deliveredCount = orders.filter(o => o.status === 'DELIVERED').length;
 
   const todayLabel = new Date().toLocaleDateString('fr-FR', {
@@ -176,95 +174,7 @@ export default function DashboardPage() {
   );
 
   // ════════════════════════════════════════════════════════════════════════════
-  // VUE NOUVEL UTILISATEUR
-  // ════════════════════════════════════════════════════════════════════════════
-  if (isNewUser) {
-    return (
-      <div className="max-w-xl space-y-4 animate-fadeIn">
-        {/* Welcome banner */}
-        <div className="card bg-gradient-to-br from-wa to-wa-dark p-5 text-white border-0">
-          <p className="text-white/70 text-sm mb-1">Bienvenue sur MasterShopPro 👋</p>
-          <h1 className="text-xl font-black">{shop?.name}</h1>
-          <p className="text-white/80 text-sm mt-2 leading-relaxed">
-            Vous vendez sur WhatsApp&nbsp;? Gérez vos commandes en 3 étapes.
-          </p>
-        </div>
-
-        {/* Steps */}
-        <div className="space-y-2.5">
-          {STEPS.map((s, i) => {
-            const isActive = step === i;
-            const isDone   = step > i;
-            return (
-              <div
-                key={i}
-                className={`card overflow-hidden transition-all ${
-                  isActive ? 'border-wa shadow-wa/10' : 'border-app-border'
-                }`}
-              >
-                <button
-                  onClick={() => setStep(isActive ? -1 : i)}
-                  className="w-full flex items-center gap-3 p-4 text-left"
-                >
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 border-2 ${
-                    isActive ? 'border-wa bg-wa-soft' : 'border-app-border bg-slate-50'
-                  }`}>
-                    {isDone ? '✅' : s.emoji}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <span className={`text-[10px] font-bold uppercase tracking-wider ${isActive ? 'text-wa-dark' : 'text-slate-400'}`}>
-                      Étape {s.num}
-                    </span>
-                    <p className="font-bold text-slate-800 text-sm">{s.title}</p>
-                  </div>
-                  <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform ${isActive ? 'rotate-90' : ''}`} />
-                </button>
-                {isActive && (
-                  <div className="px-4 pb-4">
-                    <p className="text-sm text-slate-500 mb-3 leading-relaxed">{s.desc}</p>
-                    <div className="flex gap-2">
-                      <Link href={s.href} className="btn-wa text-sm px-4 py-2.5 rounded-xl">
-                        <Plus className="w-4 h-4" /> {s.cta}
-                      </Link>
-                      {i < STEPS.length - 1 && (
-                        <button
-                          onClick={() => setStep(i + 1)}
-                          className="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-500 border border-app-border hover:bg-slate-50"
-                        >
-                          Suivant →
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Shop link */}
-        <div className="card p-4 flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="font-bold text-sm text-slate-700">🔗 Lien de votre boutique</p>
-            <p className="text-xs text-slate-400 truncate mt-0.5">
-              {typeof window !== 'undefined' ? window.location.origin : ''}/{shop?.slug}
-            </p>
-          </div>
-          <div className="flex gap-2 flex-shrink-0">
-            <button onClick={copyLink} className="btn-icon hover:bg-slate-100 text-slate-500">
-              {copied ? <CheckCircle className="w-4 h-4 text-wa" /> : <Copy className="w-4 h-4" />}
-            </button>
-            <Link href={`/${shop?.slug}`} target="_blank" className="btn-icon hover:bg-slate-100 text-slate-500">
-              <ExternalLink className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // VUE UTILISATEUR ACTIF
+  // DASHBOARD PRINCIPAL
   // ════════════════════════════════════════════════════════════════════════════
   return (
     <div className="space-y-6 page-enter">
