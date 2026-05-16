@@ -30,9 +30,9 @@ const PACK_VALUE: Record<string, {
 }> = {
   FREE: {
     icon: <ShoppingBag className="h-6 w-6" />,
-    tagline: '5 crédits offerts',
+    tagline: '2 crédits offerts',
     forWho: 'Pour découvrir l\'IA sans risque à l\'inscription',
-    valueProof: '5 crédits = 5 analyses produit, ou 1 photo pro IA, ou 5 brochures. Gratuit pour toujours.',
+    valueProof: '2 crédits = 2 analyses produit, ou 1 brochure IA complète. Gratuit pour toujours.',
     highlight: 'Sans carte bancaire',
     cta: 'Commencer gratuitement',
     mobileMoneyOk: false,
@@ -232,7 +232,7 @@ export default function PricingPage() {
                         {plan.priceXaf === 0 ? (
                           <div>
                             <span className="display-serif text-5xl text-ink">Gratuit</span>
-                            <p className="mt-1 text-[12px] font-semibold text-slate-400">5 crédits offerts</p>
+                            <p className="mt-1 text-[12px] font-semibold text-slate-400">2 crédits offerts</p>
                           </div>
                         ) : (
                           <div>
@@ -446,7 +446,7 @@ export default function PricingPage() {
 
           <div className="relative mx-auto max-w-2xl text-center text-white">
             <h2 className="display-serif text-4xl leading-[1.04] sm:text-5xl">
-              Commence avec 5 crédits.<br />
+              Commence avec 2 crédits.<br />
               <em className="italic" style={{ color: '#1FB955' }}>Gratuit. Pour toujours.</em>
             </h2>
             <p className="mx-auto mt-4 max-w-lg text-base text-white/70">

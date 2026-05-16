@@ -73,9 +73,9 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     maxOrdersPerMonth: -1,     // commandes illimitées
     maxWhatsappAccounts: 0,
     maxStaff: 1,
-    aiCreditsIncluded: 5,      // crédits offerts à l'inscription (non renouvelables)
+    aiCreditsIncluded: 2,      // crédits offerts à l'inscription (non renouvelables)
     features: [
-      '5 crédits IA offerts',
+      '2 crédits IA offerts',
       'Produits & commandes illimités',
       'Boutique en ligne publique',
       'Brochures texte de base',

@@ -60,7 +60,7 @@ export async function createShop(
     lastOrderReset: now,
     isActive: true,
     createdAt: now,
-    ...(!(data as any).aiCredits ? { aiCredits: 5 } : {}), // 5 crédits offerts FREE
+    ...(!(data as any).aiCredits ? { aiCredits: 2 } : {}), // 2 crédits offerts FREE
   };
 
   const docRef = await addDoc(collection(db, 'shops'), shop);
