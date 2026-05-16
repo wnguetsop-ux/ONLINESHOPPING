@@ -545,6 +545,13 @@ export default function ProductsPage() {
   });
 
   useEffect(() => { if (shop?.id) loadData(); }, [shop?.id]);
+
+  // Peupler le cache mémoire dès que les products sont chargés depuis Firestore
+  useEffect(() => {
+    products.forEach(p => {
+      if (p.id && p.brochureImageUrl) brochureCacheRef.current[p.id] = p.brochureImageUrl;
+    });
+  }, [products]);
   useEffect(() => () => { if (cameraStream) cameraStream.getTracks().forEach(t=>t.stop()); }, [cameraStream]);
 
   function proxySrc(src: string): string {

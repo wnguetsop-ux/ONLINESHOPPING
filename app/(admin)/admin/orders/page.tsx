@@ -38,8 +38,16 @@ interface FlyItem { id: string; x: number; y: number; }
 type Step = 'client' | 'products' | 'summary';
 
 function groupByDate(orders: Order[]) {
+  // Plus récent en premier, PENDING remonté dans chaque groupe
+  const sorted = [...orders].sort((a, b) => {
+    const dateDiff = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    if (dateDiff !== 0) return dateDiff;
+    // à date égale : PENDING avant tout
+    const rank = (s: string) => s === 'PENDING' ? 0 : 1;
+    return rank(a.status) - rank(b.status);
+  });
   const groups: Record<string, Order[]> = {};
-  orders.forEach(o => {
+  sorted.forEach(o => {
     const d = new Date(o.createdAt);
     const today = new Date(); today.setHours(0,0,0,0);
     const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
@@ -328,7 +336,14 @@ export default function OrdersPage() {
   if (dateFrom) filtered = filtered.filter(o => new Date(o.createdAt) >= new Date(dateFrom));
   if (dateTo) { const to = new Date(dateTo); to.setHours(23,59,59); filtered = filtered.filter(o => new Date(o.createdAt) <= to); }
   const grouped = groupByDate(filtered);
-  const dateKeys = Object.keys(grouped);
+  // Trier les groupes : Aujourd'hui → Hier → dates du plus récent au plus ancien
+  const dateKeys = Object.keys(grouped).sort((a, b) => {
+    if (a === 'Aujourd\'hui') return -1;
+    if (b === 'Aujourd\'hui') return 1;
+    if (a === 'Hier') return -1;
+    if (b === 'Hier') return 1;
+    return new Date(b).getTime() - new Date(a).getTime();
+  });
   const hasFilters = statusFilter || search || dateFrom || dateTo;
   const stats = {
     PENDING: orders.filter(o => o.status === 'PENDING').length,

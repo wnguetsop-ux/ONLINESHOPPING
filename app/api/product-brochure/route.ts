@@ -34,7 +34,7 @@ function fallbackBrochure(body: ProductBrochureRequest) {
       'Commande possible directement sur WhatsApp',
     ],
     cta: `Commander a ${price}`,
-    whatsappCaption: `Bonjour, je suis interesse(e) par ${name}. Est-ce encore disponible ?\n\nPrix: ${price}\nBoutique: ${shop}`,
+    whatsappCaption: `🛍️ *${name}*\n\n💰 Prix : *${price}*\n${body.stock && body.stock > 0 ? '✅ Disponible maintenant' : '⚠️ Stock limité'}\n\n📦 *${shop}* vous présente ce produit !\n👉 Répondez à ce message pour commander`,
   };
 }
 
@@ -98,7 +98,7 @@ Reponds uniquement en JSON valide:
   "badge": "badge court",
   "bullets": ["benefice 1 max 8 mots", "benefice 2 max 8 mots", "benefice 3 max 8 mots"],
   "cta": "appel a l'action court avec prix si possible",
-  "whatsappCaption": "message pret a envoyer sur WhatsApp avec nom, prix, disponibilite et question simple"
+  "whatsappCaption": "message de presentation du produit que le MARCHAND envoie a ses clients (pas un message client). Format: emoji nom produit, prix, disponibilite, appel a commander. Max 200 caracteres."
 }`;
 
     const response = await ai.models.generateContent({
