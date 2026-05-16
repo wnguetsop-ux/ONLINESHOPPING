@@ -546,12 +546,17 @@ export default function ProductsPage() {
 
   useEffect(() => { if (shop?.id) loadData(); }, [shop?.id]);
 
-  // Peupler le cache mémoire dès que les products sont chargés depuis Firestore
+  // Peupler le cache depuis Firestore ET localStorage au chargement
   useEffect(() => {
+    if (!shop?.id) return;
     products.forEach(p => {
-      if (p.id && p.brochureImageUrl) brochureCacheRef.current[p.id] = p.brochureImageUrl;
+      if (!p.id) return;
+      // Priorité : Firestore > localStorage > rien
+      const url = p.brochureImageUrl
+        || (() => { try { return localStorage.getItem(`msp_b_${shop.id}_${p.id}`) || ''; } catch { return ''; } })();
+      if (url) brochureCacheRef.current[p.id] = url;
     });
-  }, [products]);
+  }, [products, shop?.id]);
   useEffect(() => () => { if (cameraStream) cameraStream.getTracks().forEach(t=>t.stop()); }, [cameraStream]);
 
   function proxySrc(src: string): string {
@@ -863,8 +868,9 @@ export default function ProductsPage() {
 
   async function openBrochure(product: Product, forceRegenerate = false) {
     const productId = product.id || '';
-    // Cherche l'URL en cache : Firestore (persistant) OU mémoire session (blob URL)
-    const savedBrochureUrl = product.brochureImageUrl || brochureCacheRef.current[productId];
+    // Cherche l'URL : Firestore > mémoire session > localStorage téléphone
+    const lsUrl = (() => { try { return localStorage.getItem(`msp_b_${shop?.id}_${productId}`) || ''; } catch { return ''; } })();
+    const savedBrochureUrl = product.brochureImageUrl || brochureCacheRef.current[productId] || lsUrl;
 
     // Brochure déjà générée — afficher directement sans brûler de crédits
     if (savedBrochureUrl && !forceRegenerate) {
@@ -937,8 +943,26 @@ export default function ProductsPage() {
       if (blob) {
         const url = URL.createObjectURL(blob);
         setBrochurePreviewUrl((prev) => { if (prev && prev.startsWith('blob:')) URL.revokeObjectURL(prev); return url; });
-        // Mettre en cache immédiatement (session) — évite toute régénération avant fin upload Firebase
+        // Cache mémoire immédiat
         if (product.id) brochureCacheRef.current[product.id] = url;
+        // Sauvegarder en JPEG dans localStorage — persist sans Firebase
+        if (product.id && shop?.id) {
+          const lsKey = `msp_b_${shop.id}_${product.id}`;
+          const imgEl = new Image();
+          const tmpUrl = URL.createObjectURL(blob);
+          imgEl.onload = () => {
+            try {
+              const c2 = document.createElement('canvas');
+              c2.width = imgEl.width; c2.height = imgEl.height;
+              c2.getContext('2d')!.drawImage(imgEl, 0, 0);
+              const jpeg = c2.toDataURL('image/jpeg', 0.65);
+              localStorage.setItem(lsKey, jpeg);
+              brochureCacheRef.current[product.id!] = jpeg;
+            } catch { /* storage full — ignore */ }
+            URL.revokeObjectURL(tmpUrl);
+          };
+          imgEl.src = tmpUrl;
+        }
         // Phase 3: sauvegarder en arrière-plan dans Firestore/Storage
         if (product.id) autoSaveBrochureImage(product.id, blob).catch(() => {});
         setBrochureError('');
@@ -1931,7 +1955,8 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filtered.map(product=>(
             <div key={product.id} className={`premium-card overflow-hidden ${!product.isActive ? 'opacity-75' : ''}`}>
-              <div className="relative bg-gradient-to-br from-gray-50 to-emerald-50" style={{aspectRatio:'1'}}>
+              <div className="relative bg-gradient-to-br from-gray-50 to-emerald-50 cursor-pointer" style={{aspectRatio:'1'}}
+                   onClick={() => openBrochure(product)}>
                 {product.imageUrl
                   ? <img src={product.imageUrl} alt={product.name} className="w-full h-full object-contain p-4"/>
                   : <div className="w-full h-full flex items-center justify-center"><Package className="w-12 h-12 text-gray-300"/></div>}
@@ -1944,6 +1969,12 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
                 <div className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-black ${product.isActive ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-600'}`}>
                   {product.isActive ? 'En ligne' : 'Masque'}
                 </div>
+                {/* Badge brochure si déjà générée */}
+                {(product.brochureImageUrl || brochureCacheRef.current[product.id || '']) && (
+                  <div className="absolute bottom-2 left-2 bg-black/60 text-white text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <FileText className="w-3 h-3"/>Brochure
+                  </div>
+                )}
               </div>
               <div className="p-4">
                 <div className="flex items-start justify-between gap-3 mb-3">

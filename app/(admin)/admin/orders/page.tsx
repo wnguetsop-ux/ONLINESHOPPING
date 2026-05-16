@@ -426,6 +426,43 @@ export default function OrdersPage() {
         />
       )}
 
+      {/* NOUVELLES COMMANDES — toujours visibles en premier */}
+      {orders.filter(o => o.status === 'PENDING').length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 px-1">
+            <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"/>
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-400"/>
+            </span>
+            <p className="text-sm font-black text-slate-900">Nouvelles commandes à confirmer</p>
+            <span className="ml-auto text-xs font-black text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+              {orders.filter(o => o.status === 'PENDING').length} en attente
+            </span>
+          </div>
+          {orders
+            .filter(o => o.status === 'PENDING')
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .map(order => (
+              <button key={order.id} onClick={() => setSelected(order)}
+                className="w-full text-left bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 hover:bg-amber-100 active:scale-[0.99] transition-all">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-extrabold text-slate-900 truncate">{order.customerName}</p>
+                    <p className="text-sm text-amber-700 font-semibold mt-0.5">
+                      {formatPrice(order.total, shop?.currency)} · {order.items?.length || 0} article{(order.items?.length||0)>1?'s':''}
+                    </p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-xs text-slate-500">{formatDate(order.createdAt)}</p>
+                    <p className="text-xs font-black text-amber-700 mt-1">Confirmer →</p>
+                  </div>
+                </div>
+              </button>
+            ))
+          }
+        </div>
+      )}
+
       {/* KPI */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {(['PENDING','CONFIRMED','PROCESSING','DELIVERED'] as const).map(s => {
