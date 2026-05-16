@@ -1330,17 +1330,13 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
     try {
       const blob = await renderPromoCanvas();
       if (!blob) return;
-      const file = new File([blob], `promo-${promoProduct?.name || 'produit'}.png`, { type: 'image/png' });
       const caption = promoForm.headline || `Promo sur ${promoProduct?.name}`;
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ title: promoProduct?.name, text: caption, files: [file] });
-      } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = file.name;
-        document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-      }
+      await nativeShareBlob(
+        blob,
+        `promo-${promoProduct?.name?.replace(/\s+/g, '-').toLowerCase() || 'produit'}.png`,
+        promoProduct?.name || 'Promo',
+        caption
+      );
     } catch (e) { console.error(e); }
     setPromoLoading(false);
   }
@@ -1755,26 +1751,56 @@ Market: African/Cameroonian WhatsApp commerce. Clean premium studio look, realis
     }
   }
 
+  async function nativeShareBlob(blob: Blob, filename: string, title: string, text: string) {
+    // Essayer Capacitor Share (Android natif) en premier
+    try {
+      const { Share } = await import('@capacitor/share');
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((res, rej) => {
+        reader.onload = () => res((reader.result as string).split(',')[1]);
+        reader.onerror = rej;
+        reader.readAsDataURL(blob);
+      });
+      const { Filesystem, Directory } = await import('@capacitor/filesystem').catch(() => ({ Filesystem: null, Directory: null }));
+      if (Filesystem) {
+        const path = `share_${Date.now()}.png`;
+        await Filesystem.writeFile({ path, data: base64, directory: Directory!.Cache });
+        const uriResult = await Filesystem.getUri({ path, directory: Directory!.Cache });
+        await Share.share({ title, text, url: uriResult.uri, dialogTitle: 'Partager sur WhatsApp' });
+        return;
+      }
+    } catch { /* pas Capacitor ou Filesystem — fallback */ }
+
+    // Fallback Web Share API
+    const file = new File([blob], filename, { type: 'image/png' });
+    if (navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ title, text, files: [file] });
+      return;
+    }
+
+    // Dernier recours : télécharger + copier texte
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    try { await navigator.clipboard.writeText(text); } catch { /* ignore */ }
+    alert('Image téléchargée et texte copié. Ouvre WhatsApp, attache l\'image et colle le message.');
+  }
+
   async function shareBrochure() {
     if (!brochureProduct || !brochureCopy) return;
     try {
       const blob = await renderCommercialBrochureBlob();
       if (!blob) return;
-      const file = new File([blob], `brochure-${brochureProduct.name}.png`, { type: 'image/png' });
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({
-          title: brochureProduct.name,
-          text: brochureCopy.whatsappCaption,
-          files: [file],
-        });
-      } else {
-        await navigator.clipboard.writeText(brochureCopy.whatsappCaption);
-        await downloadBrochure();
-        alert('Brochure telechargee et message copie. Tu peux maintenant partager sur WhatsApp.');
-      }
+      await nativeShareBlob(
+        blob,
+        `brochure-${brochureProduct.name}.png`,
+        brochureProduct.name,
+        brochureCopy.whatsappCaption
+      );
     } catch (error) {
       console.error('[Brochure] Partage impossible:', error);
-      alert("Partage direct indisponible sur ce navigateur. J'ai garde le telechargement PNG disponible.");
     }
   }
 
